@@ -1,0 +1,67 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Web.Host", "DotJEM.Web.Host\DotJEM.Web.Host.csproj", "{D7393445-A4C4-4BB4-BB9F-89A6B631E970}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{386F4C38-46EE-4784-B00E-E7E3699FFD8B}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "external", "external", "{6B6E155A-1814-4D76-8E65-A0AAD27B51D9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "json-index", "json-index", "{1FB7F59B-063C-44CF-A7E1-E24C0C28C82C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "json-storage", "json-storage", "{54EA3D3B-0DEC-4025-8DD1-BAE95F315C3C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Index", "external\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj", "{61EA751B-691B-4F68-87C5-46D115D51CC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Index.Test", "external\json-index\DotJEM.Json.Index.Test\DotJEM.Json.Index.Test.csproj", "{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Storage", "external\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj", "{672D1E1D-C559-4914-B233-807CC7CE3B52}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Storage.Test", "external\json-storage\DotJEM.Json.Storage.Test\DotJEM.Json.Storage.Test.csproj", "{4FB691C4-C279-4AA2-BF63-451FE1BEFBE8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D7393445-A4C4-4BB4-BB9F-89A6B631E970}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7393445-A4C4-4BB4-BB9F-89A6B631E970}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7393445-A4C4-4BB4-BB9F-89A6B631E970}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7393445-A4C4-4BB4-BB9F-89A6B631E970}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61EA751B-691B-4F68-87C5-46D115D51CC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61EA751B-691B-4F68-87C5-46D115D51CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61EA751B-691B-4F68-87C5-46D115D51CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61EA751B-691B-4F68-87C5-46D115D51CC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{672D1E1D-C559-4914-B233-807CC7CE3B52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{672D1E1D-C559-4914-B233-807CC7CE3B52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{672D1E1D-C559-4914-B233-807CC7CE3B52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{672D1E1D-C559-4914-B233-807CC7CE3B52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FB691C4-C279-4AA2-BF63-451FE1BEFBE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FB691C4-C279-4AA2-BF63-451FE1BEFBE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FB691C4-C279-4AA2-BF63-451FE1BEFBE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FB691C4-C279-4AA2-BF63-451FE1BEFBE8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1FB7F59B-063C-44CF-A7E1-E24C0C28C82C} = {6B6E155A-1814-4D76-8E65-A0AAD27B51D9}
+		{54EA3D3B-0DEC-4025-8DD1-BAE95F315C3C} = {6B6E155A-1814-4D76-8E65-A0AAD27B51D9}
+		{61EA751B-691B-4F68-87C5-46D115D51CC3} = {1FB7F59B-063C-44CF-A7E1-E24C0C28C82C}
+		{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1} = {1FB7F59B-063C-44CF-A7E1-E24C0C28C82C}
+		{672D1E1D-C559-4914-B233-807CC7CE3B52} = {54EA3D3B-0DEC-4025-8DD1-BAE95F315C3C}
+		{4FB691C4-C279-4AA2-BF63-451FE1BEFBE8} = {54EA3D3B-0DEC-4025-8DD1-BAE95F315C3C}
+	EndGlobalSection
+EndGlobal
