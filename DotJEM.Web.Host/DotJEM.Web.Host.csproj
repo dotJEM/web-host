@@ -36,7 +36,7 @@
       <HintPath>..\packages\Castle.Core.3.3.0\lib\net45\Castle.Core.dll</HintPath>
     </Reference>
     <Reference Include="Castle.Windsor">
-      <HintPath>..\packages\Castle.Windsor.3.3.0\lib\net45\Castle.Windsor.dll</HintPath>
+      <HintPath>..\..\..\packages\Castle.Windsor.3.3.0\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
@@ -201,11 +201,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\external\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
+    <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
       <Project>{61EA751B-691B-4F68-87C5-46D115D51CC3}</Project>
       <Name>DotJEM.Json.Index</Name>
     </ProjectReference>
-    <ProjectReference Include="..\external\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
+    <ProjectReference Include="..\..\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
       <Project>{672D1E1D-C559-4914-B233-807CC7CE3B52}</Project>
       <Name>DotJEM.Json.Storage</Name>
     </ProjectReference>
