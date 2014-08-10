@@ -15,7 +15,7 @@ namespace DotJEM.Web.Host
         IWebHost Start();
     }
 
-    public abstract class AbstractWebHost : IWebHost
+    public abstract class WebHost : IWebHost
     {
         private readonly IWindsorContainer container;
         private readonly HttpConfiguration configuration;
@@ -23,22 +23,22 @@ namespace DotJEM.Web.Host
         protected IStorageIndex Index { get; set; }
         protected IStorageContext Storage { get; set; }
 
-        protected AbstractWebHost()
+        protected WebHost()
             : this(GlobalConfiguration.Configuration, new WindsorContainer())
         {
         }
 
-        protected AbstractWebHost(HttpConfiguration configuration)
+        protected WebHost(HttpConfiguration configuration)
             : this(configuration, new WindsorContainer())
         {
         }
 
-        protected AbstractWebHost(IWindsorContainer container)
+        protected WebHost(IWindsorContainer container)
             : this(GlobalConfiguration.Configuration, container)
         {
         }
 
-        protected AbstractWebHost(HttpConfiguration configuration, IWindsorContainer container)
+        protected WebHost(HttpConfiguration configuration, IWindsorContainer container)
         {
             this.configuration = configuration;
             this.container = container;

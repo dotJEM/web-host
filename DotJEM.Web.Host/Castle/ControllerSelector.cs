@@ -21,7 +21,7 @@ namespace DotJEM.Web.Host.Castle
         public override HttpControllerDescriptor SelectController(HttpRequestMessage request)
         {
             IHttpRouteData routeDate = request.GetRouteData();
-            IWebRoute ewroute = (IWebRoute)routeDate.Route;
+            IWebRoute ewroute = routeDate.Route as IWebRoute;
             if (ewroute == null)
                 return base.SelectController(request);
 

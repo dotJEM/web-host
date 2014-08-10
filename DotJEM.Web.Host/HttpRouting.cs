@@ -35,6 +35,7 @@ namespace DotJEM.Web.Host
             //TODO: The RouteTable is specific to IIS, so we should use the configuration.Routes instead.
             //      but I have yet to get that to work though.
             RouteTable.Routes.MapRoute(GenerateUniqueName(), route, defaults);
+            //configuration.Routes.MapHttpRoute<TController>(GenerateUniqueName(), route, defaults);
             return this;
         }
 

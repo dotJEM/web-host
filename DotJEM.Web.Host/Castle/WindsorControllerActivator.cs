@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Web.Http.Controllers;
 using System.Web.Http.Dispatcher;
 using Castle.Windsor;
+using ICSharpCode.SharpZipLib.Zip;
 
 namespace DotJEM.Web.Host.Castle
 {
