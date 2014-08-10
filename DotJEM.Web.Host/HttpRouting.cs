@@ -48,8 +48,7 @@ namespace DotJEM.Web.Host
 
         public IRouting Ignore(string route)
         {
-            //configuration.Routes.IgnoreRoute("ignore" + route, route);
-            RouteTable.Routes.IgnoreRoute(route);
+            configuration.Routes.IgnoreRoute("ignore" + route, route);
             return this;
         }
 

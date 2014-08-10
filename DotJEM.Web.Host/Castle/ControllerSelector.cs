@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Controllers;
 using System.Web.Http.Dispatcher;
+using System.Web.Http.Routing;
 
 namespace DotJEM.Web.Host.Castle
 {
@@ -19,7 +20,8 @@ namespace DotJEM.Web.Host.Castle
 
         public override HttpControllerDescriptor SelectController(HttpRequestMessage request)
         {
-            IWebRoute ewroute = (IWebRoute) request.GetRouteData().Route;
+            IHttpRouteData routeDate = request.GetRouteData();
+            IWebRoute ewroute = (IWebRoute)routeDate.Route;
             if (ewroute == null)
                 return base.SelectController(request);
 
