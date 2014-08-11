@@ -8,9 +8,9 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
 {
-    public abstract class DiagnosticsController : StorageController
+    public abstract class AbstractDiagnosticsController : StorageController
     {
-        protected DiagnosticsController(IStorageContext storage, IStorageIndex index, string storageArea)
+        protected AbstractDiagnosticsController(IStorageContext storage, IStorageIndex index, string storageArea)
             : base(storage, index, storageArea)
         {
         }

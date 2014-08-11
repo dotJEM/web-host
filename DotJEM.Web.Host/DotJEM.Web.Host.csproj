@@ -153,7 +153,6 @@
     <Compile Include="Castle\ArraySubResolver.cs" />
     <Compile Include="Castle\ControllerSelector.cs" />
     <Compile Include="Castle\WindsorControllerActivator.cs" />
-    <Compile Include="Controllers\Installers\ControllerInstaller.cs" />
     <Compile Include="Controllers\DiagnosticsController.cs" />
     <Compile Include="Controllers\FileController.cs" />
     <Compile Include="Controllers\SearchController.cs" />
