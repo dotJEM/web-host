@@ -7,6 +7,7 @@ using Castle.Windsor.Installer;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Castle;
+using DotJEM.Web.Host.Configuration;
 
 namespace DotJEM.Web.Host
 {
@@ -48,8 +49,7 @@ namespace DotJEM.Web.Host
             
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
         }
-
-
+        
         public IWebHost Start()
         {
             container.Install(FromAssembly.This());
@@ -63,12 +63,10 @@ namespace DotJEM.Web.Host
 
             BeforeConfigure();
 
-            var routing = new HttpRouting<HttpConfiguration>(configuration);
-
             Configure(container);
             Configure(Storage);
             Configure(Index);
-            Configure(routing);
+            Configure(new HttpRouterConfigurator(configuration.Routes));
 
             AfterConfigure();
             BeforeInitialize();
@@ -94,7 +92,7 @@ namespace DotJEM.Web.Host
         protected virtual void Configure(IWindsorContainer container) { }
         protected virtual void Configure(IStorageContext storage) { }
         protected virtual void Configure(IStorageIndex index) { }
-        protected virtual void Configure(IRouting routing) { }
+        protected virtual void Configure(IRouter router) { }
         protected virtual void AfterConfigure() { }
 
         protected virtual void BeforeInitialize() { }
