@@ -169,6 +169,7 @@
     <Compile Include="Controllers\StorageController.cs" />
     <Compile Include="Controllers\TermController.cs" />
     <Compile Include="Configuration\HttpApiRouteConfigurator.cs" />
+    <Compile Include="Pipeline\PipelineManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util\Util.cs" />
     <Compile Include="WebHost.cs" />
