@@ -21,14 +21,10 @@ namespace DotJEM.Web.Host.Pipeline
         {
 
         }
-
         
-
         public IPipeline Lookup(string contentType)
         {
-            if (!pipelines.ContainsKey(contentType))
-                return InitializePipeline(contentType);
-            return pipelines[contentType];
+            return !pipelines.ContainsKey(contentType) ? InitializePipeline(contentType) : pipelines[contentType];
         }
 
         private IPipeline InitializePipeline(string contentType)
@@ -108,5 +104,11 @@ namespace DotJEM.Web.Host.Pipeline
         }
 
         public abstract dynamic OnExecute(dynamic dynamic);
+    }
+
+
+    public class AssemblyInspector
+    {
+        
     }
 }
