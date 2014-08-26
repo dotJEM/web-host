@@ -32,7 +32,7 @@ namespace DotJEM.Web.Host.Controllers
         }
 
         [HttpGet]
-        public virtual dynamic Get([FromUri]Guid id, [FromUri]string contentType = null)
+        public virtual dynamic Get([FromUri]Guid id, [FromUri]string contentType)
         {
             JObject entity = Area.Get(id);
             if (entity == null)

@@ -81,7 +81,12 @@ namespace DotJEM.Web.Host
 
         protected virtual void BeforeStart() { }
 
-        protected virtual IStorageIndex CreateIndex() { return new LuceneStorageIndex(); }
+        protected virtual IStorageIndex CreateIndex()
+        {
+            //TODO: use app.config (web.config)
+            return new LuceneStorageIndex();
+        }
+
         protected virtual IStorageContext CreateStorage()
         {
             //TODO: use app.config (web.config)
