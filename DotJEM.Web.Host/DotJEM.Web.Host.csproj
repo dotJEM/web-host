@@ -151,6 +151,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Angular\Angular.cs" />
+    <Compile Include="Angular\IAngularContext.cs" />
+    <Compile Include="Angular\IAngularDependency.cs" />
+    <Compile Include="Angular\IAngularDependencyState.cs" />
+    <Compile Include="Angular\IAngularModule.cs" />
+    <Compile Include="Angular\IAngularModuleFactory.cs" />
+    <Compile Include="Angular\IAngularProject.cs" />
     <Compile Include="Castle\ArraySubResolver.cs" />
     <Compile Include="Castle\ControllerSelector.cs" />
     <Compile Include="Castle\WindsorControllerActivator.cs" />
