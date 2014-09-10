@@ -8,6 +8,7 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
+using Newtonsoft.Json.Serialization;
 
 namespace DotJEM.Web.Host
 {
@@ -48,6 +49,8 @@ namespace DotJEM.Web.Host
             configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
             
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
+
+            configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
         }
         
         public IWebHost Start()
@@ -67,6 +70,7 @@ namespace DotJEM.Web.Host
             Configure(Storage);
             Configure(Index);
             Configure(new HttpRouterConfigurator(configuration.Routes));
+
 
             AfterConfigure();
             BeforeInitialize();

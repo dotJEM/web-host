@@ -29,7 +29,7 @@ namespace DotJEM.Web.Host.Controllers
             ISearchResult result = searcher.Search(query);
 
             dynamic json = new JObject();
-            json.results = JArray.FromObject(result.Skip(skip).Take(take).Select(hit => hit.Json));
+            json.results = JArray.FromObject(result.Select(hit => hit.Json));
             json.totalCount = result.TotalCount;
             return json;
         }
