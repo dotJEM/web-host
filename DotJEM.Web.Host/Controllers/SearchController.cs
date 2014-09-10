@@ -48,6 +48,9 @@ namespace DotJEM.Web.Host.Controllers
 
                 );
 
+            //TODO: we need to lower case here to maintani convention for JavaScript, if we had created a special class
+            //      and returned that (we might do so) it would be ok.
+            //      Alternative: http://stackoverflow.com/questions/9247478/pascal-case-dynamic-properties-with-json-net
             dynamic json = new JObject();
             json.results = JArray.FromObject(result.Select(hit => hit.Json));
             json.totalCount = result.TotalCount;
