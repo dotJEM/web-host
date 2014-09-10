@@ -29,8 +29,8 @@ namespace DotJEM.Web.Host.Controllers
             ISearchResult result = searcher.Search(query);
 
             dynamic json = new JObject();
-            json.Results = JArray.FromObject(result.Skip(skip).Take(take).Select(hit => hit.Json));
-            json.TotalCount = result.TotalCount;
+            json.results = JArray.FromObject(result.Skip(skip).Take(take).Select(hit => hit.Json));
+            json.totalCount = result.TotalCount;
             return json;
         }
 
@@ -49,8 +49,8 @@ namespace DotJEM.Web.Host.Controllers
                 );
 
             dynamic json = new JObject();
-            json.Results = JArray.FromObject(result.Select(hit => hit.Json));
-            json.TotalCount = result.TotalCount;
+            json.results = JArray.FromObject(result.Select(hit => hit.Json));
+            json.totalCount = result.TotalCount;
             return json;
         }
     }
