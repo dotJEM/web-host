@@ -26,10 +26,12 @@ namespace DotJEM.Web.Host.Controllers
                 Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
             ILuceneSearcher searcher = index.CreateSearcher();
-            return searcher.Search(query)
-                .Skip(skip)
-                .Take(take)
-                .Select(hit => hit.Json);
+            ISearchResult result = searcher.Search(query);
+
+            dynamic json = new JObject();
+            json.Results = JArray.FromObject(result.Skip(skip).Take(take).Select(hit => hit.Json));
+            json.TotalCount = result.TotalCount;
+            return json;
         }
 
         [HttpPost]
@@ -45,7 +47,11 @@ namespace DotJEM.Web.Host.Controllers
                 }).ToArray())
 
                 );
-            return result.Select(hit => hit.Json).ToArray();
+
+            dynamic json = new JObject();
+            json.Results = JArray.FromObject(result.Select(hit => hit.Json));
+            json.TotalCount = result.TotalCount;
+            return json;
         }
     }
 }
