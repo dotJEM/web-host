@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -9,6 +10,14 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
 {
+    public interface IContentService
+    {
+        IQueryable<JObject> Get(string contentType);
+    
+        JObject Get(Guid id);
+        JObject Post(string contentType, JObject entity);
+    }
+
     //TODO: Move to common package...
     public abstract class StorageController : ApiController
     {

@@ -1,32 +1,71 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Castle.MicroKernel;
 using Castle.MicroKernel.Registration;
+using Castle.MicroKernel.SubSystems.Configuration;
+using Castle.Windsor;
 using DotJEM.Reflection.Descriptors;
 using DotJEM.Reflection.Descriptors.Descriptors;
 using DotJEM.Reflection.Descriptors.Inspection;
+using DotJEM.Reflection.Descriptors.Loading;
+using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Pipeline
 {
+    public class ManagerInstaller : IWindsorInstaller
+    {
+        public void Install(IWindsorContainer container, IConfigurationStore store)
+        {
+            container.Register(Component.For<IPipelineManager>().ImplementedBy<PipelineManager>().LifestyleTransient());
+            container.Register(Component.For<IAddonManager>().ImplementedBy<AddonManager>().LifestyleTransient());
+        }
+    }
+
     public interface IPipelineManager
     {
         IPipeline Lookup(string contentType);
     }
 
+
+
     public class PipelineManager : IPipelineManager
     {
         private readonly IAddonManager addons;
+        private readonly IKernel kernel;
+        private readonly IDescriptorResolver resolver = new DescriptorResolver();
+
         private readonly List<IJsonDecorator> steps = new List<IJsonDecorator>();
         private readonly Dictionary<string, IPipeline> pipelines = new Dictionary<string, IPipeline>();
 
-        public PipelineManager(IAddonManager addons)
+        public PipelineManager(IAddonManager addons, IKernel kernel)
         {
             this.addons = addons;
+            this.kernel = kernel;
+
+            addons.AddonLoaded += RegisterDecorators;
+        }
+
+        private void RegisterDecorators(object sender, AddonEventArgs e)
+        {
+            steps.AddRange(e.Addon.Decorators.Select(Instantiate));
+        }
+
+        private IJsonDecorator Instantiate(TypeDescriptor descriptor)
+        {
+            Type type = resolver.Resolve(descriptor);
+
+            var services = (from ctor in type.GetConstructors()
+                            let parameters = ctor.GetParameters()
+                            orderby parameters.Length descending
+                            let parameterTypes = parameters.Select(p => p.ParameterType)
+                            where parameterTypes.All(kernel.HasComponent)
+                            select parameterTypes.Select(t => kernel.Resolve(t)))
+                                           .FirstOrDefault();
+
+            return (IJsonDecorator)Activator.CreateInstance(type, services);
         }
 
         public IPipeline Lookup(string contentType)
@@ -54,17 +93,48 @@ namespace DotJEM.Web.Host.Pipeline
 
     public interface IAddonManager
     {
-        event EventHandler<AddonLoadedEventArgs> AddonLoaded;
+        event EventHandler<AddonEventArgs> AddonLoaded;
 
         void Initialize();
     }
 
     public interface IAddonDescriptor
     {
+        string FullName { get; }
+        AssemblyDescriptor Assembly { get; }
+        TypeDescriptor[] Decorators { get; }
     }
 
-    public class AddonLoadedEventArgs : EventArgs
+    public class AddonDescriptor : IAddonDescriptor
     {
+        public string FullName { get { return Assembly.FullName; } }
+
+        public AssemblyDescriptor Assembly { get; private set; }
+        public TypeDescriptor[] Decorators { get; private set; }
+
+        public AddonDescriptor(AssemblyDescriptor descriptor)
+        {
+            Assembly = descriptor;
+            Decorators = All<IJsonDecorator>(descriptor);
+        }
+
+        private static TypeDescriptor[] All<T>(AssemblyDescriptor descriptor)
+        {
+            return descriptor.Types.Where(typeDescriptor =>
+                (from interfaceType in typeDescriptor.Interfaces
+                 where interfaceType.FullName == typeof(T).FullName
+                 select interfaceType).Any()).ToArray();
+        }
+    }
+
+    public class AddonEventArgs : EventArgs
+    {
+        public IAddonDescriptor Addon { get; private set; }
+
+        public AddonEventArgs(IAddonDescriptor addon)
+        {
+            Addon = addon;
+        }
     }
 
     public class AddonManager : IAddonManager
@@ -72,49 +142,32 @@ namespace DotJEM.Web.Host.Pipeline
         private readonly string root;
         private readonly IDictionary<string, IAddonDescriptor> addons = new Dictionary<string, IAddonDescriptor>();
 
-        public event EventHandler<AddonLoadedEventArgs> AddonLoaded;
+        public event EventHandler<AddonEventArgs> AddonLoaded;
+        public event EventHandler<AddonEventArgs> AddonUnloaded;
 
-        public AddonManager(string root)
+        public AddonManager()
         {
-            this.root = root;
+            root = Path.Combine(Directory.GetCurrentDirectory(), "addons");
         }
-
 
         public void Initialize()
         {
             DependencyResolver resolver = DependencyResolver.Instance;
             using (IAssemblyInspectionContext context = new AssemblyInspectionContext())
             {
-                foreach (string dir in Directory.GetDirectories(root))
-                {
-                    resolver.AddLocation(dir);
-                    LoadAddons(context, dir);
-                }
+                Directory.GetDirectories(root).ForEach(dir => resolver.AddLocation(dir));
+                EnumerableExtensions.ForEach(Directory.GetDirectories(root)
+                        .Select(dir => new AddonDescriptor(context.LoadAssembly(GetPrimaryAssembly(dir))))
+                        .ToArray(), RegisterAddon);
             }
         }
 
-        private void LoadAddons(IAssemblyInspectionContext context, string directory)
+        private void RegisterAddon(IAddonDescriptor addon)
         {
-            AssemblyDescriptor descriptor = context.LoadAssembly(GetPrimaryAssembly(directory));
-
-            TypeDescriptor[] decorators = FindTypesImplementing<IJsonDecorator>(descriptor);
-
-
-
-            //        FileInfo file = GetPrimaryAssembly(directory);
-
-            //        IAssemblyDescriptor descriptor = inspector.Inspect(file, context.RootDirectory);
-            //        IApplicationDescriptor[] applications = LoadApplications(descriptor);
-            //        return new AddinDescriptor(descriptor, applications);
-            //context.LoadAssembly()
-        }
-
-        private TypeDescriptor[] FindTypesImplementing<T>(AssemblyDescriptor descriptor)
-        {
-            return descriptor.Types.Where(typeDescriptor => 
-                (from interfaceType in typeDescriptor.Interfaces
-                 where interfaceType.FullName == typeof(T).FullName
-                 select interfaceType).Any()).ToArray();
+            if (addons.ContainsKey(addon.FullName))
+                OnAddonUnloaded(new AddonEventArgs(addons[addon.FullName]));
+            addons[addon.FullName] = addon;
+            OnAddonLoaded(new AddonEventArgs(addon));
         }
 
         private static string GetPrimaryAssembly(string directory)
@@ -131,9 +184,14 @@ namespace DotJEM.Web.Host.Pipeline
             return Directory.GetFiles(directory, "*.dll").First();
         }
 
-        protected virtual void OnAddonLoaded(AddonLoadedEventArgs e)
+        protected virtual void OnAddonLoaded(AddonEventArgs e)
         {
             if (AddonLoaded != null) AddonLoaded(this, e);
+        }
+
+        protected virtual void OnAddonUnloaded(AddonEventArgs e)
+        {
+            if (AddonUnloaded != null) AddonUnloaded(this, e);
         }
     }
 
