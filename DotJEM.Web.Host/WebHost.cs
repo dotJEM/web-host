@@ -8,6 +8,7 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
+using DotJEM.Web.Host.Providers;
 using Newtonsoft.Json.Serialization;
 
 namespace DotJEM.Web.Host
@@ -24,6 +25,8 @@ namespace DotJEM.Web.Host
 
         protected IStorageIndex Index { get; set; }
         protected IStorageContext Storage { get; set; }
+        protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
+        protected IWebHostConfiguration Configuration { get; set; }
 
         protected WebHost()
             : this(GlobalConfiguration.Configuration, new WindsorContainer())
@@ -57,6 +60,8 @@ namespace DotJEM.Web.Host
         {
             container.Install(FromAssembly.This());
 
+            AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
+            Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
             Index = CreateIndex();
             Storage = CreateStorage();
 
@@ -70,7 +75,6 @@ namespace DotJEM.Web.Host
             Configure(Storage);
             Configure(Index);
             Configure(new HttpRouterConfigurator(configuration.Routes));
-
 
             AfterConfigure();
             BeforeInitialize();
@@ -93,8 +97,7 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageContext CreateStorage()
         {
-            //TODO: use app.config (web.config)
-            return new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=dotjem3;Integrated Security=True");
+            return new SqlServerStorageContext(Configuration.Storage.ConnectionString);
         }
 
         protected virtual void BeforeConfigure() { }
