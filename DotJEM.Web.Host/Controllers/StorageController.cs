@@ -10,15 +10,6 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
 {
-    public interface IContentService
-    {
-        IQueryable<JObject> Get(string contentType);
-    
-        JObject Get(Guid id);
-        JObject Post(string contentType, JObject entity);
-    }
-
-    //TODO: Move to common package...
     public abstract class StorageController : ApiController
     {
         protected IStorageIndex Index { get; private set; }

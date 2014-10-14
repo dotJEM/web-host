@@ -62,6 +62,7 @@ namespace DotJEM.Web.Host
 
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
             Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
+
             Index = CreateIndex();
             Storage = CreateStorage();
 

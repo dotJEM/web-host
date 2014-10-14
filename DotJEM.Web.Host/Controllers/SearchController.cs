@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -10,6 +12,19 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
 {
+    public class SearchResult
+    {
+        public long TotalCount { get; set; }
+        public IEnumerable<dynamic> Results { get; set; }
+
+        public SearchResult(ISearchResult result)
+        {
+            //Note: We must do the actual enumeration here to kick of the search, otherwise TotalCount is 0.
+            Results = result.Select(hit => hit.Json).ToArray();
+            TotalCount = result.TotalCount;
+        }
+    }
+
     public class SearchController : ApiController
     {
         private readonly IStorageIndex index;
@@ -26,16 +41,12 @@ namespace DotJEM.Web.Host.Controllers
                 Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
             ILuceneSearcher searcher = index.CreateSearcher();
-            ISearchResult result = searcher.Search(query);
-
-            dynamic json = new JObject();
-            json.results = JArray.FromObject(result.Select(hit => hit.Json));
-            json.totalCount = result.TotalCount;
-            return json;
+            ISearchResult result = searcher.Search(query).Skip(skip).Take(take);
+            return new SearchResult(result);
         }
 
         [HttpPost]
-        public dynamic Post([FromBody]dynamic value, [FromUri]string contentType = "", [FromUri]int skip = 0, [FromUri]int take = 25, [FromUri]string sort = "_Created:desc")
+        public dynamic Post([FromBody]dynamic value, [FromUri]string contentType = "", [FromUri]int skip = 0, [FromUri]int take = 25, [FromUri]string sort = "$created:desc")
         {
             ILuceneSearcher searcher = index.CreateSearcher();
             ISearchResult result = searcher.Search((JObject)value, contentType).Skip(skip).Take(take).Sort(
@@ -48,13 +59,7 @@ namespace DotJEM.Web.Host.Controllers
 
                 );
 
-            //TODO: we need to lower case here to maintani convention for JavaScript, if we had created a special class
-            //      and returned that (we might do so) it would be ok.
-            //      Alternative: http://stackoverflow.com/questions/9247478/pascal-case-dynamic-properties-with-json-net
-            dynamic json = new JObject();
-            json.results = JArray.FromObject(result.Select(hit => hit.Json));
-            json.totalCount = result.TotalCount;
-            return json;
+            return new SearchResult(result);
         }
     }
 }

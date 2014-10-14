@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Castle.MicroKernel.Registration;
+﻿using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
+using DotJEM.Web.Host.Providers.Services;
 
 namespace DotJEM.Web.Host.Providers
 {
@@ -14,6 +10,9 @@ namespace DotJEM.Web.Host.Providers
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
             container.Register(Component.For<IAppConfigurationProvider>().ImplementedBy<AppConfigurationProvider>());
+            container.Register(Component.For<IServiceProvider<IContentService>>().ImplementedBy<ContentServiceProvider>());
+            container.Register(Component.For<IServiceProvider<ISearchService>>().ImplementedBy<SearchServiceProvider>());
+            container.Register(Component.For<IServiceProvider<IFileService>>().ImplementedBy<FileServiceProvider>());
         }
     }
 }
