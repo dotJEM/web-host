@@ -42,6 +42,9 @@ namespace DotJEM.Web.Host.Controllers
 
             ILuceneSearcher searcher = index.CreateSearcher();
             ISearchResult result = searcher.Search(query).Skip(skip).Take(take);
+
+            
+
             return new SearchResult(result);
         }
 

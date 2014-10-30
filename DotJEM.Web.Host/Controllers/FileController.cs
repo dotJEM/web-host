@@ -40,7 +40,7 @@ namespace DotJEM.Web.Host.Controllers
         {
             dynamic entity = Area.Get(id);
             if (entity == null)
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Could not find cotent of type '" + contentType + "' with id [" + id + "] in area '" + Area.Name + "'");
+                return Request.CreateResponse(HttpStatusCode.NotFound, "Could not find content of type '" + contentType + "' with id [" + id + "] in area '" + Area.Name + "'");
 
             if (head != null)
                 return TrimData(entity);
