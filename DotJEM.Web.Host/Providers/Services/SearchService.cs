@@ -70,8 +70,7 @@ namespace DotJEM.Web.Host.Providers.Services
             //if (string.IsNullOrWhiteSpace(query))
             //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-            ILuceneSearcher searcher = index.CreateSearcher();
-            ISearchResult result = searcher.Search(query).Skip(skip).Take(take);
+            ISearchResult result = index.Search(query).Skip(skip).Take(take);
             return new SearchResult(result);
         }
 
@@ -79,8 +78,7 @@ namespace DotJEM.Web.Host.Providers.Services
         {
             JObject reduceObj = reduce as JObject ?? JObject.FromObject(reduce);
 
-            ILuceneSearcher searcher = index.CreateSearcher();
-            ISearchResult result = searcher.Search(reduceObj, contentType).Skip(skip).Take(take);
+            ISearchResult result = index.Search(reduceObj).Skip(skip).Take(take);
             if (!string.IsNullOrEmpty(sort))
             {
                 result.Sort(CreateSortObject(sort));

@@ -40,19 +40,14 @@ namespace DotJEM.Web.Host.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-            ILuceneSearcher searcher = index.CreateSearcher();
-            ISearchResult result = searcher.Search(query).Skip(skip).Take(take);
-
-            
-
+            ISearchResult result = index.Search(query).Skip(skip).Take(take);
             return new SearchResult(result);
         }
 
         [HttpPost]
         public dynamic Post([FromBody]dynamic value, [FromUri]string contentType = "", [FromUri]int skip = 0, [FromUri]int take = 25, [FromUri]string sort = "$created:desc")
         {
-            ILuceneSearcher searcher = index.CreateSearcher();
-            ISearchResult result = searcher.Search((JObject)value, contentType).Skip(skip).Take(take).Sort(
+            ISearchResult result = index.Search((JObject)value).Skip(skip).Take(take).Sort(
 
                 new Sort(sort.Split(',').Select(x =>
                 {
