@@ -19,7 +19,7 @@ public class MyHost : WebHost {
   }
   
   protected override void Initialize(IStorageIndex index) {
-    //Load values into index or restore cached version.
+    //When using RAM based indexes, load entries from the Storage or restore it from a Cache.
   }
 }
 
