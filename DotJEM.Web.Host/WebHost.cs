@@ -9,6 +9,7 @@ using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Providers;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
 namespace DotJEM.Web.Host
@@ -54,6 +55,7 @@ namespace DotJEM.Web.Host
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
 
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
         }
         
         public IWebHost Start()
