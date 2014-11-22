@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Adapter;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services
@@ -59,7 +60,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Put(Guid id, string contentType, JObject entity)
         {
-            entity = area.Update(id, contentType, entity);
+            entity = area.Update(id, entity);
             index.Write(entity);
             return entity;
         }

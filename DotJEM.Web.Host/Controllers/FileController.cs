@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Web.Http;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Adapter;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
@@ -70,7 +71,7 @@ namespace DotJEM.Web.Host.Controllers
         public virtual dynamic Put([FromUri]Guid id, [FromUri]string contentType)
         {
             JObject entity = CreateFileObject();
-            entity = Area.Update(id, contentType, entity);
+            entity = Area.Update(id, entity);
 
             //Note: We trim data for files before we add them to the index.
             //      as we don't wan't to use extra space on the raw data when we have to fetch the actual file here anyways.

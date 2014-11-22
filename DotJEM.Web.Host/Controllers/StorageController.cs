@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Web.Http;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Adapter;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
@@ -52,7 +53,7 @@ namespace DotJEM.Web.Host.Controllers
         [HttpPut]
         public virtual dynamic Put([FromUri]Guid id, [FromUri]string contentType, [FromBody]JObject entity)
         {
-            entity = Area.Update(id, contentType, entity);
+            entity = Area.Update(id, entity);
             Index.Write(entity);
             return entity;
         }
