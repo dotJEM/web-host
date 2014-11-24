@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Web.Http;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
+using Lucene.Net.QueryParsers;
 using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
 
@@ -40,8 +41,16 @@ namespace DotJEM.Web.Host.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-            ISearchResult result = index.Search(query).Skip(skip).Take(take);
-            return new SearchResult(result);
+            try
+            {
+                ISearchResult result = index.Search(query).Skip(skip).Take(take);
+                return new SearchResult(result);
+            }
+            catch (ParseException)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Query is invalid");
+            }
+  
         }
 
         [HttpPost]
