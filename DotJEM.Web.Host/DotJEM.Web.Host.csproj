@@ -184,6 +184,7 @@
     <Compile Include="Providers\SearchServiceProvider.cs" />
     <Compile Include="Providers\ServiceProvider.cs" />
     <Compile Include="Providers\Services\FileService.cs" />
+    <Compile Include="Providers\FileServiceProvider.cs" />
     <Compile Include="Providers\Services\SearchService.cs" />
     <Compile Include="Providers\Services\TermService.cs" />
     <Compile Include="Providers\Services\ContentService.cs" />
