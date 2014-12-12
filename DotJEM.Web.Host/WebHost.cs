@@ -106,6 +106,11 @@ namespace DotJEM.Web.Host
             return new SqlServerStorageContext(Configuration.Storage.ConnectionString);
         }
 
+        public T Resolve<T>()
+        {
+            return container.Resolve<T>();
+        }
+
         protected virtual void BeforeConfigure() { }
         protected virtual void Configure(IWindsorContainer container) { }
         protected virtual void Configure(IStorageContext storage) { }
@@ -119,5 +124,7 @@ namespace DotJEM.Web.Host
         protected virtual void AfterInitialize() { }
 
         protected virtual void AfterStart() { }
+
+
     }
 }
