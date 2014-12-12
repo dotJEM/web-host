@@ -150,6 +150,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApiControllerExtentions.cs" />
+    <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
+    <Compile Include="WebHostApiController.cs" />
     <Compile Include="Angular\Angular.cs" />
     <Compile Include="Angular\IAngularContext.cs" />
     <Compile Include="Angular\IAngularDependency.cs" />

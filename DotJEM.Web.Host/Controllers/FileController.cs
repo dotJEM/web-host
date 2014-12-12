@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Controllers
 {
-    public abstract class AbstractFileController : ApiController
+    public abstract class AbstractFileController : WebHostApiController
     {
         protected IStorageIndex Index { get; private set; }
         protected IStorageArea Area { get; private set; }

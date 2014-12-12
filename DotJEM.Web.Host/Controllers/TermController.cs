@@ -5,7 +5,8 @@ using DotJEM.Json.Index;
 
 namespace DotJEM.Web.Host.Controllers
 {
-    public class TermController : ApiController
+    //TODO: This can be a part of a SchemaController instead.
+    public class TermController : WebHostApiController
     {
         private readonly IStorageIndex index;
 
@@ -13,12 +14,12 @@ namespace DotJEM.Web.Host.Controllers
         {
             this.index = index;
         }
-
+        
         [HttpGet]
         public dynamic Get([FromUri]string field)
         {
             if (string.IsNullOrWhiteSpace(field) && string.IsNullOrWhiteSpace(field))
-                Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a field.");
+                return BadRequest("No field was specified");
          
             return index.Terms(field);
         }

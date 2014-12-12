@@ -26,7 +26,7 @@ namespace DotJEM.Web.Host.Controllers
         }
     }
 
-    public class SearchController : ApiController
+    public class SearchController : WebHostApiController
     {
         private readonly IStorageIndex index;
 
