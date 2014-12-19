@@ -7,7 +7,7 @@ namespace DotJEM.Web.Host.Providers
         T Get<T>(string name = null) where T : ConfigurationSection, new();
     }
 
-    internal class AppConfigurationProvider : IAppConfigurationProvider
+    public class AppConfigurationProvider : IAppConfigurationProvider
     {
         public T Get<T>(string name = null) where T : ConfigurationSection, new()
         {
