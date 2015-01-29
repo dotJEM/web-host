@@ -20,6 +20,7 @@ namespace DotJEM.Web.Host
     public interface IWebHost
     {
         IWebHost Start();
+        void Shutdown();
     }
 
     public abstract class WebHost : IWebHost
@@ -125,6 +126,9 @@ namespace DotJEM.Web.Host
 
         protected virtual void AfterStart() { }
 
-
+        public void Shutdown()
+        {
+            
+        }
     }
 }

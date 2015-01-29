@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index;
-using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using Newtonsoft.Json.Linq;
 

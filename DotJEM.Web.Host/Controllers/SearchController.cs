@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -36,7 +35,7 @@ namespace DotJEM.Web.Host.Controllers
         }
 
         [HttpGet]
-        public dynamic Get([FromUri]string query, [FromUri]int skip = 0, [FromUri]int take = 25)
+        public dynamic Get([FromUri]string query, [FromUri]string filter = "", [FromUri]int skip = 0, [FromUri]int take = 25)
         {
             if (string.IsNullOrWhiteSpace(query))
                 Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
@@ -44,6 +43,17 @@ namespace DotJEM.Web.Host.Controllers
             try
             {
                 ISearchResult result = index.Search(query).Skip(skip).Take(take);
+
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    string[] filterArray = filter.Split(',');
+
+                    BooleanFilter booleanFilter = new BooleanFilter();
+
+                    booleanFilter.Add(new FilterClause(new FieldCacheTermsFilter("contentType", filterArray), Occur.MUST));
+                    result = result.Filter(booleanFilter);
+                }
+
                 return new SearchResult(result);
             }
             catch (ParseException)
