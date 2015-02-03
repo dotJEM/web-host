@@ -211,15 +211,15 @@ namespace DotJEM.Web.Host.Pipeline
 
     //    public void LoadAddins()
     //    {
-    //        DirectoryInfo cacheDirectory = context.AddinDirectory;
-    //        if (!cacheDirectory.Exists)
+    //        DirectoryInfo directory = context.AddinDirectory;
+    //        if (!directory.Exists)
     //        {
-    //            context.Log.WriteEntry(Level.Info, "Addin Directory '{0}' not found from, please check the configuration.", cacheDirectory.FullName);
+    //            context.Log.WriteEntry(Level.Info, "Addin Directory '{0}' not found from, please check the configuration.", directory.FullName);
     //            return;
     //        }
 
-    //        context.Log.WriteEntry(Level.Info, "Loading Addins from '{0}'.", cacheDirectory.FullName);
-    //        foreach (DirectoryInfo addinDirectory in cacheDirectory.GetDirectories())
+    //        context.Log.WriteEntry(Level.Info, "Loading Addins from '{0}'.", directory.FullName);
+    //        foreach (DirectoryInfo addinDirectory in directory.GetDirectories())
     //        {
     //            IAddinDescriptor descriptor = inspector.Inspect(addinDirectory);
     //            repository.Add(descriptor);
@@ -238,11 +238,11 @@ namespace DotJEM.Web.Host.Pipeline
     //        this.context = context;
     //    }
 
-    //    public IAddinDescriptor Inspect(DirectoryInfo cacheDirectory)
+    //    public IAddinDescriptor Inspect(DirectoryInfo directory)
     //    {
-    //        context.Log.WriteEntry(Level.Info, "Inspecting Directory '{0}' for addins.", cacheDirectory.FullName);
+    //        context.Log.WriteEntry(Level.Info, "Inspecting Directory '{0}' for addins.", directory.FullName);
 
-    //        FileInfo file = GetPrimaryAssembly(cacheDirectory);
+    //        FileInfo file = GetPrimaryAssembly(directory);
 
     //        IAssemblyDescriptor descriptor = inspector.Inspect(file, context.RootDirectory);
     //        IApplicationDescriptor[] applications = LoadApplications(descriptor);
@@ -269,17 +269,17 @@ namespace DotJEM.Web.Host.Pipeline
 
 
 
-    //    private static FileInfo GetPrimaryAssembly(DirectoryInfo cacheDirectory)
+    //    private static FileInfo GetPrimaryAssembly(DirectoryInfo directory)
     //    {
-    //        FileInfo file = cacheDirectory.GetFiles("manifest").FirstOrDefault();
+    //        FileInfo file = directory.GetFiles("manifest").FirstOrDefault();
     //        if (file != null)
     //        {
     //            //TODO: Simple Manifest implementation, change to proper deserialization implementation.
-    //            FileInfo assembly = cacheDirectory.GetFiles(File.ReadAllText(file.FullName)).FirstOrDefault();
+    //            FileInfo assembly = directory.GetFiles(File.ReadAllText(file.FullName)).FirstOrDefault();
     //            if (assembly != null)
     //                return assembly;
     //        }
-    //        return cacheDirectory.GetFiles("*.dll").First();
+    //        return directory.GetFiles("*.dll").First();
     //    }
     //}
 

@@ -128,7 +128,7 @@ namespace DotJEM.Web.Host
 
         public void Shutdown()
         {
-            
+            Index.Close();
         }
     }
 }
