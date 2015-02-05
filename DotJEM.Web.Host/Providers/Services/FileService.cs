@@ -11,6 +11,7 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace DotJEM.Web.Host.Providers.Services
 {
@@ -18,8 +19,10 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         IEnumerable<FileHeader> Header(string contentType, int skip = 0, int take = 20);
         FileHeader Header(Guid id, string contentType);
-        
+
+        //HttpResponseMessage -> FileResponse Get(Guid id, string contentType);
         FileObject Get(Guid id, string contentType);
+        //HttpResponseMessage -> FileResponse Get(string name, string contentType);
         FileObject Get(string name, string contentType);
 
         FileHeader Post(string contentType, FileObject file);
@@ -28,41 +31,80 @@ namespace DotJEM.Web.Host.Providers.Services
         FileHeader Delete(Guid id, string contentType);
     }
 
+    //TODO: this is garbage... converting back and forth is redicilous...
     public class FileHeader
     {
+        private readonly JObject entity;
+
+        [JsonIgnore]
+        public JObject Entity
+        {
+            get
+            {
+                JObject clone = (JObject) entity.DeepClone();
+                clone.Remove("data");
+                return clone;
+            }
+        }
+
+        [JsonProperty(PropertyName = "id")]
+        public Guid Id { get; protected set; }
+
+        //TODO: these should just be accessors to the underlying JSON.
+        [JsonProperty(PropertyName = "name")]
         public string Name { get; protected set; }
-        public string Type { get; protected set; }
+
+        [JsonProperty(PropertyName = "contentType")]
+        public string ContentType { get; set; }
+
+        [JsonProperty(PropertyName = "mediaType")]
+        public string MediaType { get; protected set; }
+
+        [JsonProperty(PropertyName = "length")]
         public int Length { get; protected set; }
 
         protected FileHeader()
         {
-            
         }
 
-        public FileHeader(JObject json)
-            : this(json["name"].ToObject<string>(), json["type"].ToObject<string>(), json["length"].ToObject<int>())
+        public FileHeader(JObject entity)
+            : this(
+            entity["name"].ToObject<string>(),
+            entity["contentType"].ToObject<string>(),
+            entity["mediaType"].ToObject<string>(), 
+            entity["length"].ToObject<int>())
         {
+            this.entity = entity;
+            this.Id = entity["id"].ToObject<Guid>();
         }
 
-        public FileHeader(string name, string type, int length)
+        public FileHeader(string name, string contentType, string type, int length)
         {
             Length = length;
             Name = name;
-            Type = type;
+            ContentType = contentType;
+            MediaType = type;
         }
     }
 
     public class FileObject : FileHeader
     {
+        [JsonProperty(PropertyName = "data")]
         public byte[] Data { get; private set; }
 
         [JsonIgnore]
-        public FileHeader Header
+        public FileHeader Header { get { return new FileHeader(Name, ContentType, MediaType, Length); } }
+
+        public FileObject(string name, string contentType, string type, byte[] data)
+            : base(name, contentType, type, data.Length)
         {
-            get
-            {
-                return new FileHeader(Name, Type, Length);
-            }
+            Data = data;
+        }
+
+        public FileObject(JObject entity) 
+            : base(entity)
+        {
+            Data = Convert.FromBase64String((string)entity["data"]);
         }
 
         public FileObject(HttpRequestMessage request)
@@ -82,7 +124,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!content.Headers.ContentLength.HasValue)
                 throw new InvalidDataException("Expected header to have content-lenght set, but it was not.");
 
-            Type = content.Headers.ContentType.MediaType;
+            MediaType = content.Headers.ContentType.MediaType;
             Length = (int) content.Headers.ContentLength.Value;
             Name = content.Headers.ContentDisposition.FileName.Trim('"');
             Data = ReadAllBytes(content.ReadAsStreamAsync().Result, Length);
@@ -93,12 +135,6 @@ namespace DotJEM.Web.Host.Providers.Services
             using (var reader = new BinaryReader(stream))
                 return reader.ReadBytes(length);
         }
-
-        public FileObject(string name, string type, byte[] data)
-            : base(name, type, data.Length)
-        {
-            Data = data;
-        }
     }
 
     public static class FileObjectExtentions
@@ -107,7 +143,7 @@ namespace DotJEM.Web.Host.Providers.Services
         {
             var response = new HttpResponseMessage();
             response.Content = new ByteArrayContent(self.Data);
-            response.Content.Headers.ContentType = new MediaTypeHeaderValue(self.Type);
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue(self.MediaType);
             response.StatusCode = HttpStatusCode.OK;
             response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("file") { FileName = self.Name };
             return response;
@@ -156,15 +192,17 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public FileObject Get(Guid id, string contentType)
         {
-            dynamic entity = area.Get(id);
+            JObject entity = area.Get(id);
             if (entity == null)
                 throw new FileNotFoundException();
 
-            return new FileObject((string)entity.name, (string)entity.type, Convert.FromBase64String((string)entity.data));
+            return new FileObject(entity);
         }
 
         public FileObject Get(string name, string contentType)
         {
+            //TODO: utilize search to find the file with the given name.
+
             return null;
         }
 
