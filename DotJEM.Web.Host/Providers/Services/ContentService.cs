@@ -33,9 +33,14 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20)
         {
+            return index.Search("contentType: " + contentType)
+                .Skip(skip).Take(take)
+                .Select(hit => hit.Json)
+                .Cast<JObject>().ToArray();
+            
             //TODO: Paging and other neat stuff...
             //TODO: Use search for optimized performance!...
-            return area.Get(contentType).Skip(skip).Take(take);
+            //return area.Get(contentType).Skip(skip).Take(take);
         }
 
         public JObject Get(Guid id, string contentType)

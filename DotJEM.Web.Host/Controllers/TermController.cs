@@ -18,7 +18,7 @@ namespace DotJEM.Web.Host.Controllers
         [HttpGet]
         public dynamic Get([FromUri]string field)
         {
-            if (string.IsNullOrWhiteSpace(field) && string.IsNullOrWhiteSpace(field))
+            if (string.IsNullOrWhiteSpace(field))
                 return BadRequest("No field was specified");
          
             return index.Terms(field);

@@ -14,6 +14,11 @@ namespace DotJEM.Web.Host
             return new NotFoundErrorMessageResult(HttpStatusCode.NotFound, message, this);
         }
 
+        protected virtual ForbiddenErrorMessageResult Forbidden(string message)
+        {
+            return new ForbiddenErrorMessageResult(HttpStatusCode.Forbidden, message, this);
+        }
+
         protected dynamic FromFile(string path, string mediaType)
         {
             if (!File.Exists(path))
