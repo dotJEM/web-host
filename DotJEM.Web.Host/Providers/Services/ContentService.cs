@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Web.Host.Providers.Concurrency;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services
@@ -24,11 +25,13 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         private readonly IStorageIndex index;
         private readonly IStorageArea area;
+        private readonly IStorageIndexManager manager;
 
-        public ContentService(IStorageIndex index, IStorageArea area)
+        public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager)
         {
             this.index = index;
             this.area = area;
+            this.manager = manager;
         }
 
         public IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20)
@@ -58,7 +61,10 @@ namespace DotJEM.Web.Host.Providers.Services
         public JObject Post(string contentType, JObject entity)
         {
             entity = area.Insert(contentType, entity);
-            index.Write(entity);
+
+            manager.QueueUpdate(entity);
+
+            //index.Write(entity);
             return entity;
         }
 

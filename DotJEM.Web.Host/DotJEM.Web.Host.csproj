@@ -154,6 +154,7 @@
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
+    <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
     <Compile Include="WebHostApiController.cs" />
     <Compile Include="Angular\Angular.cs" />
     <Compile Include="Angular\IAngularContext.cs" />
@@ -181,7 +182,7 @@
     <Compile Include="Controllers\StorageController.cs" />
     <Compile Include="Controllers\TermController.cs" />
     <Compile Include="Configuration\HttpApiRouteConfigurator.cs" />
-    <Compile Include="Pipeline\PipelineManager.cs" />
+    <Compile Include="Providers\Pipeline\PipelineManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\AppConfigurationProvider.cs" />
     <Compile Include="Providers\ProviderInstaller.cs" />
