@@ -175,7 +175,7 @@
     <Compile Include="Configuration\IRouteConfiguratorSetter.cs" />
     <Compile Include="Configuration\IRouter.cs" />
     <Compile Include="Configuration\RouteConfiguratorExtras.cs" />
-    <Compile Include="Configuration\WebHostConfiguration.cs" />
+    <Compile Include="Configuration\Elements\WebHostConfiguration.cs" />
     <Compile Include="Controllers\DiagnosticsController.cs" />
     <Compile Include="Controllers\FileController.cs" />
     <Compile Include="Controllers\SearchController.cs" />

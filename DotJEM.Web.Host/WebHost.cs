@@ -1,5 +1,8 @@
-﻿using System.Net;
+﻿using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Web;
+using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
 using System.Web.Http.Filters;
@@ -11,8 +14,10 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
+using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Providers;
+using DotJEM.Web.Host.Providers.Concurrency;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -21,6 +26,7 @@ namespace DotJEM.Web.Host
     public interface IWebHost
     {
         IWebHost Start();
+        T Resolve<T>();
         void Shutdown();
     }
 
@@ -28,6 +34,7 @@ namespace DotJEM.Web.Host
     {
         private readonly IWindsorContainer container;
         private readonly HttpConfiguration configuration;
+        private IStorageIndexManager indexManager;
 
         protected IStorageIndex Index { get; set; }
         protected IStorageContext Storage { get; set; }
@@ -77,7 +84,12 @@ namespace DotJEM.Web.Host
 
             container
                 .Register(Component.For<IStorageIndex>().Instance(Index))
-                .Register(Component.For<IStorageContext>().Instance(Storage));
+                .Register(Component.For<IStorageContext>().Instance(Storage))
+                .Register(Component.For<IWebHostConfiguration>().Instance(Configuration));
+
+            indexManager = container.Resolve<IStorageIndexManager>();
+            indexManager.Start();
+
 
             BeforeConfigure();
 
@@ -94,6 +106,8 @@ namespace DotJEM.Web.Host
 
             AfterInitialize();
 
+            
+
             return this;
         }
 
@@ -101,6 +115,12 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageIndex CreateIndex()
         {
+            string cachePath = Configuration.Index.CacheLocation;
+            if (!string.IsNullOrEmpty(cachePath))
+            {
+                cachePath = HostingEnvironment.MapPath(cachePath);
+                return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(cachePath));
+            }
             //TODO: use app.config (web.config)
             return new LuceneStorageIndex();
         }

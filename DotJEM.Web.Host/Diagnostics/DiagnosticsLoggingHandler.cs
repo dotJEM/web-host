@@ -19,31 +19,25 @@ namespace DotJEM.Web.Host.Diagnostics
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
             timing = Stopwatch.GetTimestamp() - timing;
             
-            Task.Run(() => Log(request, response, timing), cancellationToken);
+            //TODO: Aquire all data, then log asyncrinously instead here (removing await)...
+            await Task.Run(() => Log(request.Method, request.RequestUri, response, timing), cancellationToken);
             return response;
         }
 
-        private void Log(HttpRequestMessage request, HttpResponseMessage response, long ms)
+        private void Log(HttpMethod requestMethod, Uri requestUri, HttpResponseMessage response, long timing)
         {
-            //request properties
-
-            //response properties
-           
-            //server &, application properties
-
             Debug.WriteLine("{0}: {1}\n - {2}\n - {3}\n - {4}\n - {5}\n - {6}ms\n - {7}\n - {8}\n - {9}",
-                request.Method,
-                request.RequestUri,
+                requestMethod,
+                requestUri,
                 DateTime.UtcNow,
                 ClaimsPrincipal.Current.Identity.Name,
                 Thread.CurrentPrincipal.Identity.Name,
                 (int)response.StatusCode,
-                ms,
+                timing,
                 Environment.MachineName,
                 Assembly.GetExecutingAssembly().GetName().Version,
                 Thread.CurrentThread.ManagedThreadId);
-
-            //todo: log to your favorite persistence store
         }
+
     }
 }

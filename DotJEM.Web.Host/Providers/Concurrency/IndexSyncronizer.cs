@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Hosting;
 using Castle.Core.Internal;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
@@ -11,6 +15,7 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Configuration;
+using DotJEM.Web.Host.Configuration.Elements;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -27,31 +32,34 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     {
         void Start();
         void Stop();
-
-        IStorageIndexManager Watch(params string[] areas);
-
-        Task QueueUpdate(JObject entity);
+        void QueueUpdate();
     }
 
     public class StorageIndexManager : IStorageIndexManager
     {
         private readonly IStorageIndex index;
-        private readonly IStorageContext storage;
-        private readonly IWebHostConfiguration config;
 
         private Scheduler callback;
-        private Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
+        private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
+        private readonly TimeSpan interval;
+        private readonly object padlock;
+        private string cachePath;
 
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration config)
+        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration)
         {
             this.index = index;
-            this.storage = storage;
-            this.config = config;
+            interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
+            foreach (WatchElement watch in configuration.Index.Watch.Items)
+                logs[watch.Area] = storage.Area(watch.Area).Log;
+
+            //TODO: Use the below to store a index pointer.
+            if (!string.IsNullOrEmpty(configuration.Index.CacheLocation))
+                cachePath = HostingEnvironment.MapPath(configuration.Index.CacheLocation);
         }
 
         public void Start()
         {
-             callback = new Scheduler(signaled => UpdateIndex(), TimeSpan.FromSeconds(60));
+            callback = new Scheduler(signaled => UpdateIndex(), interval);
         }
 
         public void Stop()
@@ -59,54 +67,60 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             callback.Dispose();
         }
 
-        public IStorageIndexManager Watch(params string[] areas)
+        private void UpdateIndex()
         {
-            foreach (string area in areas)
-                logs[area] = storage.Area(area).Log;
-            return this;
-        }
-
-        private void UpdateIndex(params JObject[] entities)
-        {
-            logs.Values
-                .AsParallel()
-                .Select(log => log.Get())
-                
-                .Select(changes =>
+            Dictionary<string, long> changes = logs
+                .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
+                .Select(Selector)
+                .Aggregate(new Dictionary<string, long>(), (map, next) =>
                 {
-                    index.WriteAll(changes.Creates);
-                    index.WriteAll(changes.Updates);
-                    index.DeleteAll(changes.Deletes);
-                    return changes.Token;
-                })
-                .Max();
-
-            //watchedAreas
-            //    .Values
-            //    .AsParallel()
-            //    .Select(log => { return log; })
-            //    .SelectMany()
-
-
-            index.WriteAll(entities);
+                    map[next.Item1] = next.Item2;
+                    return map;
+                });
+            UpdateTracker(changes);
         }
 
-        public Task QueueUpdate(JObject entity)
+        private void UpdateTracker(Dictionary<string, long> changes)
+        {
+            string path = Path.Combine(cachePath, "tracker");
+
+            byte[] buffer = new byte[1024 * 16];
+            int offset = changes.Aggregate(0, (current, change) => KeyValueToBytes(change, buffer, current)); //16KB should be enough?
+
+
+            lock (padlock)
+            {
+                
+                    
+            }
+        }
+
+        private int KeyValueToBytes(KeyValuePair<string, long> kvp, byte[] buffer, int offset)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(kvp.Key);
+            byte[] token = BitConverter.GetBytes(kvp.Value);
+            buffer[offset++] = BitConverter.GetBytes((byte)bytes.Length).Single();
+            Buffer.BlockCopy(bytes, 0, buffer, offset++, bytes.Length);
+            Buffer.BlockCopy(token, 0, buffer, offset += bytes.Length, token.Length);
+            return offset;
+        }
+
+        private Tuple<string, long> Selector(Tuple<string, IStorageChanges> tuple)
+        {
+            var changes = tuple.Item2;
+            index
+                .WriteAll(changes.Created)
+                .WriteAll(changes.Updated)
+                .DeleteAll(changes.Deleted);
+            return new Tuple<string, long>(tuple.Item1, changes.Token);
+        }
+        
+        public void QueueUpdate()
         {
             //Note: This will cause the callback to get called right away...
             callback.Signal();
-
-            //UpdateIndex(entity);
-
-
-            //TODO: This is cheating atm... 
-            return Task.Factory.StartNew(() => { });
         }
 
-        public void Update()
-        {
-            
-        }
     }
 
     public class Scheduler : IDisposable
