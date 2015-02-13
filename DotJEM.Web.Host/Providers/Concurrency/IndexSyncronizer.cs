@@ -38,12 +38,13 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     public class StorageIndexManager : IStorageIndexManager
     {
         private readonly IStorageIndex index;
+        private readonly object padlock = new object();
 
         private Scheduler callback;
         private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly TimeSpan interval;
-        private readonly object padlock;
-        private string cachePath;
+        private readonly string cachePath;
+        private bool initialized;
 
         public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration)
         {
@@ -54,11 +55,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
             //TODO: Use the below to store a index pointer.
             if (!string.IsNullOrEmpty(configuration.Index.CacheLocation))
-                cachePath = HostingEnvironment.MapPath(configuration.Index.CacheLocation);
+                cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
         }
 
         public void Start()
         {
+            UpdateIndex();
             callback = new Scheduler(signaled => UpdateIndex(), interval);
         }
 
@@ -69,40 +71,48 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void UpdateIndex()
         {
-            Dictionary<string, long> changes = logs
-                .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
-                .Select(Selector)
-                .Aggregate(new Dictionary<string, long>(), (map, next) =>
-                {
-                    map[next.Item1] = next.Item2;
-                    return map;
-                });
-            UpdateTracker(changes);
+            IEnumerable<Tuple<string, IStorageChanges>> tuples;
+            if (!initialized)
+            {
+                Dictionary<string, long> tracker = InitializeFromTracker();
+                tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))));
+                initialized = true;
+            }
+            else
+            {
+                tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()));
+            }
+
+            UpdateTracker(tuples.Select(Selector)
+            .Aggregate(new Dictionary<string, long>(), (map, next) =>
+            {
+                map[next.Item1] = next.Item2;
+                return map;
+            }));
+        }
+
+        private static long GetTracker(Dictionary<string, long> changes, string key)
+        {
+            long value;
+            if (changes.TryGetValue(key, out value))
+                return value;
+            return -1;
         }
 
         private void UpdateTracker(Dictionary<string, long> changes)
         {
-            string path = Path.Combine(cachePath, "tracker");
-
-            byte[] buffer = new byte[1024 * 16];
-            int offset = changes.Aggregate(0, (current, change) => KeyValueToBytes(change, buffer, current)); //16KB should be enough?
-
-
             lock (padlock)
             {
-                
-                    
+                new SimpleDictionaryWriter().Write(cachePath, changes);
             }
         }
 
-        private int KeyValueToBytes(KeyValuePair<string, long> kvp, byte[] buffer, int offset)
+        private Dictionary<string, long> InitializeFromTracker()
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(kvp.Key);
-            byte[] token = BitConverter.GetBytes(kvp.Value);
-            buffer[offset++] = BitConverter.GetBytes((byte)bytes.Length).Single();
-            Buffer.BlockCopy(bytes, 0, buffer, offset++, bytes.Length);
-            Buffer.BlockCopy(token, 0, buffer, offset += bytes.Length, token.Length);
-            return offset;
+            lock (padlock)
+            {
+                return new SimpleDictionaryWriter().Read(cachePath);
+            }
         }
 
         private Tuple<string, long> Selector(Tuple<string, IStorageChanges> tuple)
@@ -114,7 +124,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .DeleteAll(changes.Deleted);
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
-        
+
         public void QueueUpdate()
         {
             //Note: This will cause the callback to get called right away...
@@ -160,6 +170,55 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public void Signal()
         {
             handle.Set();
+        }
+    }
+
+
+    public class SimpleDictionaryWriter
+    {
+        public void Write(string file, Dictionary<string, long> values)
+        {
+            byte[] buffer = new byte[1024 * 16];
+            int offset = values.Aggregate(0, (current, change) => WriteKeyValueToBuffer(change, buffer, current));
+            byte[] outputBuffer = new byte[offset];
+            Buffer.BlockCopy(buffer, 0, outputBuffer, 0, offset);
+            File.WriteAllBytes(file, outputBuffer);
+        }
+
+        private int WriteKeyValueToBuffer(KeyValuePair<string, long> kvp, byte[] buffer, int offset)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(kvp.Key);
+            byte[] token = BitConverter.GetBytes(kvp.Value);
+
+            buffer[offset++] = (byte)bytes.Length;
+            Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
+            Buffer.BlockCopy(token, 0, buffer, offset + bytes.Length, token.Length);
+            return offset + bytes.Length + 8;
+        }
+
+        private int ReadKeyValueFromBuffer(byte[] buffer, Dictionary<string, long> map, int offset)
+        {
+            byte[] bytes = new byte[buffer[offset++]];
+
+            Buffer.BlockCopy(buffer, offset, bytes, 0, bytes.Length);
+            offset += bytes.Length;
+            string key = Encoding.UTF8.GetString(bytes);
+            map[key] = BitConverter.ToInt64(buffer, offset);
+            return offset + 8;
+        }
+
+        public Dictionary<string, long> Read(string file)
+        {
+            if(!File.Exists(file))
+                return new Dictionary<string, long>();
+            byte[] inputBuffer = File.ReadAllBytes(file);
+            Dictionary<string, long> map = new Dictionary<string, long>();
+            int offset = 0;
+            while (offset < inputBuffer.Length)
+            {
+                offset = ReadKeyValueFromBuffer(inputBuffer, map, offset);
+            }
+            return map;
         }
     }
 }

@@ -87,10 +87,6 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IStorageContext>().Instance(Storage))
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration));
 
-            indexManager = container.Resolve<IStorageIndexManager>();
-            indexManager.Start();
-
-
             BeforeConfigure();
 
             Configure(container);
@@ -106,7 +102,8 @@ namespace DotJEM.Web.Host
 
             AfterInitialize();
 
-            
+            indexManager = container.Resolve<IStorageIndexManager>();
+            indexManager.Start();            
 
             return this;
         }
