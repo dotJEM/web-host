@@ -103,7 +103,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             lock (padlock)
             {
-                new SimpleDictionaryWriter().Write(cachePath, changes);
+                if (!string.IsNullOrEmpty(cachePath))
+                {
+                    new SimpleDictionaryWriter().Write(cachePath, changes);
+                }
             }
         }
 

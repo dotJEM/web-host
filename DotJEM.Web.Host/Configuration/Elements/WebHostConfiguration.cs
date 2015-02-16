@@ -36,7 +36,7 @@ namespace DotJEM.Web.Host.Configuration.Elements
 
     public class IndexConfiguration : ConfigurationElement
     {
-        [ConfigurationProperty("cache-location", IsRequired = true)]
+        [ConfigurationProperty("cache-location", IsRequired = false)]
         public string CacheLocation
         {
             get { return this["cache-location"] as string; }
