@@ -1,15 +1,9 @@
-﻿using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Web;
-using System.Web.Hosting;
+﻿using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
-using System.Web.Http.Filters;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
-
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Castle;
@@ -83,6 +77,7 @@ namespace DotJEM.Web.Host
             Storage = CreateStorage();
 
             container
+                .Register(Component.For<IWebHost>().Instance(this))
                 .Register(Component.For<IStorageIndex>().Instance(Index))
                 .Register(Component.For<IStorageContext>().Instance(Storage))
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration));
