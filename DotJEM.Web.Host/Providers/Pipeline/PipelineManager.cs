@@ -1,199 +1,260 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Castle.MicroKernel;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
-using DotJEM.Reflection.Descriptors;
-using DotJEM.Reflection.Descriptors.Descriptors;
-using DotJEM.Reflection.Descriptors.Inspection;
-using DotJEM.Reflection.Descriptors.Loading;
-using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Pipeline
+namespace DotJEM.Web.Host.Providers.Pipeline
 {
-    public class ManagerInstaller : IWindsorInstaller
+    public class PipelineInstaller : IWindsorInstaller
     {
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
-            container.Register(Component.For<IPipelineManager>().ImplementedBy<PipelineManager>().LifestyleTransient());
-            container.Register(Component.For<IAddonManager>().ImplementedBy<AddonManager>().LifestyleTransient());
+            container.Register(Component.For<IPipeline>().ImplementedBy<Pipeline>().LifestyleTransient());            
         }
     }
 
-    public interface IPipelineManager
+    public interface IPipeline
     {
-        IPipeline Lookup(string contentType);
+        JObject ExecuteOnGet(JObject json);
+        JObject ExecuteOnPut(JObject json);
+        JObject ExecuteOnPost(JObject json);
+        JObject ExecuteOnDelete(JObject json);
     }
 
-
-
-    public class PipelineManager : IPipelineManager
+    public interface IJsonDecorator
     {
-        private readonly IAddonManager addons;
-        private readonly IKernel kernel;
-        private readonly IDescriptorResolver resolver = new DescriptorResolver();
-
-        private readonly List<IJsonDecorator> steps = new List<IJsonDecorator>();
-        private readonly Dictionary<string, IPipeline> pipelines = new Dictionary<string, IPipeline>();
-
-        public PipelineManager(IAddonManager addons, IKernel kernel)
-        {
-            this.addons = addons;
-            this.kernel = kernel;
-
-            addons.AddonLoaded += RegisterDecorators;
-        }
-
-        private void RegisterDecorators(object sender, AddonEventArgs e)
-        {
-            steps.AddRange(e.Addon.Decorators.Select(Instantiate));
-        }
-
-        private IJsonDecorator Instantiate(TypeDescriptor descriptor)
-        {
-            Type type = resolver.Resolve(descriptor);
-
-            var services = (from ctor in type.GetConstructors()
-                            let parameters = ctor.GetParameters()
-                            orderby parameters.Length descending
-                            let parameterTypes = parameters.Select(p => p.ParameterType)
-                            where parameterTypes.All(kernel.HasComponent)
-                            select parameterTypes.Select(t => kernel.Resolve(t)))
-                                           .FirstOrDefault();
-
-            return (IJsonDecorator)Activator.CreateInstance(type, services);
-        }
-
-        public IPipeline Lookup(string contentType)
-        {
-            return !pipelines.ContainsKey(contentType) ? InitializePipeline(contentType) : pipelines[contentType];
-        }
-
-        private IPipeline InitializePipeline(string contentType)
-        {
-            return pipelines[contentType] = new Pipline(steps.Where(step => step.Accepts(contentType)).ToList());
-        }
-
-        public void Invalidate(string contentType = null)
-        {
-            if (contentType == null)
-            {
-                pipelines.Clear();
-            }
-            else
-            {
-                pipelines.Remove(contentType);
-            }
-        }
+        JObject DecorateGet(dynamic entity);
+        JObject DecoratePost(dynamic entity);
+        JObject DecoratePut(dynamic entity);
+        JObject DecorateDelete(dynamic entity);
     }
 
-    public interface IAddonManager
+    public class Pipeline : IPipeline
     {
-        event EventHandler<AddonEventArgs> AddonLoaded;
+        private readonly IEnumerable<IJsonDecorator> steps;
 
-        void Initialize();
+        public Pipeline(IJsonDecorator[] steps)
+        {
+            this.steps = steps;
+        }
+
+        public JObject ExecuteOnGet(JObject json)
+        {
+            return steps.Aggregate(json, (jo, step) => step.DecorateGet(jo));
+        }
+
+        public JObject ExecuteOnPut(JObject json)
+        {
+            return steps.Aggregate(json, (jo, step) => step.DecoratePut(jo));
+        }
+
+        public JObject ExecuteOnPost(JObject json)
+        {
+            return steps.Aggregate(json, (jo, step) => step.DecoratePost(jo));
+        }
+
+        public JObject ExecuteOnDelete(JObject json)
+        {
+            return steps.Aggregate(json, (jo, step) => step.DecorateDelete(jo));
+        }
     }
 
-    public interface IAddonDescriptor
+    public abstract class JsonDecorator : IJsonDecorator
     {
-        string FullName { get; }
-        AssemblyDescriptor Assembly { get; }
-        TypeDescriptor[] Decorators { get; }
-    }
-
-    public class AddonDescriptor : IAddonDescriptor
-    {
-        public string FullName { get { return Assembly.FullName; } }
-
-        public AssemblyDescriptor Assembly { get; private set; }
-        public TypeDescriptor[] Decorators { get; private set; }
-
-        public AddonDescriptor(AssemblyDescriptor descriptor)
+        public virtual JObject DecorateGet(dynamic entity)
         {
-            Assembly = descriptor;
-            Decorators = All<IJsonDecorator>(descriptor);
+            return entity;
         }
 
-        private static TypeDescriptor[] All<T>(AssemblyDescriptor descriptor)
+        public virtual JObject DecoratePost(dynamic entity)
         {
-            return descriptor.Types.Where(typeDescriptor =>
-                (from interfaceType in typeDescriptor.Interfaces
-                 where interfaceType.FullName == typeof(T).FullName
-                 select interfaceType).Any()).ToArray();
+            return entity;
+        }
+
+        public virtual JObject DecoratePut(dynamic entity)
+        {
+            return entity;
+        }
+
+        public virtual JObject DecorateDelete(dynamic entity)
+        {
+            return entity;
         }
     }
 
-    public class AddonEventArgs : EventArgs
-    {
-        public IAddonDescriptor Addon { get; private set; }
 
-        public AddonEventArgs(IAddonDescriptor addon)
-        {
-            Addon = addon;
-        }
-    }
 
-    public class AddonManager : IAddonManager
-    {
-        private readonly string root;
-        private readonly IDictionary<string, IAddonDescriptor> addons = new Dictionary<string, IAddonDescriptor>();
 
-        public event EventHandler<AddonEventArgs> AddonLoaded;
-        public event EventHandler<AddonEventArgs> AddonUnloaded;
+    //public interface IPipelineManager
+    //{
+    //    IPipeline Lookup(string contentType);
+    //}
 
-        public AddonManager()
-        {
-            root = Path.Combine(Directory.GetCurrentDirectory(), "addons");
-        }
+    //public class PipelineManager : IPipelineManager
+    //{
+    //    private readonly IAddonManager addons;
+    //    private readonly IKernel kernel;
+    //    private readonly IDescriptorResolver resolver = new DescriptorResolver();
 
-        public void Initialize()
-        {
-            DependencyResolver resolver = DependencyResolver.Instance;
-            using (IAssemblyInspectionContext context = new AssemblyInspectionContext())
-            {
-                Directory.GetDirectories(root).ForEach(dir => resolver.AddLocation(dir));
-                EnumerableExtensions.ForEach(Directory.GetDirectories(root)
-                        .Select(dir => new AddonDescriptor(context.LoadAssembly(GetPrimaryAssembly(dir))))
-                        .ToArray(), RegisterAddon);
-            }
-        }
+    //    private readonly List<IJsonDecorator> steps = new List<IJsonDecorator>();
+    //    private readonly Dictionary<string, IPipeline> pipelines = new Dictionary<string, IPipeline>();
 
-        private void RegisterAddon(IAddonDescriptor addon)
-        {
-            if (addons.ContainsKey(addon.FullName))
-                OnAddonUnloaded(new AddonEventArgs(addons[addon.FullName]));
-            addons[addon.FullName] = addon;
-            OnAddonLoaded(new AddonEventArgs(addon));
-        }
+    //    public PipelineManager(IAddonManager addons, IKernel kernel)
+    //    {
+    //        this.addons = addons;
+    //        this.kernel = kernel;
 
-        private static string GetPrimaryAssembly(string directory)
-        {
-            string file = Directory.GetFiles(directory, "*.manifest").FirstOrDefault();
-            if (file != null)
-            {
-                string content = File.ReadAllText(file);
-                //TODO: Simple Manifest implementation, change to proper deserialization implementation.
-                string assembly = content;
-                if (string.IsNullOrEmpty(assembly))
-                    return assembly;
-            }
-            return Directory.GetFiles(directory, "*.dll").First();
-        }
+    //        addons.AddonLoaded += RegisterDecorators;
+    //    }
 
-        protected virtual void OnAddonLoaded(AddonEventArgs e)
-        {
-            if (AddonLoaded != null) AddonLoaded(this, e);
-        }
+    //    private void RegisterDecorators(object sender, AddonEventArgs e)
+    //    {
+    //        steps.AddRange(e.Addon.Decorators.Select(Instantiate));
+    //    }
 
-        protected virtual void OnAddonUnloaded(AddonEventArgs e)
-        {
-            if (AddonUnloaded != null) AddonUnloaded(this, e);
-        }
-    }
+    //    private IJsonDecorator Instantiate(TypeDescriptor descriptor)
+    //    {
+    //        Type type = resolver.Resolve(descriptor);
+
+    //        var services = (from ctor in type.GetConstructors()
+    //                        let parameters = ctor.GetParameters()
+    //                        orderby parameters.Length descending
+    //                        let parameterTypes = parameters.Select(p => p.ParameterType)
+    //                        where parameterTypes.All(kernel.HasComponent)
+    //                        select parameterTypes.Select(t => kernel.Resolve(t)))
+    //                                       .FirstOrDefault();
+
+    //        return (IJsonDecorator)Activator.CreateInstance(type, services);
+    //    }
+
+    //    public IPipeline Lookup(string contentType)
+    //    {
+    //        return !pipelines.ContainsKey(contentType) ? InitializePipeline(contentType) : pipelines[contentType];
+    //    }
+
+    //    private IPipeline InitializePipeline(string contentType)
+    //    {
+    //        return pipelines[contentType] = new Pipeline(steps.Where(step => step.Accepts(contentType)).ToList());
+    //    }
+
+    //    public void Invalidate(string contentType = null)
+    //    {
+    //        if (contentType == null)
+    //        {
+    //            pipelines.Clear();
+    //        }
+    //        else
+    //        {
+    //            pipelines.Remove(contentType);
+    //        }
+    //    }
+    //}
+
+    //public interface IAddonManager
+    //{
+    //    event EventHandler<AddonEventArgs> AddonLoaded;
+
+    //    void Initialize();
+    //}
+
+    //public interface IAddonDescriptor
+    //{
+    //    string FullName { get; }
+    //    AssemblyDescriptor Assembly { get; }
+    //    TypeDescriptor[] Decorators { get; }
+    //}
+
+    //public class AddonDescriptor : IAddonDescriptor
+    //{
+    //    public string FullName { get { return Assembly.FullName; } }
+
+    //    public AssemblyDescriptor Assembly { get; private set; }
+    //    public TypeDescriptor[] Decorators { get; private set; }
+
+    //    public AddonDescriptor(AssemblyDescriptor descriptor)
+    //    {
+    //        Assembly = descriptor;
+    //        Decorators = All<IJsonDecorator>(descriptor);
+    //    }
+
+    //    private static TypeDescriptor[] All<T>(AssemblyDescriptor descriptor)
+    //    {
+    //        return descriptor.Types.Where(typeDescriptor =>
+    //            (from interfaceType in typeDescriptor.Interfaces
+    //             where interfaceType.FullName == typeof(T).FullName
+    //             select interfaceType).Any()).ToArray();
+    //    }
+    //}
+
+    //public class AddonEventArgs : EventArgs
+    //{
+    //    public IAddonDescriptor Addon { get; private set; }
+
+    //    public AddonEventArgs(IAddonDescriptor addon)
+    //    {
+    //        Addon = addon;
+    //    }
+    //}
+
+    //public class AddonManager : IAddonManager
+    //{
+    //    private readonly string root;
+    //    private readonly IDictionary<string, IAddonDescriptor> addons = new Dictionary<string, IAddonDescriptor>();
+
+    //    public event EventHandler<AddonEventArgs> AddonLoaded;
+    //    public event EventHandler<AddonEventArgs> AddonUnloaded;
+
+    //    public AddonManager()
+    //    {
+    //        root = Path.Combine(Directory.GetCurrentDirectory(), "addons");
+    //    }
+
+    //    public void Initialize()
+    //    {
+    //        DependencyResolver resolver = DependencyResolver.Instance;
+    //        using (IAssemblyInspectionContext context = new AssemblyInspectionContext())
+    //        {
+    //            Directory.GetDirectories(root).ForEach(dir => resolver.AddLocation(dir));
+    //            EnumerableExtensions.ForEach(Directory.GetDirectories(root)
+    //                    .Select(dir => new AddonDescriptor(context.LoadAssembly(GetPrimaryAssembly(dir))))
+    //                    .ToArray(), RegisterAddon);
+    //        }
+    //    }
+
+    //    private void RegisterAddon(IAddonDescriptor addon)
+    //    {
+    //        if (addons.ContainsKey(addon.FullName))
+    //            OnAddonUnloaded(new AddonEventArgs(addons[addon.FullName]));
+    //        addons[addon.FullName] = addon;
+    //        OnAddonLoaded(new AddonEventArgs(addon));
+    //    }
+
+    //    private static string GetPrimaryAssembly(string directory)
+    //    {
+    //        string file = Directory.GetFiles(directory, "*.manifest").FirstOrDefault();
+    //        if (file != null)
+    //        {
+    //            string content = File.ReadAllText(file);
+    //            //TODO: Simple Manifest implementation, change to proper deserialization implementation.
+    //            string assembly = content;
+    //            if (string.IsNullOrEmpty(assembly))
+    //                return assembly;
+    //        }
+    //        return Directory.GetFiles(directory, "*.dll").First();
+    //    }
+
+    //    protected virtual void OnAddonLoaded(AddonEventArgs e)
+    //    {
+    //        if (AddonLoaded != null) AddonLoaded(this, e);
+    //    }
+
+    //    protected virtual void OnAddonUnloaded(AddonEventArgs e)
+    //    {
+    //        if (AddonUnloaded != null) AddonUnloaded(this, e);
+    //    }
+    //}
 
 
     //internal class ApplicationLoader : IApplicationLoader
@@ -283,86 +344,62 @@ namespace DotJEM.Web.Host.Pipeline
     //    }
     //}
 
-    public interface IPipeline
-    {
-        JObject Execute(JObject json);
-    }
 
-    public class Pipline : IPipeline
-    {
-        private readonly IEnumerable<IJsonDecorator> steps;
 
-        public Pipline(IEnumerable<IJsonDecorator> steps)
-        {
-            this.steps = steps;
-        }
 
-        public JObject Execute(JObject json)
-        {
-            return steps.Aggregate(json, (jo, step) => step.Execute(jo));
-        }
-    }
+    //[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    //public class JsonDecoratorAttribute : Attribute
+    //{
+    //    public string[] ContentTypes { get; private set; }
 
-    public interface IJsonDecorator
-    {
-        bool Accepts(string contentType);
+    //    public JsonDecoratorAttribute(params string[] contentTypes)
+    //    {
+    //        ContentTypes = contentTypes;
+    //    }
+    //}
 
-        JObject Execute(JObject json);
-    }
+    //public abstract class JsonDecorator : IJsonDecorator
+    //{
+    //    private readonly Lazy<HashSet<string>> accepts;
 
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class JsonDecoratorAttribute : Attribute
-    {
-        public string[] ContentTypes { get; private set; }
+    //    protected JsonDecorator()
+    //    {
+    //        accepts = new Lazy<HashSet<string>>(Initialize);
+    //    }
 
-        public JsonDecoratorAttribute(params string[] contentTypes)
-        {
-            ContentTypes = contentTypes;
-        }
-    }
+    //    public virtual bool Accepts(string contentType)
+    //    {
+    //        return accepts.Value.Contains(contentType);
+    //    }
 
-    public abstract class JsonDecorator : IJsonDecorator
-    {
-        private readonly Lazy<HashSet<string>> accepts;
+    //    private HashSet<string> Initialize()
+    //    {
+    //        JsonDecoratorAttribute attr = (JsonDecoratorAttribute)GetType()
+    //            .GetCustomAttributes(typeof(JsonDecoratorAttribute), false)
+    //            .FirstOrDefault();
+    //        return attr != null ? new HashSet<string>(attr.ContentTypes) : new HashSet<string>();
+    //    }
 
-        protected JsonDecorator()
-        {
-            accepts = new Lazy<HashSet<string>>(Initialize);
-        }
+    //    public abstract JObject Execute(JObject json);
+    //}
 
-        public virtual bool Accepts(string contentType)
-        {
-            return accepts.Value.Contains(contentType);
-        }
+    //public abstract class AbstractJsonDecorator : JsonDecorator
+    //{
+    //    public override JObject Execute(JObject json)
+    //    {
+    //        return OnExecute(json);
+    //    }
 
-        private HashSet<string> Initialize()
-        {
-            JsonDecoratorAttribute attr = (JsonDecoratorAttribute)GetType()
-                .GetCustomAttributes(typeof(JsonDecoratorAttribute), false)
-                .FirstOrDefault();
-            return attr != null ? new HashSet<string>(attr.ContentTypes) : new HashSet<string>();
-        }
+    //    public abstract JObject OnExecute(JObject json);
+    //}
 
-        public abstract JObject Execute(JObject json);
-    }
+    //public abstract class DinamicJsonDecorator : JsonDecorator
+    //{
+    //    public override JObject Execute(JObject json)
+    //    {
+    //        return OnExecute(json);
+    //    }
 
-    public abstract class AbstractJsonDecorator : JsonDecorator
-    {
-        public override JObject Execute(JObject json)
-        {
-            return OnExecute(json);
-        }
-
-        public abstract JObject OnExecute(JObject json);
-    }
-
-    public abstract class DinamicJsonDecorator : JsonDecorator
-    {
-        public override JObject Execute(JObject json)
-        {
-            return OnExecute(json);
-        }
-
-        public abstract dynamic OnExecute(dynamic json);
-    }
+    //    public abstract dynamic OnExecute(dynamic json);
+    //}
 }
