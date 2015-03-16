@@ -32,7 +32,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     {
         void Start();
         void Stop();
-        void QueueUpdate();
+        void QueueUpdate(JObject entity);
+        void QueueDelete(JObject entity);
     }
 
     public class StorageIndexManager : IStorageIndexManager
@@ -45,6 +46,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly TimeSpan interval;
         private readonly string cachePath;
         private bool initialized;
+
+        //private Queue<JObject> process = new Queue<JObject>(); 
+
 
         public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration)
         {
@@ -128,9 +132,22 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
 
-        public void QueueUpdate()
+        public void QueueUpdate(JObject entity)
         {
+            //Note: This will cause the entity to be updated in the index twice
+            //      but it ensures that the entity is prepared for us if we query it right after this...
+            index.Write(entity);
+
             //Note: This will cause the callback to get called right away...
+            callback.Signal();
+        }
+
+        public void QueueDelete(JObject entity)
+        {
+            //Note: This will cause the entity to be updated in the index twice
+            //      but it ensures that the entity is prepared for us if we query it right after this...
+            index.Delete(entity);
+
             callback.Signal();
         }
 

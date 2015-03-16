@@ -62,7 +62,7 @@ namespace DotJEM.Web.Host.Providers.Services
         {
             entity = area.Insert(contentType, entity);
 
-            manager.QueueUpdate();
+            manager.QueueUpdate(entity);
 
             //index.Write(entity);
             return entity;
@@ -71,7 +71,7 @@ namespace DotJEM.Web.Host.Providers.Services
         public JObject Put(Guid id, string contentType, JObject entity)
         {
             entity = area.Update(id, entity);
-            manager.QueueUpdate();
+            manager.QueueUpdate(entity);
             //index.Write(entity);
             return entity;
         }
@@ -85,7 +85,7 @@ namespace DotJEM.Web.Host.Providers.Services
             //TODO: Throw exception if not found?
             //    if (deleted == null)
             //        return Request.CreateResponse(HttpStatusCode.NotFound, "Could not delete cotent with id [" + id + "] in area '" + Area.Name + "' as it could not be found.");
-            manager.QueueUpdate();
+            manager.QueueDelete(deleted);
 
             //index.Delete(deleted);
             return deleted;
