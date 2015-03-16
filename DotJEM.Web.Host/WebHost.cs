@@ -12,6 +12,7 @@ using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
+using DotJEM.Web.Host.Providers.Pipeline;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -73,6 +74,8 @@ namespace DotJEM.Web.Host
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
             Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
 
+            
+
             Index = CreateIndex();
             Storage = CreateStorage();
 
@@ -84,6 +87,7 @@ namespace DotJEM.Web.Host
 
             BeforeConfigure();
 
+            Configure(container.Resolve<IPipeline>());
             Configure(container);
             Configure(Storage);
             Configure(Index);
@@ -132,6 +136,7 @@ namespace DotJEM.Web.Host
         protected virtual void Configure(IStorageContext storage) { }
         protected virtual void Configure(IStorageIndex index) { }
         protected virtual void Configure(IRouter router) { }
+        protected virtual void Configure(IPipeline pipeline) { }
         protected virtual void AfterConfigure() { }
 
         protected virtual void BeforeInitialize() { }
