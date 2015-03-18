@@ -2,6 +2,7 @@
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
 using Castle.MicroKernel.Registration;
+using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
 using DotJEM.Json.Index;
@@ -13,6 +14,7 @@ using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
+using DotJEM.Web.Host.Providers.Services;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -80,6 +82,8 @@ namespace DotJEM.Web.Host
             Storage = CreateStorage();
 
             container
+                .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
+                .Register(Component.For<IWindsorContainer>().Instance(container))
                 .Register(Component.For<IWebHost>().Instance(this))
                 .Register(Component.For<IStorageIndex>().Instance(Index))
                 .Register(Component.For<IStorageContext>().Instance(Storage))

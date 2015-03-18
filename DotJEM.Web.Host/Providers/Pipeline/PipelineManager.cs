@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Pipeline
@@ -17,16 +19,19 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
     public interface IPipeline
     {
-        JObject ExecuteOnGet(JObject json);
-        JObject ExecuteOnPut(JObject json);
-        JObject ExecuteOnPost(JObject json);
-        JObject ExecuteOnDelete(JObject json);
+        JObject ExecuteOnGet(JObject json, string contentType);
+        JObject ExecuteOnPut(JObject json, string contentType);
+        JObject ExecuteBeforePost(JObject json, string contentType);
+        JObject ExecuteAfterPost(JObject json, string contentType);
+        JObject ExecuteOnDelete(JObject json, string contentType);
     }
 
     public interface IJsonDecorator
     {
+        bool Accept(string contentType);
         JObject DecorateGet(dynamic entity);
-        JObject DecoratePost(dynamic entity);
+        JObject DecorateBeforePost(dynamic entity);
+        JObject DecorateAfterPost(dynamic entity);
         JObject DecoratePut(dynamic entity);
         JObject DecorateDelete(dynamic entity);
     }
@@ -40,35 +45,51 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             this.steps = steps;
         }
 
-        public JObject ExecuteOnGet(JObject json)
+        public JObject ExecuteOnGet(JObject json, string contentType)
         {
-            return steps.Aggregate(json, (jo, step) => step.DecorateGet(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateGet(jo));
         }
 
-        public JObject ExecuteOnPut(JObject json)
+        public JObject ExecuteOnPut(JObject json, string contentType)
         {
-            return steps.Aggregate(json, (jo, step) => step.DecoratePut(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecoratePut(jo));
         }
 
-        public JObject ExecuteOnPost(JObject json)
+        public JObject ExecuteBeforePost(JObject json, string contentType)
         {
-            return steps.Aggregate(json, (jo, step) => step.DecoratePost(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateBeforePost(jo));
         }
 
-        public JObject ExecuteOnDelete(JObject json)
+        public JObject ExecuteAfterPost(JObject json, string contentType)
         {
-            return steps.Aggregate(json, (jo, step) => step.DecorateDelete(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateAfterPost(jo));
         }
+
+        public JObject ExecuteOnDelete(JObject json, string contentType)
+        {
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateDelete(jo));
+        }
+
     }
 
     public abstract class JsonDecorator : IJsonDecorator
     {
+        public virtual bool Accept(string contentType)
+        {
+            return true;
+        }
+
         public virtual JObject DecorateGet(dynamic entity)
         {
             return entity;
         }
 
-        public virtual JObject DecoratePost(dynamic entity)
+        public virtual JObject DecorateBeforePost(dynamic entity)
+        {
+            return entity;
+        }
+
+        public virtual JObject DecorateAfterPost(dynamic entity)
         {
             return entity;
         }
