@@ -43,7 +43,7 @@ namespace DotJEM.Web.Host.Providers.Services
             var res = index.Search("contentType: " + contentType)
                 .Skip(skip).Take(take)
                 .Select(hit => hit.Json)
-                .Select(json => pipeline.ExecuteOnGet(json)) //Executes the pipeline for each element found
+                .Select(json => pipeline.ExecuteOnGet(json, contentType)) //Executes the pipeline for each element found
                 .Cast<JObject>().ToArray();
 
             return res;
@@ -63,12 +63,16 @@ namespace DotJEM.Web.Host.Providers.Services
             //if (entity == null)
             //    return Request.CreateResponse(HttpStatusCode.NotFound, "Could not find cotent of type '" + contentType + "' with id [" + id + "] in area '" + Area.Name + "'");
 
-            return pipeline.ExecuteOnGet(entity);
+            return pipeline.ExecuteOnGet(entity, contentType);
         }
 
         public JObject Post(string contentType, JObject entity)
         {
-            entity = area.Insert(contentType, pipeline.ExecuteOnPost(entity));
+            entity = pipeline.ExecuteBeforePost(entity, contentType);
+
+            entity = area.Insert(contentType, entity);
+
+            entity = pipeline.ExecuteAfterPost(entity, contentType);
 
             manager.QueueUpdate(entity);
 
@@ -78,7 +82,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Put(Guid id, string contentType, JObject entity)
         {
-            entity = area.Update(id, pipeline.ExecuteOnPut(entity));
+            entity = area.Update(id, pipeline.ExecuteOnPut(entity, contentType));
             manager.QueueUpdate(entity);
             //index.Write(entity);
             return entity;
@@ -96,7 +100,7 @@ namespace DotJEM.Web.Host.Providers.Services
             manager.QueueDelete(deleted);
 
             //index.Delete(deleted);
-            return pipeline.ExecuteOnDelete(deleted);
+            return pipeline.ExecuteOnDelete(deleted, contentType);
         }
     }
 }

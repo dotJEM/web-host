@@ -1,18 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Web.Http;
+using Castle.Windsor;
 
 namespace DotJEM.Web.Host.Providers
 {
     public interface IServiceProvider<out TService>
     {
-        TService Create(string areaName, ApiController controller);
+        TService Create(string areaName);
         bool Release(string areaName);
     }
 
     public abstract class ServiceProvider<TService> : IServiceProvider<TService>
     {
-        private readonly Func<string, TService> factory; 
+        private readonly Func<string, TService> factory;
         private readonly Dictionary<string, TService> services = new Dictionary<string, TService>();
 
         protected ServiceProvider(Func<string, TService> factory)
@@ -20,7 +20,7 @@ namespace DotJEM.Web.Host.Providers
             this.factory = factory;
         }
 
-        public TService Create(string areaName, ApiController controller)
+        public TService Create(string areaName)
         {
             TService service = GetOrCreateService(areaName);
             //service.Controller = controller;
