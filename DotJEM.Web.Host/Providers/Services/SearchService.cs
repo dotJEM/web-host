@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
-using Lucene.Net.Search;
+ using DotJEM.Web.Host.Providers.Pipeline;
+ using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services
@@ -19,49 +20,29 @@ namespace DotJEM.Web.Host.Providers.Services
             Results = result.Select(hit => hit.Json).ToArray();
             TotalCount = result.TotalCount;
         }
+
+        public SearchResult(IEnumerable<dynamic> results, long totalCount)
+        {
+            Results = results;
+            TotalCount = totalCount;
+        }
     }
 
     public interface ISearchService
     {
         SearchResult Search(string query, int skip = 0, int take = 20);
-        SearchResult Reduce(dynamic reduce, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
-
-        //// SEARCH CONTROLLER
-        //[HttpGet]
-        //public dynamic Get([FromUri]string query, [FromUri]int skip = 0, [FromUri]int take = 25)
-        //{
-        //    if (string.IsNullOrWhiteSpace(query))
-        //        Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
-
-        //    ILuceneSearcher searcher = index.CreateSearcher();
-        //    ISearchResult result = searcher.Search(query).Skip(skip).Take(take);
-        //    return new SearchResult(result);
-        //}
-
-        //[HttpPost]
-        //public dynamic Post([FromBody]dynamic value, [FromUri]string contentType = "", [FromUri]int skip = 0, [FromUri]int take = 25, [FromUri]string sort = "$created:desc")
-        //{
-        //    ILuceneSearcher searcher = index.CreateSearcher();
-        //    ISearchResult result = searcher.Search((JObject)value, contentType).Skip(skip).Take(take).Sort(
-
-        //        new Sort(sort.Split(',').Select(x =>
-        //        {
-        //            string[] f = x.Split(':');
-        //            return new SortField(f[0], SortField.LONG, f[1].Equals("desc", StringComparison.InvariantCultureIgnoreCase));
-        //        }).ToArray())
-
-        //        );
-
-        //    return new SearchResult(result);
-        //}
+        SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
     }
+
     public class SearchService : ISearchService
     {
         private readonly IStorageIndex index;
+        private readonly IPipeline pipeline;
 
-        public SearchService(IStorageIndex index)
+        public SearchService(IStorageIndex index, IPipeline pipeline)
         {
             this.index = index;
+            this.pipeline = pipeline;
         }
 
         public SearchResult Search(string query, int skip = 0, int take = 20)
@@ -70,13 +51,19 @@ namespace DotJEM.Web.Host.Providers.Services
             //if (string.IsNullOrWhiteSpace(query))
             //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-            ISearchResult result = index.Search(query).Skip(skip).Take(take);
-            return new SearchResult(result);
+            ISearchResult result = index
+                .Search(query)
+                .Skip(skip)
+                .Take(take);
+
+            return new SearchResult(result
+                .Select(hit => pipeline.ExecuteOnGet(hit.Json))
+                .ToArray(), result.TotalCount);
         }
 
-        public SearchResult Reduce(dynamic reduce, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc")
+        public SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc")
         {
-            JObject reduceObj = reduce as JObject ?? JObject.FromObject(reduce);
+            JObject reduceObj = query as JObject ?? JObject.FromObject(query);
 
             ISearchResult result = index.Search(reduceObj).Skip(skip).Take(take);
             if (!string.IsNullOrEmpty(sort))
