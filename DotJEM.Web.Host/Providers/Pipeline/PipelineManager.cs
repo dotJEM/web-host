@@ -19,21 +19,30 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
     public interface IPipeline
     {
-        JObject ExecuteOnGet(JObject json, string contentType);
-        JObject ExecuteOnPut(JObject json, string contentType);
+        JObject ExecuteBeforeGet(JObject json, string contentType);
+        JObject ExecuteAfterGet(JObject json, string contentType);
+        
         JObject ExecuteBeforePost(JObject json, string contentType);
         JObject ExecuteAfterPost(JObject json, string contentType);
-        JObject ExecuteOnDelete(JObject json, string contentType);
+
+        JObject ExecuteBeforePut(JObject json, string contentType);
+        JObject ExecuteAfterPut(JObject json, string contentType);
+
+        JObject ExecuteBeforeDelete(JObject json, string contentType);
+        JObject ExecuteAfterDelete(JObject json, string contentType);
     }
 
     public interface IJsonDecorator
     {
         bool Accept(string contentType);
-        JObject DecorateGet(dynamic entity);
-        JObject DecorateBeforePost(dynamic entity);
-        JObject DecorateAfterPost(dynamic entity);
-        JObject DecoratePut(dynamic entity);
-        JObject DecorateDelete(dynamic entity);
+        JObject OnBeforeGet(dynamic entity, string contentType);
+        JObject OnAfterGet(dynamic entity, string contentType);
+        JObject OnBeforePost(dynamic entity, string contentType);
+        JObject OnAfterPost(dynamic entity, string contentType);
+        JObject OnBeforePut(dynamic entity, string contentType);
+        JObject OnAfterPut(dynamic entity, string contentType);
+        JObject OnBeforeDelete(dynamic entity, string contentType);
+        JObject OnAfterDelete(dynamic entity, string contentType);
     }
 
     public class Pipeline : IPipeline
@@ -45,29 +54,44 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             this.steps = steps;
         }
 
-        public JObject ExecuteOnGet(JObject json, string contentType)
+        public JObject ExecuteBeforeGet(JObject json, string contentType)
         {
-            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateGet(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnBeforeGet(jo, contentType));
         }
 
-        public JObject ExecuteOnPut(JObject json, string contentType)
+        public JObject ExecuteAfterGet(JObject json, string contentType)
         {
-            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecoratePut(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnAfterGet(jo, contentType));
         }
-
+        
         public JObject ExecuteBeforePost(JObject json, string contentType)
         {
-            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateBeforePost(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnBeforePost(jo, contentType));
         }
 
         public JObject ExecuteAfterPost(JObject json, string contentType)
         {
-            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateAfterPost(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnAfterPost(jo, contentType));
         }
 
-        public JObject ExecuteOnDelete(JObject json, string contentType)
+        public JObject ExecuteBeforePut(JObject json, string contentType)
         {
-            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.DecorateDelete(jo));
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnBeforePut(jo, contentType));
+        }
+
+        public JObject ExecuteAfterPut(JObject json, string contentType)
+        {
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnAfterPut(jo, contentType));
+        }
+
+        public JObject ExecuteBeforeDelete(JObject json, string contentType)
+        {
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnBeforeDelete(jo, contentType));
+        }
+        
+        public JObject ExecuteAfterDelete(JObject json, string contentType)
+        {
+            return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnAfterDelete(jo, contentType));
         }
 
     }
@@ -79,27 +103,42 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return true;
         }
 
-        public virtual JObject DecorateGet(dynamic entity)
+        public virtual JObject OnBeforeGet(dynamic entity, string contentType)
         {
             return entity;
         }
 
-        public virtual JObject DecorateBeforePost(dynamic entity)
+        public virtual JObject OnAfterGet(dynamic entity, string contentType)
         {
             return entity;
         }
 
-        public virtual JObject DecorateAfterPost(dynamic entity)
+        public virtual JObject OnBeforePost(dynamic entity, string contentType)
         {
             return entity;
         }
 
-        public virtual JObject DecoratePut(dynamic entity)
+        public virtual JObject OnAfterPost(dynamic entity, string contentType)
         {
             return entity;
         }
 
-        public virtual JObject DecorateDelete(dynamic entity)
+        public virtual JObject OnBeforePut(dynamic entity, string contentType)
+        {
+            return entity;
+        }
+
+        public virtual JObject OnAfterPut(dynamic entity, string contentType)
+        {
+            return entity;
+        }
+
+        public virtual JObject OnBeforeDelete(dynamic entity, string contentType)
+        {
+            return entity;
+        }
+
+        public virtual JObject OnAfterDelete(dynamic entity, string contentType)
         {
             return entity;
         }
