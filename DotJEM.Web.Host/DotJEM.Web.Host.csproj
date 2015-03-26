@@ -154,6 +154,7 @@
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
+    <Compile Include="Util\JsonConverter.cs" />
     <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
     <Compile Include="WebHostApiController.cs" />
     <Compile Include="Angular\Angular.cs" />
