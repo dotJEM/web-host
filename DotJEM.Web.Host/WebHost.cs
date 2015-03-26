@@ -1,4 +1,5 @@
-﻿using System.Web.Hosting;
+﻿using System.Globalization;
+using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
 using Castle.MicroKernel.Registration;
@@ -15,6 +16,8 @@ using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services;
+using DotJEM.Web.Host.Util;
+using Lucene.Net.Search.Vectorhighlight;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -26,6 +29,7 @@ namespace DotJEM.Web.Host
         T Resolve<T>();
         void Shutdown();
     }
+
 
     public abstract class WebHost : IWebHost
     {
@@ -64,7 +68,7 @@ namespace DotJEM.Web.Host
             configuration.MessageHandlers.Add(new DiagnosticsLoggingHandler());
 
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
-
+            
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
         }
@@ -82,6 +86,7 @@ namespace DotJEM.Web.Host
             Storage = CreateStorage();
 
             container
+                .Register(Component.For<IJsonConverter>().ImplementedBy<JsonConverter>())
                 .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
                 .Register(Component.For<IWindsorContainer>().Instance(container))
                 .Register(Component.For<IWebHost>().Instance(this))
