@@ -151,11 +151,38 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActionResults\ForbiddenErrorMessageResult.cs" />
+    <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
     <Compile Include="Util\JsonConverter.cs" />
     <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
+    <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\FieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\IFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\LengthFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\MatchFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\MaxLengthFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\MinLengthFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\NullFieldConstraint.cs" />
+    <Compile Include="Validation\Constraints\RequiredFieldConstraint.cs" />
+    <Compile Include="Validation\FieldValidator.cs" />
+    <Compile Include="Validation\FieldValidatorBuilder.cs" />
+    <Compile Include="Validation\IFieldValidator.cs" />
+    <Compile Include="Validation\IFieldValidatorBuilder.cs" />
+    <Compile Include="Validation\IValidator.cs" />
+    <Compile Include="Validation\JsonEntityValidationException.cs" />
+    <Compile Include="Validation\JsonEntityValidator.cs" />
+    <Compile Include="Validation\Results\FieldValidationResults.cs" />
+    <Compile Include="Validation\Results\IValidationCollector.cs" />
+    <Compile Include="Validation\Results\ValidationCollector.cs" />
+    <Compile Include="Validation\Results\ValidationError.cs" />
+    <Compile Include="Validation\Results\ValidationResult.cs" />
+    <Compile Include="Validation\StringFieldValidatorBuilderExtensions.cs" />
+    <Compile Include="Validation\Validator.cs" />
+    <Compile Include="Validation\ValidatorAttribute.cs" />
+    <Compile Include="Validation\ValidatorInstaller.cs" />
     <Compile Include="WebHostApiController.cs" />
     <Compile Include="Angular\Angular.cs" />
     <Compile Include="Angular\IAngularContext.cs" />
@@ -219,9 +246,7 @@
       <Name>DotJEM.Reflection.Descriptors</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Addons\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -32,19 +32,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         JObject ExecuteAfterDelete(JObject json, string contentType);
     }
 
-    public interface IJsonDecorator
-    {
-        bool Accept(string contentType);
-        JObject OnBeforeGet(dynamic entity, string contentType);
-        JObject OnAfterGet(dynamic entity, string contentType);
-        JObject OnBeforePost(dynamic entity, string contentType);
-        JObject OnAfterPost(dynamic entity, string contentType);
-        JObject OnBeforePut(dynamic entity, string contentType);
-        JObject OnAfterPut(dynamic entity, string contentType);
-        JObject OnBeforeDelete(dynamic entity, string contentType);
-        JObject OnAfterDelete(dynamic entity, string contentType);
-    }
-
     public class Pipeline : IPipeline
     {
         private readonly IEnumerable<IJsonDecorator> steps;
@@ -94,6 +81,27 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return steps.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.OnAfterDelete(jo, contentType));
         }
 
+    }
+
+
+    public interface IJsonDecorator
+    {
+        bool Accept(string contentType);
+        JObject OnBeforeGet(dynamic entity, string contentType);
+        JObject OnAfterGet(dynamic entity, string contentType);
+        JObject OnBeforePost(dynamic entity, string contentType);
+        JObject OnAfterPost(dynamic entity, string contentType);
+        JObject OnBeforePut(dynamic entity, string contentType);
+        JObject OnAfterPut(dynamic entity, string contentType);
+        JObject OnBeforeDelete(dynamic entity, string contentType);
+        JObject OnAfterDelete(dynamic entity, string contentType);
+    }
+
+    public class FilterAttribute : Attribute
+    {
+        public FilterAttribute(string contentTypeFilter)
+        {
+        }
     }
 
     public abstract class JsonDecorator : IJsonDecorator
