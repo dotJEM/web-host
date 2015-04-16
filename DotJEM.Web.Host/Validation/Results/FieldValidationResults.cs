@@ -23,12 +23,11 @@ namespace DotJEM.Web.Host.Validation.Results
         public override string ToString()
         {
             //TODO: We could add information about field and token?
-
+            string path = token != null ? token.Path : field.ToString();
             return collector
-                .Aggregate(
-                    new StringBuilder().AppendFormat("Validation errors for: '{0}'", field.ToString(" ")).AppendLine(),
+                .Aggregate(new StringBuilder().AppendFormat("Validation errors for: '{0}'", path).AppendLine(),
                     (b, error) => b.AppendLine(" - " + error.Format(field)))
-                .AppendLine().ToString(); 
+                .AppendLine().ToString();
         }
     }
 }

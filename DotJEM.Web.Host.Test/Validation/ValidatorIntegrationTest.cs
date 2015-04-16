@@ -21,11 +21,26 @@ namespace DotJEM.Web.Host.Test.Validation
         [TestCase("{ combi: 'what' }")]
         public void Validate_InvalidData_ShouldReturnErrors(string json)
         {
-            TestValidator validator = new TestValidator();
+            IValidator validator = new TestValidator();
 
             ValidationResult result = validator.Validate(JObject.Parse(json));
 
             Assert.That(result.HasErrors, Is.True);
+        }
+
+        [TestCase("{ arr: [] }")]
+        [TestCase("{ arr: [ '42' ] }")]
+        [TestCase("{ arr: [ '42', '24' ] }")]
+        [TestCase("{ arr: [ { foo: 'bar' }] }")]
+        [TestCase("{ arr: [ { foo: 'bar' }, { foo: 'bob' }] }")]
+        public void Validate_Arrays_ShouldReturnErrors(string json)
+        {
+            IValidator validator = new TestArraysValidator();
+
+            ValidationResult result = validator.Validate(JObject.Parse(json));
+
+            Assert.That(result.HasErrors, Is.True);
+            Debug.WriteLine(result);
         }
     }
 
@@ -37,6 +52,14 @@ namespace DotJEM.Web.Host.Test.Validation
             Field("foo.barMax", Must.HaveMaxLength(10));
             Field("foo.barMin", Must.HaveMinLength(10));
             Field("combi", Must.HaveLength(10, 20).Match("^[0-9]*$"));
+        }
+    }
+
+    public class TestArraysValidator : Validator
+    {
+        public TestArraysValidator()
+        {
+            Field("arr[*].foo", Must.Match("^\\d+$").Required());
         }
     }
 }

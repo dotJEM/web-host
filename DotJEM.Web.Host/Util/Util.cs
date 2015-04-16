@@ -4,12 +4,6 @@ using System.Linq;
 
 namespace DotJEM.Web.Host.Util
 {
-    public interface ILoop
-    {
-        int Index { get; }
-        void Break();
-    }
-
     public static class EnumerableExtensions
     {
         public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
@@ -24,37 +18,11 @@ namespace DotJEM.Web.Host.Util
                 action(elm);
         }
 
-        public static void ForEach<T>(this IEnumerable<T> source, Action<T, ILoop> action)
+        public static void ForEach<T>(this IEnumerable<T> source, Action<T, int> action)
         {
-            var loop = new Loop();
+            int i = 0;
             foreach (T elm in source)
-            {
-                if (loop.Exit)
-                    return;
-                action(elm, loop);
-                loop.Increment();
-            }
-        }
-
-        private class Loop : ILoop
-        {
-            public int Index { get; private set; }
-            public bool Exit { get; private set; }
-
-            internal Loop()
-            {
-                Index = 0;
-            }
-
-            public void Increment()
-            {
-                Index++;
-            }
-
-            public void Break()
-            {
-                Exit = true;
-            }
+                action(elm, i++);
         }
 
         public static T FirstOr<T>(this IEnumerable<T> source, T @default)

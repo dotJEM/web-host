@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
 using DotJEM.Json.Index.Schema;
+using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Validation.Constraints;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
@@ -16,11 +19,22 @@ namespace DotJEM.Web.Host.Validation
             this.constraint = constraint;
         }
 
-        public FieldValidationResults Validate(JObject entity)
+        public IEnumerable<FieldValidationResults> Validate(JObject entity)
         {
-            //TODO: Account for propertyNames with "."...
-            JToken token = entity.SelectToken(field.ToString());
+            List<JToken> tokens = entity.SelectTokens(field.Path).ToList();
+            if(tokens.Count > 1)
+            {
+                foreach (JToken token in tokens)
+                    yield return ValidateSingleToken(token);
+            }
+            else
+            {
+                yield return ValidateSingleToken(tokens.SingleOrDefault());
+            }
+        }
 
+        private FieldValidationResults ValidateSingleToken(JToken token)
+        {
             ValidationCollector collector = new ValidationCollector();
             constraint.Validate(token, collector);
             return new FieldValidationResults(field, token, collector);
