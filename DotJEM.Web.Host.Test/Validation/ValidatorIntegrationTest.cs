@@ -26,8 +26,6 @@ namespace DotJEM.Web.Host.Test.Validation
             ValidationResult result = validator.Validate(JObject.Parse(json));
 
             Assert.That(result.HasErrors, Is.True);
-            Debug.WriteLine(result.ToString());
-
         }
     }
 

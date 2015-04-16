@@ -12,27 +12,21 @@ namespace DotJEM.Web.Host.Validation.Constraints
     //Todo: Make generic to also match e.g. int and float
     public class OneOfFieldConstraint : FieldConstraint
     {
-        private readonly IEnumerable<string> strings;
-        private StringComparison? stringComparison;
-
-        public OneOfFieldConstraint(IEnumerable<string> strings, StringComparison stringComparison) : this(strings)
-        {
-            this.stringComparison = stringComparison;
-        }
+        private readonly HashSet<string> strings;
 
         public OneOfFieldConstraint(IEnumerable<string> strings)
+            : this(strings, StringComparer.InvariantCulture)
         {
-            this.strings = strings;
         }
 
+        public OneOfFieldConstraint(IEnumerable<string> strings, StringComparer comparer)
+        {
+            this.strings = new HashSet<string>(strings, comparer);
+        }
         protected override void OnValidate(JToken token, IValidationCollector context)
         {
             string value = (string)token;
-            Func<string, bool> predicate = x => x.Equals(value);
-            if (stringComparison.HasValue)
-                predicate = x => x.Equals(value, stringComparison.Value);
-
-            if (strings.Any(predicate))
+            if (strings.Contains(value))
                 return;
 
             context.AddError("The text must be one of the following: {0}", string.Join(", ", strings));

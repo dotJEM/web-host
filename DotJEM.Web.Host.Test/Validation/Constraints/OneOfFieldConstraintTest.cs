@@ -19,40 +19,38 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
         [TestCase("{ foo: 'Not applicable'}")]
         [TestCase("{ foo: 'no'}")]
         [TestCase("{ foo: 'yes'}")]
-        public void OneOf_InvalidData_ShouldReturnErrors(string json)
+        public void Validate_InvalidData_ShouldReturnErrors(string json)
         {
             Validator validator = new OneOfValidator(true);
 
             ValidationResult result = validator.Validate(JObject.Parse(json));
 
             Assert.That(result.HasErrors, Is.True);
-            Debug.WriteLine(result.ToString());
         }
         [TestCase("{ foo: 'No'}")]
         [TestCase("{ foo: 'Not Applicable'}")]
         [TestCase("{ foo: 'Yes'}")]
-        public void OneOf_ValidData_ShouldReturnSuccess(string json)
+        public void Validate_ValidData_ShouldReturnSuccess(string json)
         {
             Validator validator = new OneOfValidator(true);
 
             ValidationResult result = validator.Validate(JObject.Parse(json));
 
             Assert.That(result.HasErrors, Is.False);
-            Debug.WriteLine(result.ToString());
         }
         [TestCase("{ foo: 'no'}")]
         [TestCase("{ foo: 'not Applicable'}")]
         [TestCase("{ foo: 'yes'}")]
-        public void OneOf_ValidDataIgnoreCase_ShouldReturnSuccess(string json)
+        public void Validate_ValidDataIgnoreCase_ShouldReturnSuccess(string json)
         {
             Validator validator = new OneOfValidator(false);
 
             ValidationResult result = validator.Validate(JObject.Parse(json));
 
             Assert.That(result.HasErrors, Is.False);
-            Debug.WriteLine(result.ToString());
         }
     }
+
     public class OneOfValidator : Validator
     {
         public OneOfValidator(bool caseSensitive)
@@ -61,7 +59,7 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
                 caseSensitive
                     ? Must.BeOneOf(new List<string> { "Yes", "No", "Not Applicable" })
                     : Must.BeOneOf(new List<string> { "Yes", "No", "Not Applicable" },
-                        StringComparison.InvariantCultureIgnoreCase));
+                        StringComparer.InvariantCultureIgnoreCase));
         }
     }
 }
