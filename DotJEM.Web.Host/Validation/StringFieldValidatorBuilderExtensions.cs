@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using DotJEM.Web.Host.Validation.Constraints;
 
 namespace DotJEM.Web.Host.Validation
@@ -30,6 +32,15 @@ namespace DotJEM.Web.Host.Validation
         public static IFieldValidatorBuilder Required(this IFieldValidatorBuilder self)
         {
             return self.Append(new RequiredFieldConstraint());
+        }
+
+        public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, IEnumerable<string> strings)
+        {
+            return self.Append(new OneOfFieldConstraint(strings));
+        }
+        public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, IEnumerable<string> strings, StringComparison stringComparison)
+        {
+            return self.Append(new OneOfFieldConstraint(strings, stringComparison));
         }
     }
 }
