@@ -34,10 +34,21 @@ namespace DotJEM.Web.Host.Validation
             return self.Append(new RequiredFieldConstraint());
         }
 
+        public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, params string[] strings)
+        {
+            return self.Append(new OneOfFieldConstraint(strings));
+        }
+
+        public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, StringComparer comparer, params string[] strings)
+        {
+            return self.Append(new OneOfFieldConstraint(strings, comparer));
+        }
+
         public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, IEnumerable<string> strings)
         {
             return self.Append(new OneOfFieldConstraint(strings));
         }
+
         public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, IEnumerable<string> strings, StringComparer comparer)
         {
             return self.Append(new OneOfFieldConstraint(strings, comparer));
