@@ -15,7 +15,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
         private readonly HashSet<string> strings;
 
         public OneOfFieldConstraint(IEnumerable<string> strings)
-            : this(strings, StringComparer.InvariantCulture)
+            : this(strings, StringComparer.InvariantCultureIgnoreCase)
         {
         }
 
