@@ -15,7 +15,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
         private readonly HashSet<string> strings;
 
         public OneOfFieldConstraint(IEnumerable<string> strings)
-            : this(strings, StringComparer.InvariantCulture)
+            : this(strings, StringComparer.InvariantCultureIgnoreCase)
         {
         }
 
@@ -25,11 +25,16 @@ namespace DotJEM.Web.Host.Validation.Constraints
         }
         protected override void OnValidate(JToken token, IValidationCollector context)
         {
-            string value = (string)token;
-            if (strings.Contains(value))
+            if (Matches(token))
                 return;
 
             context.AddError("The text must be one of the following: {0}", string.Join(", ", strings));
+        }
+
+        protected override bool OnMatches(JToken token)
+        {
+            string value = (string)token;
+            return strings.Contains(value);
         }
     }
 }

@@ -19,21 +19,21 @@ namespace DotJEM.Web.Host.Validation
             this.constraint = constraint;
         }
 
-        public IEnumerable<FieldValidationResults> Validate(JObject entity)
+        public virtual IEnumerable<FieldValidationResults> Validate(JObject entity)
         {
             List<JToken> tokens = entity.SelectTokens(field.Path).ToList();
             if(tokens.Count > 1)
             {
                 foreach (JToken token in tokens)
-                    yield return ValidateSingleToken(token);
+                    yield return ValidateToken(token);
             }
             else
             {
-                yield return ValidateSingleToken(tokens.SingleOrDefault());
+                yield return ValidateToken(tokens.SingleOrDefault());
             }
         }
 
-        private FieldValidationResults ValidateSingleToken(JToken token)
+        protected virtual FieldValidationResults ValidateToken(JToken token)
         {
             ValidationCollector collector = new ValidationCollector();
             constraint.Validate(token, collector);

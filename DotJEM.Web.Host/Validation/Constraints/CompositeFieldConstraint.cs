@@ -19,5 +19,11 @@ namespace DotJEM.Web.Host.Validation.Constraints
             left.Validate(token, context);
             right.Validate(token, context);
         }
+
+        public bool Matches(JToken token)
+        {
+            //TODO: Support OR?
+            return left.Matches(token) && right.Matches(token);
+        }
     }
 }

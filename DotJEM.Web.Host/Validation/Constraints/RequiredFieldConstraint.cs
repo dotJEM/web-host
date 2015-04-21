@@ -7,10 +7,15 @@ namespace DotJEM.Web.Host.Validation.Constraints
     {
         public void Validate(JToken token, IValidationCollector context)
         {
-            if (token != null)
+            if (Matches(token))
                 return;
 
             context.AddError("Value is required.");
+        }
+
+        public bool Matches(JToken token)
+        {
+            return token != null;
         }
     }
 }
