@@ -6,6 +6,7 @@ namespace DotJEM.Web.Host.Validation
     public interface IFieldValidatorBuilder
     {
         IFieldValidatorBuilder Append(IFieldConstraint value);
-        FieldValidator Build(JPath field);
+        FieldValidator BuildValidator(JPath field);
+        FieldGuard BuildGuard(JPath field);
     }
 }

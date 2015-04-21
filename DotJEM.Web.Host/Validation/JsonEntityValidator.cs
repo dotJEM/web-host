@@ -33,7 +33,6 @@ namespace DotJEM.Web.Host.Validation
                 ValidationResult result = validator.Validate((JObject) entity);
                 if (result.HasErrors)
                 {
-                    //TODO: Custom Exception
                     throw new JsonEntityValidationException(result);
                 }
             }

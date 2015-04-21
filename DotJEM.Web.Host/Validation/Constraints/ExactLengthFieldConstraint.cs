@@ -14,11 +14,16 @@ namespace DotJEM.Web.Host.Validation.Constraints
 
         protected override void OnValidate(JToken token, IValidationCollector context)
         {
-            string value = (string)token;
-            if (value.Length == length)
+            if (Matches(token))
                 return;
 
             context.AddError("Length must be '{0}'.", length);
+        }
+
+        protected override bool OnMatches(JToken token)
+        {
+            string value = (string)token;
+            return value.Length == length;
         }
     }
 }

@@ -165,7 +165,6 @@
     <Compile Include="Validation\Constraints\MatchFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\MaxLengthFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\MinLengthFieldConstraint.cs" />
-    <Compile Include="Validation\Constraints\NullFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\OneOfFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\RequiredFieldConstraint.cs" />
     <Compile Include="Validation\FieldValidator.cs" />

@@ -13,6 +13,13 @@ namespace DotJEM.Web.Host.Validation.Constraints
             }
         }
 
+        public bool Matches(JToken token)
+        {
+            return token != null && OnMatches(token);
+        }
+
         protected abstract void OnValidate(JToken token, IValidationCollector context);
+        protected abstract bool OnMatches(JToken token);
+
     }
 }
