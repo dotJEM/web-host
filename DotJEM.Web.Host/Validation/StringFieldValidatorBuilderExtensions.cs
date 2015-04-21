@@ -28,9 +28,20 @@ namespace DotJEM.Web.Host.Validation
         {
             return self.Append(new MatchFieldConstraint(regex));
         }
+        
+        public static IFieldValidatorBuilder EqualTo(this IFieldValidatorBuilder self, string value, StringComparison comparison = StringComparison.InvariantCulture)
+        {
+            return self.Append(new StringEqualToFieldConstraint(value, comparison));
+        }
 
         public static IFieldValidatorBuilder Required(this IFieldValidatorBuilder self)
         {
+            return self.Append(new RequiredFieldConstraint());
+        }
+
+        public static IFieldValidatorBuilder Defined(this IFieldValidatorBuilder self)
+        {
+            //NOTE: HACK!... we need to separate the Validators from the guards, but this will do for now.
             return self.Append(new RequiredFieldConstraint());
         }
 
