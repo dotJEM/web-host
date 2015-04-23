@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation
 {
-    public class JsonEntityValidator : JsonDecorator
+    public class JsonEntityValidator : PipelineHandler
     {
         private readonly Dictionary<string, IValidator> validators;
 
@@ -15,12 +15,12 @@ namespace DotJEM.Web.Host.Validation
             this.validators = validators.ToDictionary(Validator.GetValidatorName);
         }
 
-        public override JObject OnBeforePost(dynamic entity, string contentType)
+        public override JObject BeforePost(dynamic entity, string contentType)
         {
             return Validate(entity, contentType);
         }
 
-        public override JObject OnBeforePut(dynamic entity, string contentType)
+        public override JObject BeforePut(dynamic entity, dynamic prev, string contentType)
         {
             return Validate(entity, contentType);
         }

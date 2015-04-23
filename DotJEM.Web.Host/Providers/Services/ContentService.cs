@@ -73,9 +73,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Put(Guid id, string contentType, JObject entity)
         {
-            entity = pipeline.ExecuteBeforePut(entity, contentType);
+            var prev = area.Get(id);
+            entity = pipeline.ExecuteBeforePut(entity, prev, contentType);
             entity = area.Update(id, entity);
-            entity = pipeline.ExecuteAfterPut(entity, contentType);
+            entity = pipeline.ExecuteAfterPut(entity, prev, contentType);
             manager.QueueUpdate(entity);
             return entity;
         }

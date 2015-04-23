@@ -9,7 +9,7 @@ namespace DotJEM.Web.Host.Validation
     {
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
-            container.Register(Component.For<IJsonDecorator>().ImplementedBy<JsonEntityValidator>().LifestyleTransient());
+            container.Register(Component.For<IPipelineHandler>().ImplementedBy<JsonEntityValidator>().LifestyleTransient());
         }
     }
 }
