@@ -45,6 +45,12 @@ namespace DotJEM.Web.Host.Validation
             return self.Append(new RequiredFieldConstraint());
         }
 
+        public static IFieldValidatorBuilder NotDefined(this IFieldValidatorBuilder self)
+        {
+            //NOTE: HACK!... we need to separate the Validators from the guards, but this will do for now.
+            return self.Append(new NotDefinedFieldConstraint());
+        }
+
         public static IFieldValidatorBuilder BeOneOf(this IFieldValidatorBuilder self, IEnumerable<string> strings)
         {
             return self.Append(new OneOfFieldConstraint(strings));
