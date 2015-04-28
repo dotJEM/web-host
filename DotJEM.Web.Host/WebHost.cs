@@ -2,6 +2,7 @@
 using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
+using System.Web.Http.ExceptionHandling;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
@@ -64,6 +65,7 @@ namespace DotJEM.Web.Host
 
             configuration.Services.Replace(typeof(IHttpControllerSelector), new ControllerSelector(configuration));
             configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
+            configuration.Services.Replace(typeof(IExceptionHandler), new WebHostExceptionHandler());
             
             configuration.MessageHandlers.Add(new DiagnosticsLoggingHandler());
 

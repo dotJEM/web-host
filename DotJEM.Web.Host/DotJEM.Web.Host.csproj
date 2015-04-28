@@ -155,6 +155,7 @@
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
+    <Compile Include="Diagnostics\WebHostExceptionHandler.cs" />
     <Compile Include="Providers\Pipeline\ContentTypeFilterAttribute.cs" />
     <Compile Include="Providers\Pipeline\IPipeline.cs" />
     <Compile Include="Providers\Pipeline\IPipelineHandler.cs" />
