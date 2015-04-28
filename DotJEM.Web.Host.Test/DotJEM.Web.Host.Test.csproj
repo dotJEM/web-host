@@ -58,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Diagnostics\DiagnosticsLoggerTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\Pipeline\PipelineHandlerSetTest.cs" />
     <Compile Include="Validation\Constraints\OneOfFieldConstraintTest.cs" />
@@ -72,6 +73,10 @@
     <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
       <Project>{61EA751B-691B-4F68-87C5-46D115D51CC3}</Project>
       <Name>DotJEM.Json.Index</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
+      <Project>{672D1E1D-C559-4914-B233-807CC7CE3B52}</Project>
+      <Name>DotJEM.Json.Storage</Name>
     </ProjectReference>
     <ProjectReference Include="..\DotJEM.Web.Host\DotJEM.Web.Host.csproj">
       <Project>{D7393445-A4C4-4BB4-BB9F-89A6B631E970}</Project>

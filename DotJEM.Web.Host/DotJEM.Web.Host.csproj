@@ -154,6 +154,7 @@
     <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
+    <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
     <Compile Include="Providers\Pipeline\ContentTypeFilterAttribute.cs" />
     <Compile Include="Providers\Pipeline\IPipeline.cs" />
