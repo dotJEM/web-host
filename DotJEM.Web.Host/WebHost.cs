@@ -1,4 +1,10 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Formatting;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
@@ -18,8 +24,10 @@ using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services;
 using DotJEM.Web.Host.Util;
 using Lucene.Net.Search.Vectorhighlight;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
+using JsonConverter = DotJEM.Web.Host.Util.JsonConverter;
 
 namespace DotJEM.Web.Host
 {
@@ -41,6 +49,11 @@ namespace DotJEM.Web.Host
         protected IStorageContext Storage { get; set; }
         protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
         protected IWebHostConfiguration Configuration { get; set; }
+
+        public HttpConfiguration HttpConfiguration
+        {
+            get { return configuration; }
+        }
 
         protected WebHost()
             : this(GlobalConfiguration.Configuration, new WindsorContainer())
@@ -71,10 +84,15 @@ namespace DotJEM.Web.Host
             
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
+
+            //configuration.Formatters.Add(new CustomXmlFormatter());
+            //configuration.Formatters.Remove(configuration.Formatters.XmlFormatter);
         }
-        
+
         public IWebHost Start()
         {
+            BeforeStart();
+
             container.Install(FromAssembly.This());
 
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
@@ -113,10 +131,11 @@ namespace DotJEM.Web.Host
             indexManager = container.Resolve<IStorageIndexManager>();
             indexManager.Start();            
 
+            AfterStart();
+
             return this;
         }
 
-        protected virtual void BeforeStart() { }
 
         protected virtual IStorageIndex CreateIndex()
         {
@@ -140,6 +159,8 @@ namespace DotJEM.Web.Host
             return container.Resolve<T>();
         }
 
+
+        protected virtual void BeforeStart() { }
         protected virtual void BeforeConfigure() { }
         protected virtual void Configure(IWindsorContainer container) { }
         protected virtual void Configure(IStorageContext storage) { }
@@ -160,4 +181,5 @@ namespace DotJEM.Web.Host
             Index.Close();
         }
     }
+
 }
