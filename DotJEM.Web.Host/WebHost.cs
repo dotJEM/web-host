@@ -28,7 +28,6 @@ using Lucene.Net.Search.Vectorhighlight;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
-using JsonConverter = DotJEM.Web.Host.Util.JsonConverter;
 
 namespace DotJEM.Web.Host
 {
@@ -106,7 +105,7 @@ namespace DotJEM.Web.Host
             Storage = CreateStorage();
 
             container
-                .Register(Component.For<IJsonConverter>().ImplementedBy<JsonConverter>())
+                .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
                 .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
                 .Register(Component.For<IWindsorContainer>().Instance(container))
                 .Register(Component.For<IWebHost>().Instance(this))

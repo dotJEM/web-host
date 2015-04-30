@@ -13,11 +13,11 @@ namespace DotJEM.Web.Host.Util
         JArray ToJArray(object obj);
     }
 
-    public class JsonConverter : IJsonConverter
+    public class DotjemJsonConverter : IJsonConverter
     {
         private readonly JsonSerializer serializer = new JsonSerializer();
 
-        public JsonConverter()
+        public DotjemJsonConverter()
         {
             serializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
             serializer.Converters.Add(new StringEnumConverter { CamelCaseText = true });
