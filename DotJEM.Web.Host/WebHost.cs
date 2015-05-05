@@ -37,8 +37,7 @@ namespace DotJEM.Web.Host
         T Resolve<T>();
         void Shutdown();
     }
-
-
+    
     public abstract class WebHost : IWebHost
     {
         private readonly IWindsorContainer container;
@@ -85,9 +84,6 @@ namespace DotJEM.Web.Host
             
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
-
-            //configuration.Formatters.Add(new CustomXmlFormatter());
-            //configuration.Formatters.Remove(configuration.Formatters.XmlFormatter);
         }
 
         public IWebHost Start()
@@ -98,9 +94,7 @@ namespace DotJEM.Web.Host
 
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
             Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
-
             
-
             Index = CreateIndex();
             Storage = CreateStorage();
 
@@ -127,10 +121,13 @@ namespace DotJEM.Web.Host
             Initialize(Storage);
             Initialize(Index);
 
+            container.ResolveAll<IExceptionLogger>()
+                .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
+
             AfterInitialize();
 
             indexManager = container.Resolve<IStorageIndexManager>();
-            indexManager.Start();            
+            indexManager.Start();
 
             AfterStart();
 

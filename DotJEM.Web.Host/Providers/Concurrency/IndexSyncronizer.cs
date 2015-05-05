@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Web.Hosting;
-using Castle.Core.Internal;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
-using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Diagnostics;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -39,6 +36,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     public class StorageIndexManager : IStorageIndexManager
     {
         private readonly IStorageIndex index;
+        private readonly IDiagnosticsLogger logger;
         private readonly object padlock = new object();
 
         private Scheduler callback;
@@ -50,9 +48,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         //private Queue<JObject> process = new Queue<JObject>(); 
 
 
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration)
+        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IDiagnosticsLogger logger)
         {
             this.index = index;
+            this.logger = logger;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
             foreach (WatchElement watch in configuration.Index.Watch.Items)
                 logs[watch.Area] = storage.Area(watch.Area).Log;
@@ -75,24 +74,33 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void UpdateIndex()
         {
-            IEnumerable<Tuple<string, IStorageChanges>> tuples;
-            if (!initialized)
+            try
             {
-                Dictionary<string, long> tracker = InitializeFromTracker();
-                tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))));
-                initialized = true;
+                IEnumerable<Tuple<string, IStorageChanges>> tuples;
+                if (!initialized)
+                {
+                    Dictionary<string, long> tracker = InitializeFromTracker();
+                    tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))));
+                    initialized = true;
+                }
+                else
+                {
+                    tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()));
+                }
+
+                UpdateTracker(tuples.Select(Selector)
+                .Aggregate(new Dictionary<string, long>(), (map, next) =>
+                {
+                    map[next.Item1] = next.Item2;
+                    return map;
+                }));
             }
-            else
+            catch (Exception ex)
             {
-                tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()));
+                logger.LogException(ex);
             }
 
-            UpdateTracker(tuples.Select(Selector)
-            .Aggregate(new Dictionary<string, long>(), (map, next) =>
-            {
-                map[next.Item1] = next.Item2;
-                return map;
-            }));
+
         }
 
         private static long GetTracker(Dictionary<string, long> changes, string key)
@@ -229,7 +237,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public Dictionary<string, long> Read(string file)
         {
-            if(!File.Exists(file))
+            if (!File.Exists(file))
                 return new Dictionary<string, long>();
             byte[] inputBuffer = File.ReadAllBytes(file);
             Dictionary<string, long> map = new Dictionary<string, long>();

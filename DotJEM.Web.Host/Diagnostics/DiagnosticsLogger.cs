@@ -1,6 +1,4 @@
-﻿using Castle.MicroKernel.Registration;
-using Castle.MicroKernel.SubSystems.Configuration;
-using Castle.Windsor;
+﻿using System;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -20,29 +18,8 @@ namespace DotJEM.Web.Host.Diagnostics
         JObject LogWarning(Severity severity, string message, JObject entity = null);
         JObject LogFailure(Severity severity, JObject entity);
         JObject LogFailure(Severity severity, string message, JObject entity = null);
-    }
 
-    public class DiagnosticsLoggerInstaller : IWindsorInstaller
-    {
-        public void Install(IWindsorContainer container, IConfigurationStore store)
-        {
-            container.Register(
-                Component.For<IDiagnosticsLogger>().ImplementedBy<DiagnosticsLogger>().LifestyleTransient());
-        }
-    }
-
-    public enum Severity
-    {
-        Debug,
-        Verbose,
-        Trace,
-        Message,
-        Information,
-        Status,
-        Warning,
-        Error,
-        Critical,
-        Fatal
+        JObject LogException(Exception exception);
     }
 
     public class DiagnosticsLogger : IDiagnosticsLogger
@@ -51,20 +28,25 @@ namespace DotJEM.Web.Host.Diagnostics
         public const string ContentTypeWarning = "warning";
         public const string ContentTypeFailure = "failure";
 
-        private readonly IStorageArea area;
-        private readonly IStorageIndexManager manager;
+        private readonly Lazy<IStorageArea> area;
+        private readonly Lazy<IStorageIndexManager> manager;
+        private readonly IJsonConverter converter;
 
-        public DiagnosticsLogger(IStorageContext context, IStorageIndexManager manager)
+        public IStorageArea Area { get { return area.Value; } }
+        public IStorageIndexManager Manager { get { return manager.Value; } }
+
+        public DiagnosticsLogger(Lazy<IStorageContext> context, Lazy<IStorageIndexManager> manager, IJsonConverter converter)
         {
-            this.area = context.Area("diagnostic");
+            this.area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
             this.manager = manager;
+            this.converter = converter;
         }
 
         public JObject Log(string contentType, Severity severity, JObject entity)
         {
-            entity["severity"] = JToken.FromObject(severity);
-            entity = area.Insert(contentType, entity);
-            manager.QueueUpdate(entity);
+            entity["severity"] = converter.FromObject(severity);
+            entity = Area.Insert(contentType, entity);
+            Manager.QueueUpdate(entity);
             return entity;
         }
 
@@ -106,6 +88,11 @@ namespace DotJEM.Web.Host.Diagnostics
         public JObject LogFailure(Severity severity, string message, JObject entity = null)
         {
             return Log(ContentTypeFailure, severity, message, entity);
+        }
+
+        public JObject LogException(Exception exception)
+        {
+            return LogFailure(Severity.Error, converter.ToJObject(exception));
         }
     }
 }

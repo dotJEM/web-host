@@ -20,6 +20,8 @@ namespace DotJEM.Web.Host.Diagnostics
             timing = Stopwatch.GetTimestamp() - timing;
             
             //TODO: Aquire all data, then log asyncrinously instead here (removing await)...
+
+
             await Task.Run(() => Log(request.Method, request.RequestUri, response, timing), cancellationToken);
             return response;
         }

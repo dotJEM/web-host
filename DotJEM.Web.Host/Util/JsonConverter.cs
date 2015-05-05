@@ -21,6 +21,7 @@ namespace DotJEM.Web.Host.Util
         {
             serializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
             serializer.Converters.Add(new StringEnumConverter { CamelCaseText = true });
+            serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
 
             JObject.FromObject(new {}, serializer);
             JArray.FromObject(new int[0], serializer);

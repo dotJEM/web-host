@@ -154,8 +154,12 @@
     <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
+    <Compile Include="Diagnostics\DiagnosticsExceptionLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
+    <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
+    <Compile Include="Diagnostics\ExceptionMessageResult.cs" />
+    <Compile Include="Diagnostics\Severity.cs" />
     <Compile Include="Diagnostics\WebHostExceptionHandler.cs" />
     <Compile Include="Providers\Pipeline\ContentTypeFilterAttribute.cs" />
     <Compile Include="Providers\Pipeline\IPipeline.cs" />
