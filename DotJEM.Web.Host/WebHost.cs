@@ -76,7 +76,6 @@ namespace DotJEM.Web.Host
 
             configuration.Services.Replace(typeof(IHttpControllerSelector), new ControllerSelector(configuration));
             configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
-            configuration.Services.Replace(typeof(IExceptionHandler), new WebHostExceptionHandler());
             
             configuration.MessageHandlers.Add(new DiagnosticsLoggingHandler());
 
@@ -123,6 +122,7 @@ namespace DotJEM.Web.Host
 
             container.ResolveAll<IExceptionLogger>()
                 .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
+            configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
 
             AfterInitialize();
 
@@ -157,7 +157,6 @@ namespace DotJEM.Web.Host
             return container.Resolve<T>();
         }
 
-
         protected virtual void BeforeStart() { }
         protected virtual void BeforeConfigure() { }
         protected virtual void Configure(IWindsorContainer container) { }
@@ -166,12 +165,10 @@ namespace DotJEM.Web.Host
         protected virtual void Configure(IRouter router) { }
         protected virtual void Configure(IPipeline pipeline) { }
         protected virtual void AfterConfigure() { }
-
         protected virtual void BeforeInitialize() { }
         protected virtual void Initialize(IStorageContext storage) { }
         protected virtual void Initialize(IStorageIndex index) { }
         protected virtual void AfterInitialize() { }
-
         protected virtual void AfterStart() { }
 
         public void Shutdown()
