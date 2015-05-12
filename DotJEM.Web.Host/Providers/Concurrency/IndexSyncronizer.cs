@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Web.Hosting;
 using Castle.MicroKernel.Registration;
@@ -27,14 +26,28 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     public interface IStorageIndexManager
     {
+        event EventHandler<IndexChangesEventArgs> IndexChanged;
+
         void Start();
         void Stop();
         void QueueUpdate(JObject entity);
         void QueueDelete(JObject entity);
     }
 
+    public class IndexChangesEventArgs : EventArgs
+    {
+        public IDictionary<string, IStorageChanges> Changes { get; private set; }
+
+        public IndexChangesEventArgs(IDictionary<string, IStorageChanges> changes)
+        {
+            Changes = changes;
+        }
+    }
+
     public class StorageIndexManager : IStorageIndexManager
     {
+        public event EventHandler<IndexChangesEventArgs> IndexChanged;
+
         private readonly IStorageIndex index;
         private readonly IDiagnosticsLogger logger;
         private readonly object padlock = new object();
@@ -44,9 +57,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly TimeSpan interval;
         private readonly string cachePath;
         private bool initialized;
-
-        //private Queue<JObject> process = new Queue<JObject>(); 
-
 
         public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IDiagnosticsLogger logger)
         {
@@ -80,20 +90,25 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 if (!initialized)
                 {
                     Dictionary<string, long> tracker = InitializeFromTracker();
-                    tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))));
+                    tuples = logs
+                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))))
+                        .ToList();
                     initialized = true;
                 }
                 else
                 {
-                    tuples = logs.Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()));
+                    tuples = logs
+                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
+                        .ToList();
                 }
-
+                
                 UpdateTracker(tuples.Select(Selector)
                 .Aggregate(new Dictionary<string, long>(), (map, next) =>
                 {
                     map[next.Item1] = next.Item2;
                     return map;
                 }));
+                OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
             }
             catch (Exception ex)
             {
@@ -137,6 +152,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .WriteAll(changes.Created)
                 .WriteAll(changes.Updated)
                 .DeleteAll(changes.Deleted);
+
+
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
 
@@ -159,6 +176,23 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             callback.Signal();
         }
 
+        protected virtual void OnIndexChanged(IndexChangesEventArgs args)
+        {
+            var handler = IndexChanged;
+            if (handler != null)
+            {
+                handler(this, args);
+            }
+        }
+    }
+
+    public interface IScheduler
+    {
+        IDisposable Schedule(ScheduledTask task);
+    }
+
+    public class ScheduledTask
+    {
     }
 
     public class Scheduler : IDisposable
@@ -198,55 +232,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public void Signal()
         {
             handle.Set();
-        }
-    }
-
-
-    public class SimpleDictionaryWriter
-    {
-        public void Write(string file, Dictionary<string, long> values)
-        {
-            byte[] buffer = new byte[1024 * 16];
-            int offset = values.Aggregate(0, (current, change) => WriteKeyValueToBuffer(change, buffer, current));
-            byte[] outputBuffer = new byte[offset];
-            Buffer.BlockCopy(buffer, 0, outputBuffer, 0, offset);
-            File.WriteAllBytes(file, outputBuffer);
-        }
-
-        private int WriteKeyValueToBuffer(KeyValuePair<string, long> kvp, byte[] buffer, int offset)
-        {
-            byte[] bytes = Encoding.UTF8.GetBytes(kvp.Key);
-            byte[] token = BitConverter.GetBytes(kvp.Value);
-
-            buffer[offset++] = (byte)bytes.Length;
-            Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
-            Buffer.BlockCopy(token, 0, buffer, offset + bytes.Length, token.Length);
-            return offset + bytes.Length + 8;
-        }
-
-        private int ReadKeyValueFromBuffer(byte[] buffer, Dictionary<string, long> map, int offset)
-        {
-            byte[] bytes = new byte[buffer[offset++]];
-
-            Buffer.BlockCopy(buffer, offset, bytes, 0, bytes.Length);
-            offset += bytes.Length;
-            string key = Encoding.UTF8.GetString(bytes);
-            map[key] = BitConverter.ToInt64(buffer, offset);
-            return offset + 8;
-        }
-
-        public Dictionary<string, long> Read(string file)
-        {
-            if (!File.Exists(file))
-                return new Dictionary<string, long>();
-            byte[] inputBuffer = File.ReadAllBytes(file);
-            Dictionary<string, long> map = new Dictionary<string, long>();
-            int offset = 0;
-            while (offset < inputBuffer.Length)
-            {
-                offset = ReadKeyValueFromBuffer(inputBuffer, map, offset);
-            }
-            return map;
         }
     }
 }

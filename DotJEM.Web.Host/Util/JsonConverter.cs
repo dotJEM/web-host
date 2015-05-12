@@ -21,6 +21,7 @@ namespace DotJEM.Web.Host.Util
         {
             serializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
             serializer.Converters.Add(new StringEnumConverter { CamelCaseText = true });
+            serializer.Converters.Add(new IsoDateTimeConverter());
             serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
 
             JObject.FromObject(new {}, serializer);
@@ -39,7 +40,9 @@ namespace DotJEM.Web.Host.Util
         {
             JToken jtoken = FromObject(obj);
             if (jtoken != null && jtoken.Type != JTokenType.Object)
+            {
                 throw new ArgumentException(string.Format("Object serialized to {0}. JObject instance expected.", jtoken.Type));
+            }
             return (JObject)jtoken;
         }
 
@@ -47,7 +50,9 @@ namespace DotJEM.Web.Host.Util
         {
             JToken jtoken = FromObject(obj);
             if (jtoken.Type != JTokenType.Array)
+            {
                 throw new ArgumentException(string.Format("Object serialized to {0}. JArray instance expected.", jtoken.Type));
+            }
             return (JArray)jtoken;
         }
     }
