@@ -161,6 +161,7 @@
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
+    <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
     <Compile Include="Util\EnumeratorUtil.cs" />
     <Compile Include="Diagnostics\ExceptionMessageResult.cs" />
     <Compile Include="Diagnostics\Severity.cs" />

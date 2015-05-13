@@ -188,13 +188,18 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     public interface IScheduler
     {
-        IDisposable Schedule(ScheduledTask task);
+        IScheduledTask Schedule(IScheduledTask task);
+        IScheduledTask Schedule(Action<bool> callback, TimeSpan period);
     }
 
-    public class ScheduledTask
+    public interface IScheduledTask
     {
     }
 
+    public class ScheduledTask : IScheduledTask
+    {
+    }
+    
     public class Scheduler : IDisposable
     {
         private readonly Action<bool> callback;
