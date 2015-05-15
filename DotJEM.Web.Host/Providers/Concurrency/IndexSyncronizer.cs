@@ -101,7 +101,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
                         .ToList();
                 }
-                
+
+                if (tuples.All(t => t.Item2.Count.Total < 1))
+                {
+                    return;
+                }
+
                 UpdateTracker(tuples.Select(Selector)
                 .Aggregate(new Dictionary<string, long>(), (map, next) =>
                 {
