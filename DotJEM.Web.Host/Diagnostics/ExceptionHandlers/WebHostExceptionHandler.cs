@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
+using System.Web.Http.Results;
 using DotJEM.Web.Host.Providers.Pipeline;
 
 namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
@@ -41,7 +42,7 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
 
         private IHttpActionResult ByDefault(ExceptionHandlerContext context)
         {
-            HttpResponseMessage message = context.Request.CreateErrorResponse(HttpStatusCode.InternalServerError, context.Exception);
+            HttpResponseMessage message = context.Request.CreateErrorResponse(HttpStatusCode.InternalServerError,context.Exception.Message, context.Exception);
             return new ExceptionMessageResult(message);
         }
 
