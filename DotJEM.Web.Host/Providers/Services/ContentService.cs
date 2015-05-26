@@ -11,6 +11,7 @@ namespace DotJEM.Web.Host.Providers.Services
 {
     public interface IContentService
     {
+        IStorageArea StorageArea { get; }
         //TODO: Use a Content Result
         IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20);
         JObject Get(Guid id, string contentType);
@@ -28,6 +29,8 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
         private readonly IPipeline pipeline;
+
+        public IStorageArea StorageArea { get { return area; } }
 
         public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline)
         {
