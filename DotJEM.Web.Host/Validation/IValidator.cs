@@ -6,5 +6,6 @@ namespace DotJEM.Web.Host.Validation
     public interface IValidator
     {
         ValidationResult Validate(JObject entity);
+        ValidationResult Validate(JObject update, JObject original);
     }
 }

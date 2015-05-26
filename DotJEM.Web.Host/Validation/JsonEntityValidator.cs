@@ -22,7 +22,7 @@ namespace DotJEM.Web.Host.Validation
 
         public override JObject BeforePut(dynamic entity, dynamic prev, string contentType)
         {
-            return Validate(entity, contentType);
+            return Validate(entity, prev, contentType);
         }
 
         private dynamic Validate(dynamic entity, string contentType)
@@ -30,7 +30,21 @@ namespace DotJEM.Web.Host.Validation
             IValidator validator;
             if (validators.TryGetValue(contentType, out validator))
             {
-                ValidationResult result = validator.Validate((JObject) entity);
+                ValidationResult result = validator.Validate((JObject)entity);
+                if (result.HasErrors)
+                {
+                    throw new JsonEntityValidationException(result);
+                }
+            }
+            return entity;
+        }
+
+        private dynamic Validate(dynamic entity, dynamic prev, string contentType)
+        {
+            IValidator validator;
+            if (validators.TryGetValue(contentType, out validator))
+            {
+                ValidationResult result = validator.Validate((JObject)entity, (JObject)prev);
                 if (result.HasErrors)
                 {
                     throw new JsonEntityValidationException(result);

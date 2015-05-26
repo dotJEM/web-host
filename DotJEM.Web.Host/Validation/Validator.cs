@@ -106,9 +106,21 @@ namespace DotJEM.Web.Host.Validation
                 : new ValidationResult(ContentType, entity, Enumerable.Empty<FieldValidationResults>().ToList());
         }
 
+        public ValidationResult Validate(JObject update, JObject original)
+        {
+            return RequiresValidation(update, original)
+                ? new ValidationResult(ContentType, update, Validators.SelectMany(v => v.Validate(update)).ToList())
+                : new ValidationResult(ContentType, update, Enumerable.Empty<FieldValidationResults>().ToList());
+        }
+
         protected virtual bool RequiresValidation(JObject entity)
         {
             return true;
+        }
+
+        protected virtual bool RequiresValidation(JObject update, JObject original)
+        {
+            return RequiresValidation(update);
         }
 
         public static string GetValidatorName(object obj)
