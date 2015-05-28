@@ -85,6 +85,8 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Delete(Guid id, string contentType)
         {
+            var entity = area.Get(id);
+            pipeline.ExecuteBeforeDelete(entity, contentType);
             JObject deleted = area.Delete(id);
             //TODO: Throw exception if not found?
             if (deleted == null)
