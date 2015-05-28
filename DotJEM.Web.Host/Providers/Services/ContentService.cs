@@ -48,18 +48,11 @@ namespace DotJEM.Web.Host.Providers.Services
                 //Note: Execute the pipeline for each element found
                 .Select(json => pipeline.ExecuteAfterGet(json, contentType))
                 .Cast<JObject>().ToArray();
-
             return res;
-
-            //TODO: Execute pipeline for array
-            //TODO: Paging and other neat stuff...
-            //TODO: Use search for optimized performance!...
         }
 
         public JObject Get(Guid id, string contentType)
         {
-            //TODO: Use search for optimized performance!...
-            //TODO: Throw exception if not found?
             JObject entity = area.Get(id);
             return pipeline.ExecuteAfterGet(entity, contentType);
         }
@@ -89,7 +82,7 @@ namespace DotJEM.Web.Host.Providers.Services
             //TODO: Throw exception if not found?
             if (deleted == null)
                 return null;
-
+            deleted = pipeline.ExecuteBeforeDelete(deleted, contentType);
             manager.QueueDelete(deleted);
             return pipeline.ExecuteAfterDelete(deleted, contentType);
         }

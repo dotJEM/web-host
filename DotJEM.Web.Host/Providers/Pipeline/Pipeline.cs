@@ -13,11 +13,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             this.handlers = handlers;
         }
 
-        public JObject ExecuteBeforeGet(JObject json, string contentType)
-        {
-            return handlers.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.BeforeGet(jo, contentType));
-        }
-
         public JObject ExecuteAfterGet(JObject json, string contentType)
         {
             return handlers.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.AfterGet(jo, contentType));

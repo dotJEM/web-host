@@ -25,11 +25,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return accepts.Value(contentType);
         }
 
-        public virtual JObject BeforeGet(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-
         public virtual JObject AfterGet(dynamic entity, string contentType)
         {
             return entity;

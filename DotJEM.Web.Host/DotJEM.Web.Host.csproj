@@ -154,6 +154,10 @@
     <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
+    <Compile Include="Configuration\Elements\IndexConfiguration.cs" />
+    <Compile Include="Configuration\Elements\StorageConfiguration.cs" />
+    <Compile Include="Configuration\Elements\WatchElement.cs" />
+    <Compile Include="Configuration\Elements\WatchElementCollection.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\ExceptionHandlerInstaller.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\GenericExceptionHandler.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\WebHostUnhandledExceptionArgs.cs" />

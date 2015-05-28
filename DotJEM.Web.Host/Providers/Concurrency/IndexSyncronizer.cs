@@ -67,8 +67,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 logs[watch.Area] = storage.Area(watch.Area).Log;
 
             //TODO: Use the below to store a index pointer.
-            if (!string.IsNullOrEmpty(configuration.Index.CacheLocation))
-                cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
+            if (!string.IsNullOrEmpty(configuration.Index.Storage.Path))
+                cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.Storage.Path), "tracker");
         }
 
         public void Start()
@@ -197,12 +197,48 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         IScheduledTask Schedule(Action<bool> callback, TimeSpan period);
     }
 
-    public interface IScheduledTask
+    public interface IScheduledTask : IDisposable
     {
     }
 
     public class ScheduledTask : IScheduledTask
     {
+        private readonly Action<bool> callback;
+        private readonly TimeSpan period;
+        private readonly AutoResetEvent handle = new AutoResetEvent(false);
+        private bool disposed = false;
+
+        public ScheduledTask(Action<bool> callback, TimeSpan period)
+        {
+            this.callback = callback;
+            this.period = period;
+            Next();
+        }
+
+        private void Next()
+        {
+            ThreadPool.RegisterWaitForSingleObject(handle, ExecuteCallback, null, period, true);
+        }
+
+        private void ExecuteCallback(object state, bool timedout)
+        {
+            if (disposed)
+                return;
+
+            callback(!timedout);
+            Next();
+        }
+
+        public void Dispose()
+        {
+            disposed = true;
+            Signal();
+        }
+
+        public void Signal()
+        {
+            handle.Set();
+        }
     }
     
     public class Scheduler : IDisposable

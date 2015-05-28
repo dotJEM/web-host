@@ -4,7 +4,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 {
     public interface IPipeline
     {
-        JObject ExecuteBeforeGet(JObject json, string contentType);
         JObject ExecuteAfterGet(JObject json, string contentType);
 
         JObject ExecuteBeforePost(JObject json, string contentType);
