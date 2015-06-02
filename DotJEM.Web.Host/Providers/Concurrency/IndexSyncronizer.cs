@@ -52,7 +52,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly IDiagnosticsLogger logger;
         private readonly object padlock = new object();
 
-        private Scheduler callback;
+        private Scheduled callback;
         private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly TimeSpan interval;
         private readonly string cachePath;
@@ -74,7 +74,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public void Start()
         {
             UpdateIndex();
-            callback = new Scheduler(signaled => UpdateIndex(), interval);
+            callback = new Scheduled(signaled => UpdateIndex(), interval);
         }
 
         public void Stop()
@@ -119,8 +119,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             {
                 logger.LogException(ex);
             }
-
-
         }
 
         private static long GetTracker(Dictionary<string, long> changes, string key)
@@ -157,8 +155,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .WriteAll(changes.Created)
                 .WriteAll(changes.Updated)
                 .DeleteAll(changes.Deleted);
-
-
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
 
@@ -191,28 +187,14 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         }
     }
 
-    public interface IScheduler
-    {
-        IScheduledTask Schedule(IScheduledTask task);
-        IScheduledTask Schedule(Action<bool> callback, TimeSpan period);
-    }
-
-    public interface IScheduledTask
-    {
-    }
-
-    public class ScheduledTask : IScheduledTask
-    {
-    }
-    
-    public class Scheduler : IDisposable
+    public class Scheduled : IDisposable
     {
         private readonly Action<bool> callback;
         private readonly TimeSpan period;
         private readonly AutoResetEvent handle = new AutoResetEvent(false);
         private bool disposed = false;
 
-        public Scheduler(Action<bool> callback, TimeSpan period)
+        public Scheduled(Action<bool> callback, TimeSpan period)
         {
             this.callback = callback;
             this.period = period;
