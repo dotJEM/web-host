@@ -20,6 +20,10 @@ namespace DotJEM.Web.Host.Diagnostics
         JObject LogFailure(Severity severity, string message, JObject entity = null);
 
         JObject LogException(Exception exception);
+
+        void LogIncident(Severity severity, string message, object entity);
+        void LogWarning(Severity severity, string message, object entity);
+        void LogFailure(Severity severity, string message, object entity);
     }
 
     public class DiagnosticsLogger : IDiagnosticsLogger
@@ -93,6 +97,26 @@ namespace DotJEM.Web.Host.Diagnostics
         public JObject LogException(Exception exception)
         {
             return LogFailure(Severity.Error, converter.ToJObject(exception));
+        }
+
+        public void LogIncident(Severity severity, string message, object entity)
+        {
+            LogIncident(severity, message, EnsureJson(entity));
+        }
+
+        public void LogWarning(Severity severity, string message, object entity)
+        {
+            LogWarning(severity, message, EnsureJson(entity));
+        }
+
+        public void LogFailure(Severity severity, string message, object entity)
+        {
+            LogFailure(severity, message, EnsureJson(entity));
+        }
+
+        private JObject EnsureJson(object entity)
+        {
+            return entity as JObject ?? converter.ToJObject(entity);
         }
     }
 }
