@@ -12,6 +12,8 @@ using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
+using DotJEM.Web.Host.Providers.Scheduler;
+using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -49,19 +51,20 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
 
         private readonly IStorageIndex index;
-        private readonly IDiagnosticsLogger logger;
+        private readonly IWebScheduler scheduler;
         private readonly object padlock = new object();
 
-        private Scheduled callback;
         private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly TimeSpan interval;
         private readonly string cachePath;
         private bool initialized;
 
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IDiagnosticsLogger logger)
+        private IScheduledTask task;
+
+        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler)
         {
             this.index = index;
-            this.logger = logger;
+            this.scheduler = scheduler;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
             foreach (WatchElement watch in configuration.Index.Watch.Items)
                 logs[watch.Area] = storage.Area(watch.Area).Log;
@@ -74,51 +77,45 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public void Start()
         {
             UpdateIndex();
-            callback = new Scheduled(signaled => UpdateIndex(), interval);
+
+            task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
         }
 
         public void Stop()
         {
-            callback.Dispose();
+            task.Dispose();
         }
 
         private void UpdateIndex()
         {
-            try
+            IEnumerable<Tuple<string, IStorageChanges>> tuples;
+            if (!initialized)
             {
-                IEnumerable<Tuple<string, IStorageChanges>> tuples;
-                if (!initialized)
-                {
-                    Dictionary<string, long> tracker = InitializeFromTracker();
-                    tuples = logs
-                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))))
-                        .ToList();
-                    initialized = true;
-                }
-                else
-                {
-                    tuples = logs
-                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
-                        .ToList();
-                }
-
-                if (tuples.All(t => t.Item2.Count.Total < 1))
-                {
-                    return;
-                }
-
-                UpdateTracker(tuples.Select(Selector)
-                .Aggregate(new Dictionary<string, long>(), (map, next) =>
-                {
-                    map[next.Item1] = next.Item2;
-                    return map;
-                }));
-                OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+                Dictionary<string, long> tracker = InitializeFromTracker();
+                tuples = logs
+                    .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))))
+                    .ToList();
+                initialized = true;
             }
-            catch (Exception ex)
+            else
             {
-                logger.LogException(ex);
+                tuples = logs
+                    .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
+                    .ToList();
             }
+
+            if (tuples.All(t => t.Item2.Count.Total < 1))
+            {
+                return;
+            }
+
+            UpdateTracker(tuples.Select(Selector)
+            .Aggregate(new Dictionary<string, long>(), (map, next) =>
+            {
+                map[next.Item1] = next.Item2;
+                return map;
+            }));
+            OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
         }
 
         private static long GetTracker(Dictionary<string, long> changes, string key)
@@ -165,7 +162,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             index.Write(entity);
 
             //Note: This will cause the callback to get called right away...
-            callback.Signal();
+            task.Signal();
         }
 
         public void QueueDelete(JObject entity)
@@ -174,7 +171,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //      but it ensures that the entity is prepared for us if we query it right after this...
             index.Delete(entity);
 
-            callback.Signal();
+            task.Signal();
         }
 
         protected virtual void OnIndexChanged(IndexChangesEventArgs args)

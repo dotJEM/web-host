@@ -162,8 +162,11 @@
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />
-    <Compile Include="Providers\Concurrency\IScheduler.cs" />
+    <Compile Include="Providers\Scheduler\IScheduler.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
+    <Compile Include="Providers\Scheduler\TaskEventArgs.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\ScheduledTask.cs" />
+    <Compile Include="Providers\Scheduler\ThreadPoolProxy.cs" />
     <Compile Include="Util\EnumeratorUtil.cs" />
     <Compile Include="Diagnostics\ExceptionMessageResult.cs" />
     <Compile Include="Diagnostics\Severity.cs" />

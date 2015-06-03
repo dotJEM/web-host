@@ -19,7 +19,7 @@ namespace DotJEM.Web.Host.Diagnostics
         JObject LogFailure(Severity severity, JObject entity);
         JObject LogFailure(Severity severity, string message, JObject entity = null);
 
-        JObject LogException(Exception exception);
+        JObject LogException(Exception exception, object entity = null);
 
         void LogIncident(Severity severity, string message, object entity);
         void LogWarning(Severity severity, string message, object entity);
@@ -56,9 +56,7 @@ namespace DotJEM.Web.Host.Diagnostics
 
         public JObject Log(string contentType, Severity severity, string message, JObject entity = null)
         {
-            if (entity == null)
-                entity = new JObject();
-
+            entity = entity ?? new JObject();
             entity["message"] = message;
             return Log(contentType, severity, entity);
         }
@@ -94,9 +92,20 @@ namespace DotJEM.Web.Host.Diagnostics
             return Log(ContentTypeFailure, severity, message, entity);
         }
 
-        public JObject LogException(Exception exception)
+        public JObject LogException(Exception exception, object entity = null)
         {
-            return LogFailure(Severity.Error, converter.ToJObject(exception));
+            JObject json;
+            if (entity != null)
+            {
+                json = entity as JObject ?? converter.ToJObject(entity);
+                json.Merge(converter.ToJObject(exception));
+            }
+            else
+            {
+                json = converter.ToJObject(exception);
+            }
+
+            return LogFailure(Severity.Error, json);
         }
 
         public void LogIncident(Severity severity, string message, object entity)

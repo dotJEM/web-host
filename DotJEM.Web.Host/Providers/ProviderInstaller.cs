@@ -1,6 +1,7 @@
 ﻿using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
+using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Services;
 
 namespace DotJEM.Web.Host.Providers
@@ -13,6 +14,8 @@ namespace DotJEM.Web.Host.Providers
             container.Register(Component.For<IServiceProvider<IContentService>>().ImplementedBy<ContentServiceProvider>());
             container.Register(Component.For<IServiceProvider<ISearchService>>().ImplementedBy<SearchServiceProvider>());
             container.Register(Component.For<IServiceProvider<IFileService>>().ImplementedBy<FileServiceProvider>());
+
+            container.Register(Component.For<IWebScheduler>().ImplementedBy<WebScheduler>());
         }
     }
 }
