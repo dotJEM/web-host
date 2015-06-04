@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using DotJEM.Web.Host.Providers.Concurrency;
+using NCrontab;
 
 namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 {
@@ -129,12 +130,12 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
     public class CronScheduledTask : ScheduledTask
     {
-        private readonly string trigger;
+        private readonly CrontabSchedule trigger;
 
         public CronScheduledTask(string name, Action<bool> callback, string trigger)
             : base(name, callback)
         {
-            this.trigger = trigger;
+            this.trigger = CrontabSchedule.Parse(trigger);
         }
 
         public override IScheduledTask Start()
@@ -144,7 +145,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
         private TimeSpan Next()
         {
-            return TimeSpan.FromSeconds(60);
+            return trigger.GetNextOccurrence(DateTime.Now).Subtract(DateTime.Now);
         }
 
         protected override bool ExecuteCallback(bool timedout)
