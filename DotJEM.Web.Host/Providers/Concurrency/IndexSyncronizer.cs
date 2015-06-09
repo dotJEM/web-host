@@ -144,15 +144,31 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 return new SimpleDictionaryWriter().Read(cachePath);
             }
         }
-
         private Tuple<string, long> Selector(Tuple<string, IStorageChanges> tuple)
         {
-            var changes = tuple.Item2;
+            IStorageChanges changes = tuple.Item2;
             index
                 .WriteAll(changes.Created)
                 .WriteAll(changes.Updated)
                 .DeleteAll(changes.Deleted);
+            OptimizeIndex(changes.Count);
+
             return new Tuple<string, long>(tuple.Item1, changes.Token);
+        }
+        
+        private const long CHANGE_OPTIMIZE_CAP = 1024 * 16; // ~16.000 updates before optimize.
+        private long changeCounter = CHANGE_OPTIMIZE_CAP;
+        private DateTime lastOptimize = DateTime.Now;
+
+        private void OptimizeIndex(long changes)
+        {
+            changeCounter -= changes;
+            if (changeCounter < 0 || (DateTime.Now - lastOptimize) > TimeSpan.FromMinutes(60))
+            {
+                index.Optimize();
+                changeCounter = CHANGE_OPTIMIZE_CAP;
+                lastOptimize = DateTime.Now;
+            }
         }
 
         public void QueueUpdate(JObject entity)
