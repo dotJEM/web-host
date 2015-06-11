@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance
 {
@@ -9,8 +11,9 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
     public class LogWriterFactory : ILogWriterFactory
     {
+        private readonly object padlock = new object();
         private readonly IPathResolver resolver;
-        private readonly ConcurrentDictionary<string, ILogWriter> writers = new ConcurrentDictionary<string, ILogWriter>();
+        private readonly IDictionary<string, ILogWriter> writers = new Dictionary<string, ILogWriter>();
 
         public LogWriterFactory(IPathResolver path)
         {
@@ -20,7 +23,14 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         public ILogWriter Create(string path, long maxSize, int maxFiles, bool compress)
         {
             path = resolver.MapPath(path);
-            return writers.GetOrAdd(path, s => new QueueingLogWriter(path, maxSize, maxFiles, compress));
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            lock (padlock)
+            {
+                if (writers.ContainsKey(path))
+                    return writers[path];
+
+                return writers[path] = new QueueingLogWriter(path, maxSize, maxFiles, compress);
+            }
         }
     }
 }

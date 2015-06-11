@@ -27,7 +27,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         private readonly object padLock = new object();
         private readonly Queue<string> logQueue = new Queue<string>();
         private readonly Thread thread;
- 
+
         private bool disposed;
         private StreamWriter current;
         private FileInfo file;
@@ -42,6 +42,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             this.name = Path.GetFileNameWithoutExtension(path);
             this.extention = Path.GetExtension(path);
             this.directory = Path.GetDirectoryName(path);
+
             this.current = new StreamWriter(path, true);
 
             thread = new Thread(WriteLoop);
@@ -50,13 +51,13 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public void Write(string message)
         {
-            if(disposed)
+            if (disposed)
                 return;
 
-            logQueue.Enqueue(message);
-            if (logQueue.Count > 32)
+            lock (padLock)
             {
-                lock (padLock)
+                logQueue.Enqueue(message);
+                if (logQueue.Count > 32)
                 {
                     Monitor.PulseAll(padLock);
                 }
@@ -103,37 +104,50 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
             DirectoryInfo dir = new DirectoryInfo(directory);
             var logFiles = dir.GetFiles(name + "-*" + extention);
-            if (logFiles.Length >= maxFiles)
+            if (logFiles.Length < maxFiles)
+                return;
+
+            if (compress)
             {
-                if (compress)
+                string zipname = Path.Combine(directory, GenerateUniqueArchiveName());
+                using (ZipArchive archive = ZipFile.Open(zipname, ZipArchiveMode.Create))
                 {
-                    string zipname = Path.Combine(directory, GenerateUniqueArchiveName());
-                    using (ZipArchive archive = ZipFile.Open(zipname, ZipArchiveMode.Create))
+                    foreach (FileInfo f in logFiles)
                     {
-                        foreach (FileInfo f in logFiles)
+                        try
                         {
-                            try
-                            {
-                                archive.CreateEntryFromFile(f.FullName, f.Name);
-                                f.Delete();
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine(ex);
-                            }
+                            archive.CreateEntryFromFile(f.FullName, f.Name);
+                            f.Delete();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex);
                         }
                     }
+                }
 
-                    //TODO: If to many zip files.
-                }
-                else
-                {
-                    FileInfo oldest = dir.GetFiles(name + "-*" + extention).OrderByDescending(f => f.CreationTime).First();
-                    oldest.Delete();
-                }
+                var zipfiles = dir.GetFiles("*.zip");
+                if (zipfiles.Length > maxFiles)
+                    DeleteOldest(zipfiles);
+            }
+            else
+            {
+                DeleteOldest(logFiles);
             }
         }
 
+        private void DeleteOldest(FileInfo[] files)
+        {
+            try
+            {
+                FileInfo oldest = files.OrderByDescending(f => f.CreationTime).First();
+                oldest.Delete();
+            }
+            catch (Exception)
+            {
+                //TODO: Report
+            }
+        }
 
         private string GenerateUniqueArchiveName()
         {
@@ -152,7 +166,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             {
                 writer.WriteLine(logQueue.Dequeue());
             }
-            
+
             if (logQueue.Count > 0)
             {
                 Flush(32);

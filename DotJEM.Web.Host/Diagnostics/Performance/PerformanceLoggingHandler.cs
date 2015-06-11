@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +19,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             if(!logger.Enabled)
                 return await base.SendAsync(request, cancellationToken);
             
-            PerformanceTracker tracker = logger.Track(request);
+            IPerformanceTracker<HttpStatusCode> tracker = logger.TrackRequest(request);
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
             tracker.Trace(response.StatusCode);
             return response;

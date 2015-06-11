@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Util;
@@ -9,7 +10,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
     public interface IPerformanceLogger
     {
         bool Enabled { get; }
-        PerformanceTracker Track(HttpRequestMessage request);
+        IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request);
+        IPerformanceTracker<object> TrackTask(string name);
     }
 
     public class PerformanceLogger : IPerformanceLogger
@@ -27,24 +29,25 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             Enabled = true;
             PerformanceConfiguration config = configuration.Diagnostics.Performance;
 
-            string dir = Path.GetDirectoryName(config.Path);
-            Debug.Assert(dir != null, "dir != null");
-
-            Directory.CreateDirectory(dir);
             writer = factory.Create(config.Path, AdvConvert.ToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         }
 
-        public PerformanceTracker Track(HttpRequestMessage request)
+        public IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request)
         {
-            return new PerformanceTracker(request, LogPerformanceEvent);
+            return new HttpRequestPerformanceTracker(LogPerformanceEvent, request);
         }
 
-        private void LogPerformanceEvent(PerformanceTracker tracker)
+        public IPerformanceTracker<object> TrackTask(string name)
+        {
+            return new TaskPerformanceTracker(LogPerformanceEvent, name);
+        }
+
+        private void LogPerformanceEvent(string message)
         {
             if (!Enabled)
                 return;
 
-            writer.Write(tracker.ToString());
+            writer.Write(message);
         }
     }
 }
