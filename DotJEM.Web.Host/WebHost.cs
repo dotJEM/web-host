@@ -19,6 +19,7 @@ using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
+using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
@@ -124,7 +125,7 @@ namespace DotJEM.Web.Host
                 .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
             configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
 
-            configuration.MessageHandlers.Add(new DiagnosticsLoggingHandler(container.Resolve<IPerformanceLogger>()));
+            configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
 
             AfterInitialize();
 

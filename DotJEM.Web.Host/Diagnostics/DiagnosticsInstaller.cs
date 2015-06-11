@@ -4,6 +4,7 @@ using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 using DotJEM.Web.Host.Diagnostics.ExceptionLoggers;
+using DotJEM.Web.Host.Diagnostics.Performance;
 
 namespace DotJEM.Web.Host.Diagnostics
 {
