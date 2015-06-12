@@ -82,6 +82,10 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             {
                 Flush(logQueue.Count);
             }
+            catch (Exception)
+            {
+                //TODO: Ignore for now, but we need an idea of how to deal with this.
+            }
         }
 
         private StreamWriter NextWriter()
