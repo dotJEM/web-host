@@ -48,6 +48,7 @@ namespace DotJEM.Web.Host.Diagnostics
 
         public JObject Log(string contentType, Severity severity, JObject entity)
         {
+            entity["host"] = Environment.MachineName;
             entity["severity"] = converter.FromObject(severity);
             entity = Area.Insert(contentType, entity);
             Manager.QueueUpdate(entity);

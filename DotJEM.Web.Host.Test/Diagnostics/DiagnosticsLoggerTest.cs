@@ -9,6 +9,7 @@ using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Services;
+using DotJEM.Web.Host.Util;
 using Moq;
 using Moq.AutoMock;
 using Newtonsoft.Json.Linq;
@@ -32,8 +33,17 @@ namespace DotJEM.Web.Host.Test.Diagnostics
                 err = "This is an error, oh no !"
             });
 
+            mocker.GetMock<IJsonConverter>().Setup(c => c.FromObject(Severity.Fatal)).Returns(Severity.Fatal.ToString());
+            mocker.GetMock<IJsonConverter>().Setup(c => c.FromObject(Severity.Status)).Returns(Severity.Fatal.ToString());
+
+            Mock<IStorageIndexManager> manager = mocker.GetMock<IStorageIndexManager>();
+            Lazy<IStorageIndexManager> lazyStorageIndexManager = new Lazy<IStorageIndexManager>(() => manager.Object);
+            mocker.Use(lazyStorageIndexManager);
             mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
-            mocker.GetMock<IStorageContext>().Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+            Mock<IStorageContext> storageContext = mocker.GetMock<IStorageContext>();
+            storageContext.Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+            Lazy<IStorageContext> lazyStorageContext = new Lazy<IStorageContext>(() => storageContext.Object);
+            mocker.Use(lazyStorageContext);
         }
 
         [Test]
@@ -60,7 +70,7 @@ namespace DotJEM.Web.Host.Test.Diagnostics
             DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
             dynamic result = logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, error);
 
-            Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
+            Assert.That((string)result.severity, Is.EqualTo(Severity.Fatal.ToString()));
         }
 
         [Test]
@@ -180,7 +190,19 @@ namespace DotJEM.Web.Host.Test.Diagnostics
             DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
             dynamic result = logger.LogFailure(Severity.Status, "I was called from LogFailure", error);
 
-            Assert.That((string)result.message, Is.EqualTo("I was called from LogFailure"));
+            Assert.That((string)result.message, Is.EqualTo("I was called from LogFailure"));        
+        }
+
+        [Test]
+        public void DiagnosticsLogger_Log_ShouldContainMachineName()
+        {
+            mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
+            mocker.GetMock<IStorageContext>().Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+
+            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+            dynamic result = logger.LogFailure(Severity.Status, "", error);
+
+            Assert.That((string)result.host, Is.EqualTo(Environment.MachineName));      
         }
     }
 }
