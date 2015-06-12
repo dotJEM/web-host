@@ -85,6 +85,8 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\packages\Microsoft.AspNet.WebPages.3.2.0\lib\net45\System.Web.Helpers.dll</HintPath>
@@ -158,13 +160,24 @@
     <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
+    <Compile Include="Configuration\Elements\DiagnosticsConfiguration.cs" />
+    <Compile Include="Configuration\Elements\IndexConfiguration.cs" />
+    <Compile Include="Configuration\Elements\PerformanceConfiguration.cs" />
+    <Compile Include="Configuration\Elements\StorageConfiguration.cs" />
+    <Compile Include="Configuration\Elements\WatchElement.cs" />
+    <Compile Include="Configuration\Elements\WatchElementCollection.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\ExceptionHandlerInstaller.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\GenericExceptionHandler.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\WebHostUnhandledExceptionArgs.cs" />
     <Compile Include="Diagnostics\ExceptionLoggers\DiagnosticsExceptionLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
-    <Compile Include="Diagnostics\DiagnosticsLoggingHandler.cs" />
+    <Compile Include="Diagnostics\Performance\LogWriterFactory.cs" />
+    <Compile Include="Diagnostics\Performance\PerformanceLogger.cs" />
+    <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />
+    <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
+    <Compile Include="Util\AdvConvert.cs" />
+    <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />
     <Compile Include="Providers\Scheduler\IScheduler.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
@@ -261,6 +274,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Services\NSW.Legacy.Services\NSW.Legacy.Services.csproj">
+      <Project>{15843923-62D6-4989-9284-A4A1F7B613DC}</Project>
+      <Name>NSW.Legacy.Services</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
       <Project>{61EA751B-691B-4F68-87C5-46D115D51CC3}</Project>
       <Name>DotJEM.Json.Index</Name>

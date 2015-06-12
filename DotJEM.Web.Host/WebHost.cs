@@ -19,6 +19,7 @@ using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
+using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
@@ -77,8 +78,6 @@ namespace DotJEM.Web.Host
             configuration.Services.Replace(typeof(IHttpControllerSelector), new ControllerSelector(configuration));
             configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
             
-            configuration.MessageHandlers.Add(new DiagnosticsLoggingHandler());
-
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
             
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
@@ -99,6 +98,7 @@ namespace DotJEM.Web.Host
             Storage = CreateStorage();
 
             container
+                .Register(Component.For<IPathResolver>().ImplementedBy<PathResolver>())
                 .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
                 .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
                 .Register(Component.For<IWindsorContainer>().Instance(container))
@@ -124,6 +124,8 @@ namespace DotJEM.Web.Host
             container.ResolveAll<IExceptionLogger>()
                 .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
             configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
+
+            configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
 
             AfterInitialize();
 
@@ -178,4 +180,16 @@ namespace DotJEM.Web.Host
         }
     }
 
+    public interface IPathResolver
+    {
+        string MapPath(string path);
+    }
+
+    public class PathResolver : IPathResolver
+    {
+        public string MapPath(string path)
+        {
+            return HostingEnvironment.MapPath(path);
+        }
+    }
 }

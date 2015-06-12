@@ -1,5 +1,7 @@
 using System;
 using System.Threading;
+using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using NCrontab;
 
@@ -32,18 +34,20 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         public string Name { get; private set; }
 
         private readonly IThreadPool pool;
+        private readonly IPerformanceLogger perf;
 
-        protected ScheduledTask(string name, Action<bool> callback)
-            : this(name, callback, new ThreadPoolProxy())
+        protected ScheduledTask(string name, Action<bool> callback, IPerformanceLogger perf)
+            : this(name, callback, new ThreadPoolProxy(), perf)
         {
         }
 
-        protected ScheduledTask(string name, Action<bool> callback, IThreadPool pool)
+        protected ScheduledTask(string name, Action<bool> callback, IThreadPool pool, IPerformanceLogger perf)
         {
             Id = Guid.NewGuid();
             this.Name = name;
             this.callback = callback;
             this.pool = pool;
+            this.perf = perf;
         }
 
         public abstract IScheduledTask Start();
@@ -60,7 +64,9 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
             try
             {
+                IPerformanceTracker<object> tracker = perf.TrackTask(Name);
                 callback(!timedout);
+                tracker.Trace(null);
                 return true;
             }
             catch (Exception ex)
@@ -108,8 +114,8 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
     {
         private readonly TimeSpan delay;
 
-        public PeriodicScheduledTask(string name, Action<bool> callback, TimeSpan delay)
-            : base(name, callback)
+        public PeriodicScheduledTask(string name, Action<bool> callback, TimeSpan delay, IPerformanceLogger perf)
+            : base(name, callback, perf)
         {
             this.delay = delay;
         }
@@ -132,8 +138,8 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
     {
         private readonly CrontabSchedule trigger;
 
-        public CronScheduledTask(string name, Action<bool> callback, string trigger)
-            : base(name, callback)
+        public CronScheduledTask(string name, Action<bool> callback, string trigger, IPerformanceLogger perf)
+            : base(name, callback, perf)
         {
             this.trigger = CrontabSchedule.Parse(trigger);
         }
@@ -166,8 +172,8 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             return RegisterWait(delay);
         }
 
-        public SingleFireScheduledTask(string name, Action<bool> callback, TimeSpan? delay)
-            : base(name, callback)
+        public SingleFireScheduledTask(string name, Action<bool> callback, TimeSpan? delay, IPerformanceLogger perf)
+            : base(name, callback, perf)
         {
             this.delay = delay ?? TimeSpan.Zero;
         }

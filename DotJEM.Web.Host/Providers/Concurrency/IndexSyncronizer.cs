@@ -66,12 +66,13 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             this.index = index;
             this.scheduler = scheduler;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
-            foreach (WatchElement watch in configuration.Index.Watch.Items)
+            foreach (WatchElement watch in configuration.Index.Watch.Items){
                 logs[watch.Area] = storage.Area(watch.Area).Log;
-
+            }
             //TODO: Use the below to store a index pointer.
-            if (!string.IsNullOrEmpty(configuration.Index.CacheLocation))
+            if (!string.IsNullOrEmpty(configuration.Index.CacheLocation)) {
                 cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
+            }
         }
 
         public void Start()
