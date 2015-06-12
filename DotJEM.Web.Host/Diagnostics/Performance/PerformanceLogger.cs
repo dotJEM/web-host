@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Util;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance

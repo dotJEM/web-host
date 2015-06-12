@@ -174,8 +174,8 @@
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\Performance\LogWriterFactory.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLogger.cs" />
-    <Compile Include="Diagnostics\Performance\HttpRequestPerformanceTracker.cs" />
     <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />
+    <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />

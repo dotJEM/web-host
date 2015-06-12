@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance
 {
