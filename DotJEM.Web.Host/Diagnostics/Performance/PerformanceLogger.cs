@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -15,6 +16,12 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request);
         IPerformanceTracker<object> TrackTask(string name);
+
+        void TrackAction(Action action);
+        void TrackAction(string name, Action action);
+
+        T TrackFunction<T>(Func<T> func);
+        T TrackFunction<T>(string name, Func<T> func);
     }
 
     public class PerformanceLogger : IPerformanceLogger
@@ -47,6 +54,32 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         {
             return new TaskPerformanceTracker(LogPerformanceEvent, name);
         }
+
+        public void TrackAction(Action action)
+        {
+            TrackAction(action.Method.Name, action);
+        }
+
+        public void TrackAction(string name, Action action)
+        {
+            var methodName = action.Method.Name;
+            var tracker = TrackTask(name);
+            action();
+            tracker.Trace(methodName);
+        }
+
+        public T TrackFunction<T>(Func<T> func)
+        {
+            return TrackFunction(func.Method.Name, func);
+        }
+
+        public T TrackFunction<T>(string name, Func<T> func)
+        {
+            T output = default (T);
+            TrackAction(name, () => output = func());
+            return output;
+        }
+
 
         private void LogPerformanceEvent(string message)
         {

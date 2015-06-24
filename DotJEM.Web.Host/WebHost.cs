@@ -87,9 +87,9 @@ namespace DotJEM.Web.Host
 
         public IWebHost Start()
         {
-            BeforeStart();
-
             container.Install(FromAssembly.This());
+
+            BeforeStart();
 
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
             Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
@@ -107,19 +107,20 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IStorageContext>().Instance(Storage))
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration));
 
-            BeforeConfigure();
+            var perf = container.Resolve<IPerformanceLogger>();
+            var startup = perf.TrackTask("Start");
 
-            Configure(container.Resolve<IPipeline>());
-            Configure(container);
-            Configure(Storage);
-            Configure(Index);
-            Configure(new HttpRouterConfigurator(configuration.Routes));
+            perf.TrackAction(BeforeConfigure);
+            perf.TrackAction("Configure Pipeline", () => Configure(container.Resolve<IPipeline>()));
+            perf.TrackAction("Configure Container", () => Configure(container));
+            perf.TrackAction("Configure Storage", () => Configure(Storage));
+            perf.TrackAction("Configure Index", () => Configure(Index));
+            perf.TrackAction("Configure Routes", () => Configure(new HttpRouterConfigurator(configuration.Routes)));
+            perf.TrackAction(AfterConfigure);
 
-            AfterConfigure();
-            BeforeInitialize();
-
-            Initialize(Storage);
-            Initialize(Index);
+            perf.TrackAction(BeforeInitialize);
+            perf.TrackAction("Initialize Storage", () => Initialize(Storage));
+            perf.TrackAction("Initialize Index", () => Initialize(Index));
 
             container.ResolveAll<IExceptionLogger>()
                 .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
@@ -127,13 +128,13 @@ namespace DotJEM.Web.Host
 
             configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
 
-            AfterInitialize();
+            perf.TrackAction(AfterInitialize);
 
             indexManager = container.Resolve<IStorageIndexManager>();
-            indexManager.Start();
+            perf.TrackAction(indexManager.Start);
+            perf.TrackAction(AfterStart);
 
-            AfterStart();
-
+            startup.Trace("");
             return this;
         }
 
