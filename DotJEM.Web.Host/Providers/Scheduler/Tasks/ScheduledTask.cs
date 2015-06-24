@@ -1,9 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
+using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using NCrontab;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 {
@@ -36,6 +39,9 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         private readonly IThreadPool pool;
         private readonly IPerformanceLogger perf;
 
+        private long lastExecution = 0;
+        private bool overflow = false;
+
         protected ScheduledTask(string name, Action<bool> callback, IPerformanceLogger perf)
             : this(name, callback, new ThreadPoolProxy(), perf)
         {
@@ -61,6 +67,9 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         protected virtual bool ExecuteCallback(bool timedout)
         {
             if (Disposed) return false;
+
+            
+            lastExecution = Stopwatch.GetTimestamp();
 
             try
             {
@@ -105,6 +114,17 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
         public virtual IScheduledTask Signal()
         {
+            if (Stopwatch.GetTimestamp() - lastExecution < TimeSpan.TicksPerSecond)
+            {
+                perf.Diag.LogWarning(Severity.Critical, "Timer overflow for " + Name + " seen.", new
+                {
+                    Trace = new StackTrace().ToString()
+                });
+                overflow = true;
+                return this;
+            }
+            overflow = false;
+
             handle.Set();
             return this;
         }

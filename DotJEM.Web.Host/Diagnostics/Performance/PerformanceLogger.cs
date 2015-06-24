@@ -11,18 +11,22 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
     public interface IPerformanceLogger
     {
         bool Enabled { get; }
+        IDiagnosticsLogger Diag { get; }
+
         IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request);
         IPerformanceTracker<object> TrackTask(string name);
     }
 
     public class PerformanceLogger : IPerformanceLogger
     {
-        public bool Enabled { get; private set; }
-
         private readonly ILogWriter writer;
 
-        public PerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration)
+        public bool Enabled { get; private set; }
+        public IDiagnosticsLogger Diag { get; private set; }
+
+        public PerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration, IDiagnosticsLogger diagnostics)
         {
+            Diag = diagnostics;
             //TODO: Null logger pattern
             if (configuration.Diagnostics == null || configuration.Diagnostics.Performance == null)
                 return;
@@ -32,6 +36,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
             writer = factory.Create(config.Path, AdvConvert.ToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         }
+
 
         public IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request)
         {
