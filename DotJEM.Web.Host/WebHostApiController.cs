@@ -1,12 +1,22 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web.Http;
 using DotJEM.Web.Host.ActionResults;
+using Microsoft.AspNet.SignalR;
+using Microsoft.AspNet.SignalR.Hubs;
 
 namespace DotJEM.Web.Host
 {
+    public abstract class WebHostHubController<THub> : WebHostApiController where THub : IHub
+    {
+        private readonly Lazy<IHubContext> hub = new Lazy<IHubContext>(() => GlobalHost.ConnectionManager.GetHubContext<THub>());
+
+        protected IHubContext Hub { get { return hub.Value; } }
+    }
+
     public abstract class WebHostApiController : ApiController
     {
         protected virtual NotFoundErrorMessageResult NotFound(string message)
