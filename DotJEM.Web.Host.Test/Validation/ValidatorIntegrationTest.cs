@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web.Mvc;
 using DotJEM.Web.Host.Validation;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
@@ -23,7 +24,8 @@ namespace DotJEM.Web.Host.Test.Validation
         {
             IValidator validator = new TestValidator();
 
-            ValidationResult result = validator.Validate(JObject.Parse(json));
+            var entity = JObject.Parse(json);
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.True);
         }
@@ -37,7 +39,8 @@ namespace DotJEM.Web.Host.Test.Validation
         {
             IValidator validator = new TestArraysValidator();
 
-            ValidationResult result = validator.Validate(JObject.Parse(json));
+            var entity = JObject.Parse(json);
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.True);
             Debug.WriteLine(result);

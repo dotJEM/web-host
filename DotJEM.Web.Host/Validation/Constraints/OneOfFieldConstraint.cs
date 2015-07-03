@@ -23,12 +23,12 @@ namespace DotJEM.Web.Host.Validation.Constraints
         {
             this.strings = new HashSet<string>(strings, comparer);
         }
-        protected override void OnValidate(JToken token, IValidationCollector context)
+        protected override void OnValidate(IValidationContext context, JToken token, IValidationCollector collector)
         {
             if (Matches(token))
                 return;
 
-            context.AddError("The text must be one of the following: {0}", string.Join(", ", strings));
+            collector.AddError("The text must be one of the following: {0}", string.Join(", ", strings));
         }
 
         protected override bool OnMatches(JToken token)

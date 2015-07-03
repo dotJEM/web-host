@@ -63,10 +63,10 @@ namespace DotJEM.Web.Host.Validation
             this.guard = guard;
         }
 
-        public IEnumerable<FieldValidationResults> Validate(JObject entity)
+        public IEnumerable<FieldValidationResults> Validate(JObject entity, IValidationContext context)
         {
             return guard.Matches(entity) 
-                ? inner.Validate(entity)
+                ? inner.Validate(entity, context)
                 : Enumerable.Empty<FieldValidationResults>();
         }
     }
@@ -98,19 +98,12 @@ namespace DotJEM.Web.Host.Validation
             return new FieldGuardValidatorBuilder((key, validator) => fieldValidators.Add(key, validator), builder.BuildGuard(field));
         }
 
-        public ValidationResult Validate(JObject entity)
+        public ValidationResult Validate(JObject entity, IValidationContext context)
         {
             //TODO: Need a better concept for this, specifically a "Dependant field" concept, that can also be used in cross validation.
             return RequiresValidation(entity)
-                ? new ValidationResult(ContentType, entity, Validators.SelectMany(v => v.Validate(entity)).ToList())
+                ? new ValidationResult(ContentType, entity, Validators.SelectMany(v => v.Validate(entity, context)).ToList())
                 : new ValidationResult(ContentType, entity, Enumerable.Empty<FieldValidationResults>().ToList());
-        }
-
-        public ValidationResult Validate(JObject update, JObject original)
-        {
-            return RequiresValidation(update, original)
-                ? new ValidationResult(ContentType, update, Validators.SelectMany(v => v.Validate(update)).ToList())
-                : new ValidationResult(ContentType, update, Enumerable.Empty<FieldValidationResults>().ToList());
         }
 
         protected virtual bool RequiresValidation(JObject entity)

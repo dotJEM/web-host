@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Web.Mvc;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
@@ -30,7 +31,7 @@ namespace DotJEM.Web.Host.Validation
             IValidator validator;
             if (validators.TryGetValue(contentType, out validator))
             {
-                ValidationResult result = validator.Validate((JObject)entity);
+                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, null, HttpVerbs.Post));
                 if (result.HasErrors)
                 {
                     throw new JsonEntityValidationException(result);
@@ -44,7 +45,7 @@ namespace DotJEM.Web.Host.Validation
             IValidator validator;
             if (validators.TryGetValue(contentType, out validator))
             {
-                ValidationResult result = validator.Validate((JObject)entity, (JObject)prev);
+                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, (JObject)prev, HttpVerbs.Put));
                 if (result.HasErrors)
                 {
                     throw new JsonEntityValidationException(result);

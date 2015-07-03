@@ -212,6 +212,7 @@
     <Compile Include="Validation\FieldValidatorBuilder.cs" />
     <Compile Include="Validation\IFieldValidator.cs" />
     <Compile Include="Validation\IFieldValidatorBuilder.cs" />
+    <Compile Include="Validation\IValidationContext.cs" />
     <Compile Include="Validation\IValidator.cs" />
     <Compile Include="Validation\JsonEntityValidationException.cs" />
     <Compile Include="Validation\JsonEntityValidator.cs" />
@@ -221,6 +222,7 @@
     <Compile Include="Validation\Results\ValidationError.cs" />
     <Compile Include="Validation\Results\ValidationResult.cs" />
     <Compile Include="Validation\StringFieldValidatorBuilderExtensions.cs" />
+    <Compile Include="Validation\ValidationContext.cs" />
     <Compile Include="Validation\Validator.cs" />
     <Compile Include="Validation\ValidatorAttribute.cs" />
     <Compile Include="Validation\ValidatorInstaller.cs" />

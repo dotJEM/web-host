@@ -14,10 +14,10 @@ namespace DotJEM.Web.Host.Validation.Constraints
             this.right = right;
         }
 
-        public void Validate(JToken token, IValidationCollector context)
+        public void Validate(IValidationContext context, JToken token, IValidationCollector collector)
         {
-            left.Validate(token, context);
-            right.Validate(token, context);
+            left.Validate(context, token, collector);
+            right.Validate(context, token, collector);
         }
 
         public bool Matches(JToken token)

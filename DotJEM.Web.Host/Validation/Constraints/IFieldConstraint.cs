@@ -5,7 +5,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
 {
     public interface IFieldConstraint
     {
-        void Validate(JToken token, IValidationCollector collector);
+        void Validate(IValidationContext context, JToken token, IValidationCollector collector);
         bool Matches(JToken token);
     }
 }

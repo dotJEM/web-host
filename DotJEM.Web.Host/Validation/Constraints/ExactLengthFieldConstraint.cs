@@ -12,12 +12,12 @@ namespace DotJEM.Web.Host.Validation.Constraints
             this.length = length;
         }
 
-        protected override void OnValidate(JToken token, IValidationCollector context)
+        protected override void OnValidate(IValidationContext context, JToken token, IValidationCollector collector)
         {
             if (Matches(token))
                 return;
 
-            context.AddError("Length must be '{0}'.", length);
+            collector.AddError("Length must be '{0}'.", length);
         }
 
         protected override bool OnMatches(JToken token)

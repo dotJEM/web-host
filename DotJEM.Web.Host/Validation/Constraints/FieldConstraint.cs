@@ -5,11 +5,11 @@ namespace DotJEM.Web.Host.Validation.Constraints
 {
     public abstract class FieldConstraint : IFieldConstraint
     {
-        public void Validate(JToken token, IValidationCollector collector)
+        public void Validate(IValidationContext context, JToken token, IValidationCollector collector)
         {
             if (token != null)
             {
-                OnValidate(token, collector);
+                OnValidate(context, token, collector);
             }
         }
 
@@ -18,7 +18,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
             return token != null && OnMatches(token);
         }
 
-        protected abstract void OnValidate(JToken token, IValidationCollector context);
+        protected abstract void OnValidate(IValidationContext context, JToken token, IValidationCollector collector);
         protected abstract bool OnMatches(JToken token);
 
     }

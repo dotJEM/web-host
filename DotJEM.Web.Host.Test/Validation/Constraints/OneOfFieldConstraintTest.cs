@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web.Mvc;
 using DotJEM.Web.Host.Validation;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
@@ -23,7 +24,8 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
         {
             Validator validator = new OneOfValidator(true);
 
-            ValidationResult result = validator.Validate(JObject.Parse(json));
+            var entity = JObject.Parse(json);
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.True);
         }
@@ -34,7 +36,8 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
         {
             Validator validator = new OneOfValidator(true);
 
-            ValidationResult result = validator.Validate(JObject.Parse(json));
+            var entity = JObject.Parse(json);
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.False);
         }
@@ -45,7 +48,8 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
         {
             Validator validator = new OneOfValidator(false);
 
-            ValidationResult result = validator.Validate(JObject.Parse(json));
+            var entity = JObject.Parse(json);
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.False);
         }
@@ -57,7 +61,7 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
         {
             Field("foo",
                 caseSensitive
-                    ? Must.BeOneOf(new List<string> { "Yes", "No", "Not Applicable" })
+                    ? Must.BeOneOf(new List<string> { "Yes", "No", "Not Applicable" }, StringComparer.InvariantCulture)
                     : Must.BeOneOf(new List<string> { "Yes", "No", "Not Applicable" },
                         StringComparer.InvariantCultureIgnoreCase));
         }

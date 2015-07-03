@@ -14,12 +14,12 @@ namespace DotJEM.Web.Host.Validation.Constraints
             this.expression = new Regex(expression, options);
         }
 
-        protected override void OnValidate(JToken token, IValidationCollector context)
+        protected override void OnValidate(IValidationContext context, JToken token, IValidationCollector collector)
         {
             if (Matches(token))
                 return;
 
-            context.AddError("Value must match '{0}'.", expression);
+            collector.AddError("Value must match '{0}'.", expression);
         }
 
         protected override bool OnMatches(JToken token)
@@ -40,13 +40,13 @@ namespace DotJEM.Web.Host.Validation.Constraints
             this.comparison = comparison;
         }
 
-        protected override void OnValidate(JToken token, IValidationCollector context)
+        protected override void OnValidate(IValidationContext context, JToken token, IValidationCollector collector)
         {
             if (Matches(value))
                 return;
 
             //TODO: Add comparison information so we don't get : value foo must be equal FOO when ignore case.
-            context.AddError("Value must be equal to '{0}'.", value);
+            collector.AddError("Value must be equal to '{0}'.", value);
         }
 
         protected override bool OnMatches(JToken token)
