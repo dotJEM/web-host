@@ -1,11 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Formatting;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using System.Web.Hosting;
+﻿using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
 using System.Web.Http.ExceptionHandling;
@@ -15,18 +8,15 @@ using Castle.Windsor;
 using Castle.Windsor.Installer;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Migration;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
-using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
-using DotJEM.Web.Host.Providers.Services;
 using DotJEM.Web.Host.Util;
-using Lucene.Net.Search.Vectorhighlight;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -38,7 +28,7 @@ namespace DotJEM.Web.Host
         T Resolve<T>();
         void Shutdown();
     }
-    
+
     public abstract class WebHost : IWebHost
     {
         private readonly IWindsorContainer container;
@@ -75,9 +65,9 @@ namespace DotJEM.Web.Host
             this.configuration = configuration;
             this.container = container;
 
-            configuration.Services.Replace(typeof(IHttpControllerSelector), new ControllerSelector(configuration));
-            configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
-            
+            configuration.Services.Replace(typeof (IHttpControllerSelector), new ControllerSelector(configuration));
+            configuration.Services.Replace(typeof (IHttpControllerActivator), new WindsorControllerActivator(container));
+
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
             
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
@@ -93,7 +83,7 @@ namespace DotJEM.Web.Host
 
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
             Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
-            
+
             Index = CreateIndex();
             Storage = CreateStorage();
 
@@ -123,8 +113,8 @@ namespace DotJEM.Web.Host
             perf.TrackAction("Initialize Index", () => Initialize(Index));
 
             container.ResolveAll<IExceptionLogger>()
-                .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
-            configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
+                .ForEach(logger => HttpConfiguration.Services.Add(typeof (IExceptionLogger), logger));
+            configuration.Services.Replace(typeof (IExceptionHandler), container.Resolve<IExceptionHandler>());
 
             configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
 
@@ -153,7 +143,9 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageContext CreateStorage()
         {
-            return new SqlServerStorageContext(Configuration.Storage.ConnectionString);
+            var migrators = container.ResolveAll<IDataMigrator>();
+
+            return new SqlServerStorageContext(Configuration.Storage.ConnectionString, migrators);
         }
 
         public T Resolve<T>()
