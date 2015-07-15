@@ -143,9 +143,15 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageContext CreateStorage()
         {
-            var migrators = container.ResolveAll<IDataMigrator>();
+            var context = new SqlServerStorageContext(Configuration.Storage.ConnectionString);
 
-            return new SqlServerStorageContext(Configuration.Storage.ConnectionString, migrators);
+            var migrators = container.ResolveAll<IDataMigrator>();
+            foreach (var migrator in migrators)
+            {
+                context.Migrators.Add(migrator);
+            }
+
+            return context;
         }
 
         public T Resolve<T>()
