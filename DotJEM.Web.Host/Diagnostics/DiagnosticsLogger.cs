@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -9,21 +14,88 @@ namespace DotJEM.Web.Host.Diagnostics
 {
     public interface IDiagnosticsLogger
     {
-        JObject Log(string contentType, Severity severity, JObject entity);
-        JObject Log(string contentType, Severity severity, string message, JObject entity = null);
+        IJsonConverter Converter { get; }
 
-        JObject LogIncident(Severity severity, JObject entity);
-        JObject LogIncident(Severity severity, string message, JObject entity = null);
-        JObject LogWarning(Severity severity, JObject entity);
-        JObject LogWarning(Severity severity, string message, JObject entity = null);
-        JObject LogFailure(Severity severity, JObject entity);
-        JObject LogFailure(Severity severity, string message, JObject entity = null);
+        void Log(string contentType, Severity severity, object entity);
+        void Log(string contentType, Severity severity, string message, object entity = null);
+    }
 
-        JObject LogException(Exception exception, object entity = null);
+    public static class DiagnosticsLoggerTraceExtensions
+    {
+        private const string ContentType = "trace";
 
-        void LogIncident(Severity severity, string message, object entity);
-        void LogWarning(Severity severity, string message, object entity);
-        void LogFailure(Severity severity, string message, object entity);
+        public static void LogTrace(this IDiagnosticsLogger self, Severity severity, object entity)
+        {
+            self.Log(ContentType, severity, entity);
+        }
+
+        public static void LogTrace(this IDiagnosticsLogger self, Severity severity, string message, object entity = null)
+        {
+            self.Log(ContentType, severity, message, entity);
+        }
+    }
+
+    public static class DiagnosticsLoggerIncidentExtensions
+    {
+        private const string ContentType = "incident";
+
+        public static void LogIncident(this IDiagnosticsLogger self, Severity severity, object entity)
+        {
+            self.Log(ContentType, severity, entity);
+        }
+
+        public static void LogIncident(this IDiagnosticsLogger self, Severity severity, string message, object entity = null)
+        {
+            self.Log(ContentType, severity, message, entity);
+        }
+    }
+
+    public static class DiagnosticsLoggerWarningExtensions
+    {
+        private const string ContentType = "warning";
+
+        public static void LogWarning(this IDiagnosticsLogger self, Severity severity, object entity)
+        {
+            self.Log(ContentType, severity, entity);
+        }
+
+        public static void LogWarning(this IDiagnosticsLogger self, Severity severity, string message, object entity = null)
+        {
+            self.Log(ContentType, severity, message, entity);
+        }
+    }
+
+    public static class DiagnosticsLoggerFailureExtensions
+    {
+        private const string ContentType = "failure";
+
+        public static void LogFailure(this IDiagnosticsLogger self, Severity severity, object entity)
+        {
+            self.Log(ContentType, severity, entity);
+        }
+
+        public static void LogFailure(this IDiagnosticsLogger self, Severity severity, string message, object entity = null)
+        {
+            self.Log(ContentType, severity, message, entity);
+        }
+    }
+
+    public static class DiagnosticsLoggerExceptionExtensions
+    {
+        public static void LogException(this IDiagnosticsLogger self, Exception exception, object entity = null)
+        {
+            JObject json;
+            if (entity != null)
+            {
+                json = entity as JObject ?? self.Converter.ToJObject(entity);
+                json.Merge(self.Converter.ToJObject(exception));
+            }
+            else
+            {
+                json = self.Converter.ToJObject(exception);
+            }
+            self.LogFailure(Severity.Error, json);
+        }
     }
 
     public class DiagnosticsLogger : IDiagnosticsLogger
@@ -34,99 +106,106 @@ namespace DotJEM.Web.Host.Diagnostics
 
         private readonly Lazy<IStorageArea> area;
         private readonly Lazy<IStorageIndexManager> manager;
-        private readonly IJsonConverter converter;
 
         public IStorageArea Area { get { return area.Value; } }
         public IStorageIndexManager Manager { get { return manager.Value; } }
+        public IJsonConverter Converter { get; private set; }
 
         public DiagnosticsLogger(Lazy<IStorageContext> context, Lazy<IStorageIndexManager> manager, IJsonConverter converter)
         {
             this.area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
             this.manager = manager;
-            this.converter = converter;
+            this.Converter = converter;
         }
 
-        public JObject Log(string contentType, Severity severity, JObject entity)
+        public void Log(string contentType, Severity severity, object entity = null)
         {
-            entity["host"] = Environment.MachineName;
-            entity["severity"] = converter.FromObject(severity);
-            entity = Area.Insert(contentType, entity);
-            Manager.QueueUpdate(entity);
-            return entity;
+            JObject json = EnsureJson(entity);
+            json["host"] = Environment.MachineName;
+            json["severity"] = Converter.FromObject(severity);
+            json["stackTrace"] = JArray.FromObject(BuildStackTrace().ToArray());
+            json = Area.Insert(contentType, json);
+            Manager.QueueUpdate(json);
         }
 
-        public JObject Log(string contentType, Severity severity, string message, JObject entity = null)
+        public void Log(string contentType, Severity severity, string message, object entity = null)
         {
-            entity = entity ?? new JObject();
-            entity["message"] = message;
-            return Log(contentType, severity, entity);
+            JObject json = EnsureJson(entity);
+            json["message"] = message;
+            Log(contentType, severity, json);
         }
 
-        public JObject LogIncident(Severity severity, JObject entity)
-        {
-            return Log(ContentTypeIncident, severity, entity);
-        }
 
-        public JObject LogIncident(Severity severity, string message, JObject entity = null)
-        {
-            
-            return Log(ContentTypeIncident, severity, message, entity);
-        }
-
-        public JObject LogWarning(Severity severity, JObject entity)
-        {
-            return Log(ContentTypeWarning, severity, entity);
-        }
-
-        public JObject LogWarning(Severity severity, string message, JObject entity = null)
-        {
-            return Log(ContentTypeWarning, severity, message, entity);
-        }
-
-        public JObject LogFailure(Severity severity, JObject entity)
-        {
-            return Log(ContentTypeFailure, severity, entity);
-        }
-
-        public JObject LogFailure(Severity severity, string message, JObject entity = null)
-        {
-            return Log(ContentTypeFailure, severity, message, entity);
-        }
-
-        public JObject LogException(Exception exception, object entity = null)
+        public void LogException(Exception exception, object entity = null)
         {
             JObject json;
             if (entity != null)
             {
-                json = entity as JObject ?? converter.ToJObject(entity);
-                json.Merge(converter.ToJObject(exception));
+                json = entity as JObject ?? Converter.ToJObject(entity);
+                json.Merge(Converter.ToJObject(exception));
             }
             else
             {
-                json = converter.ToJObject(exception);
+                json = Converter.ToJObject(exception);
             }
-
-            return LogFailure(Severity.Error, json);
-        }
-
-        public void LogIncident(Severity severity, string message, object entity)
-        {
-            LogIncident(severity, message, EnsureJson(entity));
-        }
-
-        public void LogWarning(Severity severity, string message, object entity)
-        {
-            LogWarning(severity, message, EnsureJson(entity));
-        }
-
-        public void LogFailure(Severity severity, string message, object entity)
-        {
-            LogFailure(severity, message, EnsureJson(entity));
+            this.LogFailure(Severity.Error, json);
         }
 
         private JObject EnsureJson(object entity)
         {
-            return entity as JObject ?? converter.ToJObject(entity);
+            return entity == null ? new JObject() : (entity as JObject ?? Converter.ToJObject(entity));
+        }
+
+        internal static IEnumerable<string> BuildStackTrace()
+        {
+            IEnumerable<StackFrame> frames = new StackTrace().GetFrames();
+            if (frames == null)
+                yield break;
+
+            foreach (StackFrame frame in frames)
+            {
+                StringBuilder builder = new StringBuilder(1024);
+                MethodBase method = frame.GetMethod();
+                if (method != null)
+                {
+                    builder.Append("   at ");
+                    Type declaringType = method.DeclaringType;
+                    if (declaringType != (Type)null)
+                    {
+                        builder.Append(declaringType.FullName.Replace('+', '.'));
+                        builder.Append(".");
+                    }
+
+                    builder.Append(method.Name);
+                    if (method is MethodInfo && method.IsGenericMethod)
+                    {
+                        builder.Append("[");
+                        builder.Append(string.Join(", ", method.GetGenericArguments().Select(g => g.Name)));
+                        builder.Append("]");
+                    }
+
+                    builder.Append("(");
+                    builder.Append(string.Join(", ", method.GetParameters().Select(p => (p.ParameterType != null ? p.ParameterType.Name : "<UnknownType>") + " " + p.Name)));
+                    builder.Append(")");
+
+                    if (frame.GetILOffset() != -1)
+                    {
+                        try
+                        {
+                            string fileName = frame.GetFileName();
+                            if (!string.IsNullOrEmpty(fileName))
+                            {
+                                builder.AppendFormat(" in {0}:line {1}", fileName, frame.GetFileLineNumber());
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // ignored
+                        }
+                    }
+                }
+                yield return builder.ToString();
+            }
         }
     }
 }

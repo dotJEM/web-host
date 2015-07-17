@@ -20,37 +20,45 @@ namespace DotJEM.Web.Host.Test.Diagnostics
     [TestFixture]
     public class DiagnosticsLoggerTest
     {
-        private AutoMocker mocker;
-        private JObject error;
+        //private AutoMocker mocker;
+        //private JObject error;
 
-        [SetUp]
-        public void SetUp()
-        {
-            mocker = new AutoMocker();
+        //[SetUp]
+        //public void SetUp()
+        //{
+        //    mocker = new AutoMocker();
 
-            error = JObject.FromObject(new
-            {
-                err = "This is an error, oh no !"
-            });
+        //    error = JObject.FromObject(new
+        //    {
+        //        err = "This is an error, oh no !"
+        //    });
 
-            mocker.GetMock<IJsonConverter>().Setup(c => c.FromObject(Severity.Fatal)).Returns(Severity.Fatal.ToString());
-            mocker.GetMock<IJsonConverter>().Setup(c => c.FromObject(Severity.Status)).Returns(Severity.Fatal.ToString());
+        //    mocker.GetMock<IJsonConverter>().Setup(c => c.FromObject(Severity.Fatal)).Returns(Severity.Fatal.ToString());
+        //    mocker.GetMock<IJsonConverter>().Setup(c => c.FromObject(Severity.Status)).Returns(Severity.Fatal.ToString());
 
-            Mock<IStorageIndexManager> manager = mocker.GetMock<IStorageIndexManager>();
-            Lazy<IStorageIndexManager> lazyStorageIndexManager = new Lazy<IStorageIndexManager>(() => manager.Object);
-            mocker.Use(lazyStorageIndexManager);
-            mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
-            Mock<IStorageContext> storageContext = mocker.GetMock<IStorageContext>();
-            storageContext.Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
-            Lazy<IStorageContext> lazyStorageContext = new Lazy<IStorageContext>(() => storageContext.Object);
-            mocker.Use(lazyStorageContext);
-        }
+        //    Mock<IStorageIndexManager> manager = mocker.GetMock<IStorageIndexManager>();
+        //    Lazy<IStorageIndexManager> lazyStorageIndexManager = new Lazy<IStorageIndexManager>(() => manager.Object);
+        //    mocker.Use(lazyStorageIndexManager);
+        //    mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
+        //    Mock<IStorageContext> storageContext = mocker.GetMock<IStorageContext>();
+        //    storageContext.Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+        //    Lazy<IStorageContext> lazyStorageContext = new Lazy<IStorageContext>(() => storageContext.Object);
+        //    mocker.Use(lazyStorageContext);
+        //}
 
         [Test]
         public void DiagnosticsLogger_LogWithContentTypeAndSeverityAndEntity_AreaWasCalled()
-        {            
+        {
+            AutoMocker mocker = new AutoMocker();
+            mocker.Use<IJsonConverter>(new DotjemJsonConverter());
+            mocker.Use(new Lazy<IStorageContext>(() => mocker.GetMock<IStorageContext>().Object));
+            mocker.Use(new Lazy<IStorageIndexManager>(() => mocker.GetMock<IStorageIndexManager>().Object));
+            mocker.Setup<IStorageContext>(mock => mock.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+            mocker.Setup<IStorageArea>(mock => mock.Insert(It.IsAny<string>(), It.IsAny<JObject>()))
+                .Returns<string, JObject>((s, o) => o);
+
             DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, error);
+            logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, new { Error = "Message" });
 
             mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
         }
@@ -58,151 +66,152 @@ namespace DotJEM.Web.Host.Test.Diagnostics
         [Test]
         public void DiagnosticsLogger_LogWithContentTypeAndSeverityAndEntity_IndexManagerWasCalled()
         {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, error);
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, error);
 
-            mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
+        //    mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
+            Assert.Fail("Rewrite tests!");
         }
 
-        [Test]
-        public void DiagnosticsLogger_LogWithContentTypeAndSeverityAndEntity_SeverityIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogWithContentTypeAndSeverityAndEntity_SeverityIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, error);
 
-            Assert.That((string)result.severity, Is.EqualTo(Severity.Fatal.ToString()));
-        }
+        //    Assert.That((string)result.severity, Is.EqualTo(Severity.Fatal.ToString()));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogWithContentTypeAndSeverityAndEntityAndMessage_MessageIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, "This is a message", error);
+        //[Test]
+        //public void DiagnosticsLogger_LogWithContentTypeAndSeverityAndEntityAndMessage_MessageIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.Log(DiagnosticsLogger.ContentTypeIncident, Severity.Fatal, "This is a message", error);
             
-            Assert.That((string)result.message, Is.EqualTo("This is a message"));
-        }
+        //    Assert.That((string)result.message, Is.EqualTo("This is a message"));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogIncident_AreaWasCalled()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.LogIncident(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogIncident_AreaWasCalled()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.LogIncident(Severity.Fatal, error);
 
-            mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
-        }
+        //    mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogIncident_IndexManagerWasCalled()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.LogIncident(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogIncident_IndexManagerWasCalled()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.LogIncident(Severity.Fatal, error);
 
-            mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
-        }
+        //    mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogIncident_SeverityIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogIncident(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogIncident_SeverityIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogIncident(Severity.Fatal, error);
 
-            Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
-        }
+        //    Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogIncident_MessageIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogIncident(Severity.Status, "I was called from LogIncident", error);
+        //[Test]
+        //public void DiagnosticsLogger_LogIncident_MessageIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogIncident(Severity.Status, "I was called from LogIncident", error);
 
-            Assert.That((string)result.message, Is.EqualTo("I was called from LogIncident"));
-        }
+        //    Assert.That((string)result.message, Is.EqualTo("I was called from LogIncident"));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogWarning_AreaWasCalled()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.LogWarning(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogWarning_AreaWasCalled()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.LogWarning(Severity.Fatal, error);
 
-            mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
-        }
+        //    mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogWarning_IndexManagerWasCalled()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.LogWarning(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogWarning_IndexManagerWasCalled()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.LogWarning(Severity.Fatal, error);
 
-            mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
-        }
+        //    mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogWarning_SeverityIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogWarning(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogWarning_SeverityIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogWarning(Severity.Fatal, error);
 
-            Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
-        }
+        //    Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogWarning_AreaAndIndexManagerWasCalledAndSeverityIsPresentOnEntityAndMessageIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogWarning(Severity.Status, "I was called from LogWarning", error);
+        //[Test]
+        //public void DiagnosticsLogger_LogWarning_AreaAndIndexManagerWasCalledAndSeverityIsPresentOnEntityAndMessageIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogWarning(Severity.Status, "I was called from LogWarning", error);
 
-            Assert.That((string)result.message, Is.EqualTo("I was called from LogWarning"));
-        }
+        //    Assert.That((string)result.message, Is.EqualTo("I was called from LogWarning"));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogFailure_AreaWasCalled()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.LogFailure(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogFailure_AreaWasCalled()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.LogFailure(Severity.Fatal, error);
 
-            mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
-        }
+        //    mocker.Verify<IStorageArea>(area => area.Insert(It.IsAny<string>(), It.IsAny<JObject>()), Times.Once());
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogFailure_IndexManagerWasCalled()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            logger.LogFailure(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogFailure_IndexManagerWasCalled()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    logger.LogFailure(Severity.Fatal, error);
 
-            mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
-        }
+        //    mocker.Verify<IStorageIndexManager>(manager => manager.QueueUpdate(It.IsAny<JObject>()), Times.Once());
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogFailure_SeverityIsPresentOnEntity()
-        {
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogFailure(Severity.Fatal, error);
+        //[Test]
+        //public void DiagnosticsLogger_LogFailure_SeverityIsPresentOnEntity()
+        //{
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogFailure(Severity.Fatal, error);
 
-            Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
-        }
+        //    Assert.That((Severity)result.severity, Is.EqualTo(Severity.Fatal));
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_LogFailure_AreaAndIndexManagerWasCalledAndSeverityIsPresentOnEntityAndMessageIsPresentOnEntity()
-        {
-            mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
-            mocker.GetMock<IStorageContext>().Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+        //[Test]
+        //public void DiagnosticsLogger_LogFailure_AreaAndIndexManagerWasCalledAndSeverityIsPresentOnEntityAndMessageIsPresentOnEntity()
+        //{
+        //    mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
+        //    mocker.GetMock<IStorageContext>().Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
 
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogFailure(Severity.Status, "I was called from LogFailure", error);
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogFailure(Severity.Status, "I was called from LogFailure", error);
 
-            Assert.That((string)result.message, Is.EqualTo("I was called from LogFailure"));        
-        }
+        //    Assert.That((string)result.message, Is.EqualTo("I was called from LogFailure"));        
+        //}
 
-        [Test]
-        public void DiagnosticsLogger_Log_ShouldContainMachineName()
-        {
-            mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
-            mocker.GetMock<IStorageContext>().Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
+        //[Test]
+        //public void DiagnosticsLogger_Log_ShouldContainMachineName()
+        //{
+        //    mocker.GetMock<IStorageArea>().Setup(x => x.Insert(It.IsAny<string>(), error)).Returns(error);
+        //    mocker.GetMock<IStorageContext>().Setup(x => x.Area(It.IsAny<string>())).Returns(mocker.GetMock<IStorageArea>().Object);
 
-            DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
-            dynamic result = logger.LogFailure(Severity.Status, "", error);
+        //    DiagnosticsLogger logger = mocker.CreateInstance<DiagnosticsLogger>();
+        //    dynamic result = logger.LogFailure(Severity.Status, "", error);
 
-            Assert.That((string)result.host, Is.EqualTo(Environment.MachineName));      
-        }
+        //    Assert.That((string)result.host, Is.EqualTo(Environment.MachineName));      
+        //}
     }
 }
