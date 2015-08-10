@@ -151,9 +151,12 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             this.rule = rule.Optimize();
         }
 
-        public bool Validate(IValidationContext contenxt, JObject entity)
+        public bool Validate(IValidationContext context, JObject entity)
         {
-            if (rule.Test(contenxt, entity))
+            if (!guard.Test(context, entity))
+                return true;
+
+            if (rule.Test(context, entity))
                 return true;
 
             return false;
