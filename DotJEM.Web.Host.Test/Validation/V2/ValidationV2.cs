@@ -19,19 +19,19 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
             string str = constraint.ToString();
 
-            Assert.That(constraint, Is.TypeOf<OrJsonFieldConstraint>());
+            Assert.That(constraint, Is.TypeOf<OrJsonConstraint>());
 
             constraint = constraint.Optimize();
 
             string str2 = constraint.ToString();
-            Assert.That(constraint, Is.TypeOf<OrJsonFieldConstraint>());
+            Assert.That(constraint, Is.TypeOf<OrJsonConstraint>());
         }
 
         public int counter = 1;
 
-        public NamedJsonFieldConstraint N
+        public NamedJsonConstraint N
         {
-            get { return new NamedJsonFieldConstraint("" + counter++); }
+            get { return new NamedJsonConstraint("" + counter++); }
         }
     }
 
@@ -40,14 +40,14 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
     public static class JsonGuardExtensions
     {
-        public static JsonFieldConstraint Defined(this IGuardConstraintFactory self)
+        public static JsonConstraint Defined(this IGuardConstraintFactory self)
         {
             return null;
         }
     }
     public static class JsonValidatorExtensions
     {
-        public static JsonFieldConstraint BeDefined(this IValidatorConstraintFactory self)
+        public static JsonConstraint BeDefined(this IValidatorConstraintFactory self)
         {
             return null;
         }
@@ -57,7 +57,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             return null;
         }
 
-        public static JsonFieldConstraint BeEqual(this IValidatorConstraintFactory self, object value)
+        public static JsonConstraint BeEqual(this IValidatorConstraintFactory self, object value)
         {
             return null;
         }
@@ -65,7 +65,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
     public class JsonValidator
     {
-        private List<JsonFieldValidator> fieldValidators = new List<JsonFieldValidator>(); 
+        private readonly List<JsonFieldValidator> validators = new List<JsonFieldValidator>(); 
 
         protected IGuardConstraintFactory Is { get; set; }
         protected IValidatorConstraintFactory Must { get; set; }
@@ -76,19 +76,19 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             return new JsonValidatorRuleFactory(this, rule);
         }
 
-        protected IJsonValidatorRuleFactory When(string selector, JsonFieldConstraint constraint)
+        protected IJsonValidatorRuleFactory When(string selector, JsonConstraint constraint)
         {
             return When(Field(selector, constraint));
         }
 
-        protected JsonRule Field(string selector, JsonFieldConstraint constraint)
+        protected JsonRule Field(string selector, JsonConstraint constraint)
         {
             return new BasicJsonRule(selector, constraint);
         }
 
         public void AddFieldValidator(JsonFieldValidator jsonFieldValidator)
         {
-            fieldValidators.Add(jsonFieldValidator);
+            validators.Add(jsonFieldValidator);
         }
 
         public void Validate(IValidationContext contenxt, JObject entity)
@@ -100,7 +100,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     public interface IJsonValidatorRuleFactory
     {
         void Then(JsonRule validator);
-        void Then(string selector, JsonFieldConstraint validator);
+        void Then(string selector, JsonConstraint validator);
     }
 
     public class JsonValidatorRuleFactory : IJsonValidatorRuleFactory
@@ -116,10 +116,10 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
         public void Then(JsonRule rule)
         {
-            validator.AddFieldValidator(new JsonFieldValidator(rule));
+            validator.AddFieldValidator(new JsonFieldValidator(this.rule, rule));
         }
 
-        public void Then(string selector, JsonFieldConstraint constraint)
+        public void Then(string selector, JsonConstraint constraint)
         {
             Then(new BasicJsonRule(selector,constraint));
         }
@@ -142,11 +142,13 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
     public class JsonFieldValidator
     {
+        private readonly JsonRule guard;
         private readonly JsonRule rule;
 
-        public JsonFieldValidator(JsonRule rule)
+        public JsonFieldValidator(JsonRule guard, JsonRule rule)
         {
-            this.rule = rule;
+            this.guard = guard.Optimize();
+            this.rule = rule.Optimize();
         }
 
         public bool Validate(IValidationContext contenxt, JObject entity)

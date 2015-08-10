@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Web.Host.Validation;
 using Newtonsoft.Json.Linq;
-using NUnit.Framework;
 
 namespace DotJEM.Web.Host.Test.Validation.V2
 {
@@ -34,18 +33,18 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     public sealed class BasicJsonRule : JsonRule
     {
         private readonly string selector;
-        private readonly JsonFieldConstraint constraint;
+        private readonly JsonConstraint constraint;
 
-        public BasicJsonRule(string selector, JsonFieldConstraint constraint)
+        public BasicJsonRule(string selector, JsonConstraint constraint)
         {
             this.selector = selector;
-            this.constraint = constraint;
+            this.constraint = constraint.Optimize();
         }
 
         public override bool Test(IValidationContext contenxt, JObject entity)
         {
             JToken[] tokens = entity.SelectTokens(selector).ToArray();
-            return tokens.All(token => constraint.Matches(contenxt, entity));
+            return tokens.All(token => constraint.Matches(contenxt, entity).Value);
         }
     }
 
@@ -55,12 +54,35 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
         protected CompositeJsonRule(params JsonRule[] rules)
         {
-            this.Rules = rules.ToList();
+            Rules = rules.ToList();
+        }
+
+        protected TRule OptimizeAs<TRule>() where TRule : CompositeJsonRule, new()
+        {
+            return Rules
+                .Select(c => c.Optimize())
+                .Aggregate(new TRule(), (c, next) =>
+                {
+                    TRule and = next as TRule;
+                    if (and != null)
+                    {
+                        c.Rules.AddRange(and.Rules);
+                    }
+                    else
+                    {
+                        c.Rules.Add(next);
+                    }
+                    return c;
+                });
         }
     }
 
     public sealed class AndJsonRule : CompositeJsonRule
     {
+        public AndJsonRule()
+        {
+        }
+
         public AndJsonRule(params JsonRule[] rules) 
             : base(rules)
         {
@@ -70,10 +92,19 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         {
             return Rules.All(rule => rule.Test(contenxt, entity));
         }
+
+        public override JsonRule Optimize()
+        {
+            return OptimizeAs<AndJsonRule>();
+        }
     }
 
     public sealed class OrJsonRule : CompositeJsonRule
     {
+        public OrJsonRule()
+        {
+        }
+
         public OrJsonRule(params JsonRule[] rules)
             : base(rules)
         {
@@ -82,6 +113,11 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         public override bool Test(IValidationContext contenxt, JObject entity)
         {
             return Rules.Any(rule => rule.Test(contenxt, entity));
+        }
+
+        public override JsonRule Optimize()
+        {
+            return OptimizeAs<OrJsonRule>();
         }
     }
 
@@ -97,6 +133,12 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         public override bool Test(IValidationContext contenxt, JObject entity)
         {
             return !Rule.Test(contenxt, entity);
+        }
+
+        public override JsonRule Optimize()
+        {
+            NotJsonRule not = Rule as NotJsonRule;
+            return not != null ? not.Rule : base.Optimize();
         }
     }
 }
