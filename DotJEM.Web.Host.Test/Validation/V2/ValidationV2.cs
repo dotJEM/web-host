@@ -65,6 +65,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
     public class JsonValidator
     {
+        private List<JsonFieldValidator> fieldValidators = new List<JsonFieldValidator>(); 
 
         protected IGuardConstraintFactory Is { get; set; }
         protected IValidatorConstraintFactory Must { get; set; }
@@ -86,6 +87,11 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         }
 
         public void AddFieldValidator(JsonFieldValidator jsonFieldValidator)
+        {
+            fieldValidators.Add(jsonFieldValidator);
+        }
+
+        public void Validate(IValidationContext contenxt, JObject entity)
         {
             
         }
@@ -141,6 +147,14 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         public JsonFieldValidator(JsonRule rule)
         {
             this.rule = rule;
+        }
+
+        public bool Validate(IValidationContext contenxt, JObject entity)
+        {
+            if (rule.Test(contenxt, entity))
+                return true;
+
+            return false;
         }
     }
 

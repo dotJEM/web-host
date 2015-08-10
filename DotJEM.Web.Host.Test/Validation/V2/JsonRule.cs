@@ -10,7 +10,6 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     {
         public abstract bool Test(IValidationContext contenxt, JObject entity);
 
-
         public static JsonRule operator &(JsonRule x, JsonRule y)
         {
             return new AndJsonRule(x, y);
@@ -30,11 +29,9 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         {
             return this;
         }
-
-
     }
 
-    public class BasicJsonRule : JsonRule
+    public sealed class BasicJsonRule : JsonRule
     {
         private readonly string selector;
         private readonly JsonFieldConstraint constraint;
@@ -49,53 +46,57 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         {
             JToken[] tokens = entity.SelectTokens(selector).ToArray();
             return tokens.All(token => constraint.Matches(contenxt, entity));
-
-            //List< JToken > tokens = entity.SelectTokens(field.Path).ToList();
-            //if (tokens.Count > 1)
-            //{
-            //    foreach (JToken token in tokens)
-            //        yield return ValidateToken(token, context);
-            //}
-            //else
-            //{
-            //    yield return ValidateToken(tokens.SingleOrDefault(), context);
-            //}
         }
     }
 
-    public class CompositeJsonRule : JsonRule
+    public abstract class CompositeJsonRule : JsonRule
     {
         public List<JsonRule> Rules { get; private set; }
 
-        public CompositeJsonRule(params JsonRule[] rules)
+        protected CompositeJsonRule(params JsonRule[] rules)
         {
             this.Rules = rules.ToList();
         }
     }
 
-    public class AndJsonRule : CompositeJsonRule
+    public sealed class AndJsonRule : CompositeJsonRule
     {
         public AndJsonRule(params JsonRule[] rules) 
             : base(rules)
         {
         }
+
+        public override bool Test(IValidationContext contenxt, JObject entity)
+        {
+            return Rules.All(rule => rule.Test(contenxt, entity));
+        }
     }
 
-    public class OrJsonRule : CompositeJsonRule
+    public sealed class OrJsonRule : CompositeJsonRule
     {
         public OrJsonRule(params JsonRule[] rules)
             : base(rules)
         {
         }
+
+        public override bool Test(IValidationContext contenxt, JObject entity)
+        {
+            return Rules.Any(rule => rule.Test(contenxt, entity));
+        }
     }
 
-    public class NotJsonRule : JsonRule
+    public sealed class NotJsonRule : JsonRule
     {
         public JsonRule Rule { get; private set; }
 
         public NotJsonRule(JsonRule rule)
         {
             Rule = rule;
+        }
+
+        public override bool Test(IValidationContext contenxt, JObject entity)
+        {
+            return !Rule.Test(contenxt, entity);
         }
     }
 }
