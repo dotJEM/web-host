@@ -29,5 +29,4 @@ namespace DotJEM.Web.Host.Validation2.Constraints
             return "!" + Constraint;
         }
     }
-    <
 }

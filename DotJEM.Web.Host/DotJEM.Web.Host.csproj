@@ -215,6 +215,13 @@
     <Compile Include="Validation2\Constraints\JsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\NotJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\OrJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\ExactLengthFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\LengthFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\MatchFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\MaxLengthFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\MinLengthFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\OneOfFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\RequiredFieldConstraint.cs" />
     <Compile Include="Validation2\Context\JsonValidationContext.cs" />
     <Compile Include="Validation2\Constraints\Results\AndJsonConstraintResult.cs" />
     <Compile Include="Validation2\Rules\Results\AndJsonRuleResult.cs" />
@@ -327,8 +334,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Validation2\Constraints\Common\" />
     <Folder Include="Validation2\Constraints\Number\" />
-    <Folder Include="Validation2\Constraints\String\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
