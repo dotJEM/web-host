@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Web.Mvc;
-using DotJEM.Web.Host.Validation;
-using DotJEM.Web.Host.Validation.Constraints;
-using DotJEM.Web.Host.Validation.Results;
+﻿using DotJEM.Web.Host.Validation2;
+using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Constraints.Results;
+using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -51,128 +47,6 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         }
     }
 
-    public interface IGuardConstraintFactory { }
-    public interface IValidatorConstraintFactory { }
-
-    public static class JsonGuardExtensions
-    {
-        public static JsonConstraint LongerThan(this IGuardConstraintFactory self, int length)
-        {
-            return new LongerJsonConstraint(length);
-        }
-
-        public static JsonConstraint ShorterThan(this IGuardConstraintFactory self, int length)
-        {
-            return new ShorterJsonConstraint(length);
-        }
-    }
-
-    public static class JsonValidatorExtensions
-    {
-        public static JsonConstraint BeLongerThan(this IValidatorConstraintFactory self, int length)
-        {
-            return new LongerJsonConstraint(length);
-        }
-
-        public static JsonConstraint BeShorterThan(this IValidatorConstraintFactory self, int length)
-        {
-            return new ShorterJsonConstraint(length);
-        }
-
-        public static JsonConstraint BeDefined(this IValidatorConstraintFactory self)
-        {
-            return null;
-        }
-
-        public static IValidatorConstraintFactory Not(this IValidatorConstraintFactory self)
-        {
-            return null;
-        }
-
-        public static JsonConstraint BeEqual(this IValidatorConstraintFactory self, object value)
-        {
-            return null;
-        }
-    }
-
-    public class JsonValidator
-    {
-        private readonly List<JsonFieldValidator> validators = new List<JsonFieldValidator>(); 
-
-        protected IGuardConstraintFactory Is { get; set; }
-        protected IValidatorConstraintFactory Must { get; set; }
-        protected IValidatorConstraintFactory Should { get; set; }
-
-        protected IJsonValidatorRuleFactory When(JsonRule rule)
-        {
-            return new JsonValidatorRuleFactory(this, rule);
-        }
-
-        protected IJsonValidatorRuleFactory When(string selector, JsonConstraint constraint)
-        {
-            return When(Field(selector, constraint));
-        }
-
-        protected JsonRule Field(string selector, JsonConstraint constraint)
-        {
-            return new BasicJsonRule(selector, constraint);
-        }
-
-        public void AddFieldValidator(JsonFieldValidator jsonFieldValidator)
-        {
-            validators.Add(jsonFieldValidator);
-        }
-
-        public JsonValidatorResult Validate(IJsonValidationContext contenxt, JObject entity)
-        {
-            IEnumerable<JsonRuleResult> results = from validator in validators
-                                                  let result = validator.Validate(contenxt, entity)
-                                                  where result != null
-                                                  select result;
-            return new JsonValidatorResult(results.ToList());
-        }
-    }
-
-    public class JsonValidatorResult
-    {
-        private readonly List<JsonRuleResult> results;
-
-        public bool IsValid { get { return results.All(r => r.Value); } }
-
-        public JsonValidatorResult(List<JsonRuleResult> results)
-        {
-            this.results = results;
-        }
-    }
-
-    public interface IJsonValidatorRuleFactory
-    {
-        void Then(JsonRule validator);
-        void Then(string selector, JsonConstraint validator);
-    }
-
-    public class JsonValidatorRuleFactory : IJsonValidatorRuleFactory
-    {
-        private readonly JsonRule rule;
-        private readonly JsonValidator validator;
-
-        public JsonValidatorRuleFactory(JsonValidator validator, JsonRule rule)
-        {
-            this.validator = validator;
-            this.rule = rule;
-        }
-
-        public void Then(JsonRule rule)
-        {
-            validator.AddFieldValidator(new JsonFieldValidator(this.rule, rule));
-        }
-
-        public void Then(string selector, JsonConstraint constraint)
-        {
-            Then(new BasicJsonRule(selector,constraint));
-        }
-    }
-
     public class SpecificValidator : JsonValidator
     {
         public SpecificValidator()
@@ -186,47 +60,6 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             //        & Field("B", Must.Not().BeEqual("")));
         }
 
-    }
-
-
-
-    public class JsonFieldValidator
-    {
-        private readonly JsonRule guard;
-        private readonly JsonRule rule;
-
-        public JsonFieldValidator(JsonRule guard, JsonRule rule)
-        {
-            this.guard = guard.Optimize();
-            this.rule = rule.Optimize();
-        }
-
-        public JsonRuleResult Validate(IJsonValidationContext context, JObject entity)
-        {
-            var gr = guard.Test(context, entity);
-            if (!gr.Value)
-                return null;
-
-            return rule.Test(context, entity);
-        }
-    }
-
-    public interface IJsonValidationContext
-    {
-        JObject Updated { get; }
-        JObject Deleted { get; }
-    }
-
-    public class JsonValidationContext : IJsonValidationContext
-    {
-        public JObject Updated { get; private set; }
-        public JObject Deleted { get; private set; }
-
-        public JsonValidationContext(JObject updated, JObject deleted)
-        {
-            Updated = updated;
-            Deleted = deleted;
-        }
     }
 
 
@@ -269,7 +102,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             }
             return True();
         }
-    }
+        }
 
     public class LongerJsonConstraint : JsonConstraint
     {
