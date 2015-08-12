@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Web.Mvc;
 using DotJEM.Web.Host.Validation;
+using DotJEM.Web.Host.Validation.Constraints;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -33,6 +35,20 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         {
             get { return new NamedJsonConstraint("" + counter++); }
         }
+
+        [Test]
+        public void SpecificValidator_InvalidData_ShouldReturnErrors()
+        {
+            SpecificValidator validator = new SpecificValidator();
+
+
+            var result = validator.Validate(new JsonValidationContext(null, null), JObject.FromObject(new
+            {
+                test="01234567890123456789", other="0"
+            }));
+
+            Assert.That(result.IsValid, Is.True);
+        }
     }
 
     public interface IGuardConstraintFactory { }
@@ -40,13 +56,29 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
     public static class JsonGuardExtensions
     {
-        public static JsonConstraint Defined(this IGuardConstraintFactory self)
+        public static JsonConstraint LongerThan(this IGuardConstraintFactory self, int length)
         {
-            return null;
+            return new LongerJsonConstraint(length);
+        }
+
+        public static JsonConstraint ShorterThan(this IGuardConstraintFactory self, int length)
+        {
+            return new ShorterJsonConstraint(length);
         }
     }
+
     public static class JsonValidatorExtensions
     {
+        public static JsonConstraint BeLongerThan(this IValidatorConstraintFactory self, int length)
+        {
+            return new LongerJsonConstraint(length);
+        }
+
+        public static JsonConstraint BeShorterThan(this IValidatorConstraintFactory self, int length)
+        {
+            return new ShorterJsonConstraint(length);
+        }
+
         public static JsonConstraint BeDefined(this IValidatorConstraintFactory self)
         {
             return null;
@@ -91,9 +123,25 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             validators.Add(jsonFieldValidator);
         }
 
-        public void Validate(IValidationContext contenxt, JObject entity)
+        public JsonValidatorResult Validate(IJsonValidationContext contenxt, JObject entity)
         {
-            
+            IEnumerable<JsonRuleResult> results = from validator in validators
+                                                  let result = validator.Validate(contenxt, entity)
+                                                  where result != null
+                                                  select result;
+            return new JsonValidatorResult(results.ToList());
+        }
+    }
+
+    public class JsonValidatorResult
+    {
+        private readonly List<JsonRuleResult> results;
+
+        public bool IsValid { get { return results.All(r => r.Value); } }
+
+        public JsonValidatorResult(List<JsonRuleResult> results)
+        {
+            this.results = results;
         }
     }
 
@@ -129,11 +177,13 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     {
         public SpecificValidator()
         {
-            When("A", Is.Defined()).Then("A", Must.BeDefined());
-            When(Field("A", Is.Defined()) | Field("B", Is.Defined()))
-                .Then(
-                      Field("A", Must.BeEqual("") | Must.BeEqual(""))
-                    & Field("B", Must.Not().BeEqual("")));
+            When("test", Is.LongerThan(5)).Then("test", Must.BeShorterThan(200));
+            When("other", Is.LongerThan(0)).Then("test", Must.BeShorterThan(10));
+
+            //When(Field("A", Is.Defined()) | Field("B", Is.Defined()))
+            //    .Then(
+            //          Field("A", Must.BeEqual("") | Must.BeEqual(""))
+            //        & Field("B", Must.Not().BeEqual("")));
         }
 
     }
@@ -151,18 +201,96 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             this.rule = rule.Optimize();
         }
 
-        public bool Validate(IValidationContext context, JObject entity)
+        public JsonRuleResult Validate(IJsonValidationContext context, JObject entity)
         {
-            if (!guard.Test(context, entity))
-                return true;
+            var gr = guard.Test(context, entity);
+            if (!gr.Value)
+                return null;
 
-            if (rule.Test(context, entity))
-                return true;
-
-            return false;
+            return rule.Test(context, entity);
         }
     }
 
+    public interface IJsonValidationContext
+    {
+        JObject Updated { get; }
+        JObject Deleted { get; }
+    }
+
+    public class JsonValidationContext : IJsonValidationContext
+    {
+        public JObject Updated { get; private set; }
+        public JObject Deleted { get; private set; }
+
+        public JsonValidationContext(JObject updated, JObject deleted)
+        {
+            Updated = updated;
+            Deleted = deleted;
+        }
+    }
+
+
+    public class NamedJsonConstraint : JsonConstraint
+    {
+        public string Name { get; private set; }
+
+        public NamedJsonConstraint(string name)
+        {
+            this.Name = name;
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+
+        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        {
+            return True();
+        }
+    }
+
+    public class ShorterJsonConstraint : JsonConstraint
+    {
+        private readonly int maxLength;
+
+        public ShorterJsonConstraint(int maxLength)
+        {
+            this.maxLength = maxLength;
+        }
+
+        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        {
+            string value = (string)token;
+            if (value.Length >= maxLength)
+            {
+                //TODO: Provide Constraint Desciption instead.
+                return False("Length must be less than '{0}'.", maxLength);
+            }
+            return True();
+        }
+    }
+
+    public class LongerJsonConstraint : JsonConstraint
+    {
+        private readonly int minLength;
+
+        public LongerJsonConstraint(int minLength)
+        {
+            this.minLength = minLength;
+        }
+
+        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        {
+            string value = (string)token;
+            if (value.Length <= minLength)
+            {
+                //TODO: Provide Constraint Desciption instead.
+                return False("Length must be longer than '{0}'.", minLength);
+            }
+            return True();
+        }
+    }
 
 
 }

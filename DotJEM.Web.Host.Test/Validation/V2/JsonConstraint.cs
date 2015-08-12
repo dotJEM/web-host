@@ -10,7 +10,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 {
     public abstract class JsonConstraint
     {
-        public abstract JsonConstraintResult Matches(IValidationContext context, JToken token);
+        public abstract JsonConstraintResult Matches(IJsonValidationContext context, JToken token);
 
         public static JsonConstraint operator &(JsonConstraint x, JsonConstraint y)
         {
@@ -37,10 +37,21 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             return new BasicJsonConstraintResult(true, null, GetType());
         }
 
-        protected JsonConstraintResult False(string message = null)
+        protected JsonConstraintResult True(string format, params object[] args)
         {
-            return new BasicJsonConstraintResult(false, message, GetType());
+            return new BasicJsonConstraintResult(false, string.Format(format, args), GetType());
         }
+
+        protected JsonConstraintResult False()
+        {
+            return new BasicJsonConstraintResult(false, null, GetType());
+        }
+
+        protected JsonConstraintResult False(string format, params object[] args)
+        {
+            return new BasicJsonConstraintResult(false, string.Format(format, args), GetType());
+        }
+
     }
 
     public abstract class CompositeJsonConstraint : JsonConstraint
@@ -88,7 +99,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             return OptimizeAs<AndJsonConstraint>();
         }
 
-        public override JsonConstraintResult Matches(IValidationContext context, JToken token)
+        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
         {
             return Constraints.All(c => c.Matches(context, token).Value);
         }
@@ -115,7 +126,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             return OptimizeAs<OrJsonConstraint>();
         }
 
-        public override JsonConstraintResult Matches(IValidationContext context, JToken token)
+        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
         {
             //TODO: Aggregated JsonConstraintResult!
             return Constraints.Any(c => c.Matches(context, token).Value);
@@ -141,7 +152,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             NotJsonConstraint not = Constraint as NotJsonConstraint;
             return not != null ? not.Constraint : base.Optimize();
         }
-        public override JsonConstraintResult Matches(IValidationContext context, JToken token)
+        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
         {
             //TODO: Aggregated JsonConstraintResult!
             return !Constraint.Matches(context, token);
@@ -153,23 +164,4 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         }
     }
 
-    public class NamedJsonConstraint : JsonConstraint
-    {
-        public string Name { get; private set; }
-
-        public NamedJsonConstraint(string name)
-        {
-            this.Name = name;
-        }
-
-        public override string ToString()
-        {
-            return Name;
-        }
-
-        public override JsonConstraintResult Matches(IValidationContext context, JToken token)
-        {
-            return True();
-        }
-    }
 }
