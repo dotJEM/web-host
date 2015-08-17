@@ -108,15 +108,12 @@ namespace DotJEM.Web.Host
             perf.TrackAction("Configure Routes", () => Configure(new HttpRouterConfigurator(configuration.Routes)));
             perf.TrackAction(AfterConfigure);
 
+            ResolveComponents();
+
             perf.TrackAction(BeforeInitialize);
             perf.TrackAction("Initialize Storage", () => Initialize(Storage));
             perf.TrackAction("Initialize Index", () => Initialize(Index));
 
-            container.ResolveAll<IExceptionLogger>()
-                .ForEach(logger => HttpConfiguration.Services.Add(typeof (IExceptionLogger), logger));
-            configuration.Services.Replace(typeof (IExceptionHandler), container.Resolve<IExceptionHandler>());
-
-            configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
 
             perf.TrackAction(AfterInitialize);
 
@@ -126,6 +123,18 @@ namespace DotJEM.Web.Host
 
             startup.Trace("");
             return this;
+        }
+
+        private void ResolveComponents()
+        {
+            container.ResolveAll<IExceptionLogger>()
+                .ForEach(logger => HttpConfiguration.Services.Add(typeof (IExceptionLogger), logger));
+            configuration.Services.Replace(typeof (IExceptionHandler), container.Resolve<IExceptionHandler>());
+
+            configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
+            container
+                .ResolveAll<IDataMigrator>()
+                .ForEach(migrator => Storage.Migrators.Add(migrator));
         }
 
 
@@ -145,11 +154,7 @@ namespace DotJEM.Web.Host
         {
             var context = new SqlServerStorageContext(Configuration.Storage.ConnectionString);
 
-            var migrators = container.ResolveAll<IDataMigrator>();
-            foreach (var migrator in migrators)
-            {
-                context.Migrators.Add(migrator);
-            }
+
 
             return context;
         }
