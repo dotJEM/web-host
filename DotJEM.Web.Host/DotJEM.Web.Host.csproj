@@ -328,7 +328,7 @@
       <Project>{672D1E1D-C559-4914-B233-807CC7CE3B52}</Project>
       <Name>DotJEM.Json.Storage</Name>
     </ProjectReference>
-    <ProjectReference Include="..\external\reflection-descriptors\DotJEM.Reflection.Descriptors\DotJEM.Reflection.Descriptors.csproj">
+    <ProjectReference Include="..\..\reflection-descriptors\DotJEM.Reflection.Descriptors\DotJEM.Reflection.Descriptors.csproj">
       <Project>{b07adec3-e2c6-470c-8eca-7241a7c8a34d}</Project>
       <Name>DotJEM.Reflection.Descriptors</Name>
     </ProjectReference>
