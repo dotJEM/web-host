@@ -151,6 +151,8 @@ namespace DotJEM.Web.Host.Validation2
             return rule.Test(context, entity);
         }
     }
+
+    [JsonConstraintDescription("Length must be longer than '{maxLength}'.")]
     public class ShorterJsonConstraint : JsonConstraint
     {
         private readonly int maxLength;
@@ -172,6 +174,7 @@ namespace DotJEM.Web.Host.Validation2
         }
     }
 
+    [JsonConstraintDescription("Length must be longer than '{minLength}'.")]
     public class LongerJsonConstraint : JsonConstraint
     {
         private readonly int minLength;

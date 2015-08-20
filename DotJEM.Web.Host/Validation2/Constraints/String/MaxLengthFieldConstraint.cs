@@ -13,7 +13,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints.String
         public MaxLengthFieldConstraint(int maxLength)
         {
             this.maxLength = maxLength;
-            Describe("Length must be less than '{0}'.", maxLength);
+            //Describe("Length must be less than '{0}'.", maxLength);
         }
 
         public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
