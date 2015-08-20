@@ -9,18 +9,24 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     [TestFixture]
     public class JsonConstraintDescriptionTest
     {
-        [Test]
-        public void ToString_FakeObject_ShouldReturnErrors()
+        [TestCase("This is {number}!", "This is 42!")]
+        [TestCase("This is {number:0000}!", "This is 0042!")]
+        [TestCase("This is {number, 10}!", "This is         42!")]
+        [TestCase("This is {number, -10}!", "This is 42        !")]
+        [TestCase("This is {number, 10:x}!", "This is         2a!")]
+        [TestCase("This is {number} and {text}!", "This is 42 and Hello Field!")]
+        //[TestCase("This is {NumberProperty} and {TextProperty}!", "This is 26 and Hello Property!")]
+        public void ToString_Fake_ReturnsFormattedString(string format, string expected)
         {
-            var description = new JsonConstraintDescription(new Fake(), "This is {number}!");
-            Assert.That(description.ToString(), Is.EqualTo("This is 42!"));
+            Assert.That(new JsonConstraintDescription(new Fake(), format).ToString(), Is.EqualTo(expected));
         }
 
         public class Fake : JsonConstraint
         {
+            // ReSharper disable UnusedMember.Local
+            // NOTE: For testing formatter access
             private const string ConstantStr = "Hello Constant";
             private static string staticStr = "Hello Static";
-
 
             private int number = 42;
             private string text = "Hello Field";
@@ -39,6 +45,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             {
                 return null;
             }
+            // ReSharper restore UnusedMember.Local
         }
     }
 }

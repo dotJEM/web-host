@@ -96,7 +96,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints
             this.source = source;
             this.format = format;
 
-            this.type = source.GetType();
+            type = source.GetType();
         }
 
         public override string ToString()

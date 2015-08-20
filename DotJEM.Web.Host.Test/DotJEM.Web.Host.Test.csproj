@@ -66,6 +66,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\Pipeline\PipelineHandlerSetTest.cs" />
     <Compile Include="Validation\Constraints\OneOfFieldConstraintTest.cs" />
+    <Compile Include="Validation\V2\JsonConstraintDescriptionTest.cs" />
     <Compile Include="Validation\V2\ValidationV2.cs" />
     <Compile Include="Validation\ValidatorIntegrationTest.cs" />
   </ItemGroup>
