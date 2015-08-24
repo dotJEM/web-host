@@ -222,7 +222,7 @@
     <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescriptionAttribute.cs" />
     <Compile Include="Validation2\Constraints\NotJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\OrJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\ExactLengthJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\ExactStringLengthJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\LengthJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\MatchFieldConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\MaxLengthJsonConstraint.cs" />

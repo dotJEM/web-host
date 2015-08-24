@@ -9,11 +9,11 @@ using Newtonsoft.Json.Linq;
 namespace DotJEM.Web.Host.Validation2.Constraints.String
 {
     [JsonConstraintDescription("String length must be '{length}'.")]
-    public class ExactLengthJsonConstraint : TypedJsonConstraint<string>
+    public class ExactStringLengthJsonConstraint : TypedJsonConstraint<string>
     {
         private readonly int length;
 
-        public ExactLengthJsonConstraint(int length)
+        public ExactStringLengthJsonConstraint(int length)
         {
             this.length = length;
         }
