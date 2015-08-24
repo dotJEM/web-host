@@ -12,8 +12,10 @@ using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
+using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
+using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -52,19 +54,25 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private readonly IStorageIndex index;
         private readonly IWebScheduler scheduler;
+        private readonly IInitializationTracker tracker;
         private readonly object padlock = new object();
 
         private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly TimeSpan interval;
         private readonly string cachePath;
-        private bool initialized;
 
         private IScheduledTask task;
 
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler)
+        public StorageIndexManager(
+            IStorageIndex index,
+            IStorageContext storage, 
+            IWebHostConfiguration configuration,
+            IWebScheduler scheduler,
+            IInitializationTracker tracker)
         {
             this.index = index;
             this.scheduler = scheduler;
+            this.tracker = tracker;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
             foreach (WatchElement watch in configuration.Index.Watch.Items){
                 logs[watch.Area] = storage.Area(watch.Area).Log;
@@ -77,7 +85,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public void Start()
         {
-            UpdateIndex();
+            InitializeIndex();
 
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
         }
@@ -87,23 +95,30 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             task.Dispose();
         }
 
-        private void UpdateIndex()
+        private void InitializeIndex()
         {
-            IEnumerable<Tuple<string, IStorageChanges>> tuples;
-            if (!initialized)
+            Dictionary<string, long> tracker = InitializeFromTracker();
+
+            while (true)
             {
-                Dictionary<string, long> tracker = InitializeFromTracker();
-                tuples = logs
+                IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
                     .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))))
                     .ToList();
-                initialized = true;
+                
+                if (tuples.All(t => t.Item2.Count.Total < 1))
+                    return;
+
+                this.tracker.SetProgress(this.tracker.Percent+1);
+
+                tuples.Select(Selector).ForEach(next => tracker[next.Item1] = next.Item2);
             }
-            else
-            {
-                tuples = logs
-                    .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
-                    .ToList();
-            }
+        }
+
+        private void UpdateIndex()
+        {
+            IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
+                .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
+                .ToList();
 
             if (tuples.All(t => t.Item2.Count.Total < 1))
             {
@@ -145,6 +160,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 return new SimpleDictionaryWriter().Read(cachePath);
             }
         }
+
         private Tuple<string, long> Selector(Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
@@ -198,46 +214,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             {
                 handler(this, args);
             }
-        }
-    }
-
-    public class Scheduled : IDisposable
-    {
-        private readonly Action<bool> callback;
-        private readonly TimeSpan period;
-        private readonly AutoResetEvent handle = new AutoResetEvent(false);
-        private bool disposed = false;
-
-        public Scheduled(Action<bool> callback, TimeSpan period)
-        {
-            this.callback = callback;
-            this.period = period;
-            Next();
-        }
-
-        private void Next()
-        {
-            ThreadPool.RegisterWaitForSingleObject(handle, ExecuteCallback, null, period, true);
-        }
-
-        private void ExecuteCallback(object state, bool timedout)
-        {
-            if (disposed)
-                return;
-
-            callback(!timedout);
-            Next();
-        }
-
-        public void Dispose()
-        {
-            disposed = true;
-            Signal();
-        }
-
-        public void Signal()
-        {
-            handle.Set();
         }
     }
 }

@@ -43,7 +43,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             this.extention = Path.GetExtension(path);
             this.directory = Path.GetDirectoryName(path);
 
-            this.current = new StreamWriter(path, true);
+            this.current = SafeOpen(path);
 
             thread = new Thread(WriteLoop);
             thread.Start();
@@ -62,6 +62,37 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
                     Monitor.PulseAll(padLock);
                 }
             }
+        }
+
+        private static StreamWriter SafeOpen(string path)
+        {
+            int count = 0;
+            while (true)
+            {
+                try
+                {
+                    return new StreamWriter(path, true);
+                }
+                catch (Exception)
+                {
+                    if (count > 100)
+                        throw;
+
+                    if (count > 10)
+                        Thread.Sleep(count*10);
+
+                    path = MorphPath(path, count++);
+                }
+                
+            }
+        }
+
+        private static string MorphPath(string path, int retry)
+        {
+            string dir = Path.GetDirectoryName(path);
+            string fileName = Path.GetFileNameWithoutExtension(path);
+            string ext = Path.GetExtension(path);
+            return Path.Combine(dir, string.Format("{0}-{1:x}{2}", fileName, retry, ext));
         }
 
         private void WriteLoop()
@@ -98,7 +129,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
             Archive();
 
-            return current = new StreamWriter(path, true);
+            return current = SafeOpen(path);
         }
 
         private void Archive()

@@ -1,4 +1,7 @@
-﻿using System.Web.Hosting;
+﻿using System.Net.Http;
+using System.Threading.Tasks;
+using System.Web;
+using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
 using System.Web.Http.ExceptionHandling;
@@ -13,6 +16,7 @@ using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
@@ -31,6 +35,9 @@ namespace DotJEM.Web.Host
 
     public abstract class WebHost : IWebHost
     {
+        //TODO: This is a hack for giving the page controller access.
+        public static IInitializationTracker Initialization { get; private set; }
+
         private readonly IWindsorContainer container;
         private readonly HttpConfiguration configuration;
         private IStorageIndexManager indexManager;
@@ -62,6 +69,8 @@ namespace DotJEM.Web.Host
 
         protected WebHost(HttpConfiguration configuration, IWindsorContainer container)
         {
+            Initialization = new InitializationTracker();
+
             this.configuration = configuration;
             this.container = container;
 
@@ -95,11 +104,13 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IWebHost>().Instance(this))
                 .Register(Component.For<IStorageIndex>().Instance(Index))
                 .Register(Component.For<IStorageContext>().Instance(Storage))
-                .Register(Component.For<IWebHostConfiguration>().Instance(Configuration));
+                .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
+                .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
             var perf = container.Resolve<IPerformanceLogger>();
             var startup = perf.TrackTask("Start");
 
+          
             perf.TrackAction(BeforeConfigure);
             perf.TrackAction("Configure Pipeline", () => Configure(container.Resolve<IPipeline>()));
             perf.TrackAction("Configure Container", () => Configure(container));
@@ -109,19 +120,26 @@ namespace DotJEM.Web.Host
             perf.TrackAction(AfterConfigure);
 
             ResolveComponents();
+            
+            Initialization.SetProgress("Bootstrapping.");
+            Task.Factory.StartNew(() =>
+            {
+                perf.TrackAction(BeforeInitialize);
+                Initialization.SetProgress("Initializing storage.");
+                perf.TrackAction("Initialize Storage", () => Initialize(Storage));
+                Initialization.SetProgress("Initializing index.");
+                perf.TrackAction("Initialize Index", () => Initialize(Index));
 
-            perf.TrackAction(BeforeInitialize);
-            perf.TrackAction("Initialize Storage", () => Initialize(Storage));
-            perf.TrackAction("Initialize Index", () => Initialize(Index));
+                perf.TrackAction(AfterInitialize);
 
+                indexManager = container.Resolve<IStorageIndexManager>();
+                Initialization.SetProgress("Loading index.");
+                perf.TrackAction(indexManager.Start);
+                perf.TrackAction(AfterStart);
 
-            perf.TrackAction(AfterInitialize);
-
-            indexManager = container.Resolve<IStorageIndexManager>();
-            perf.TrackAction(indexManager.Start);
-            perf.TrackAction(AfterStart);
-
-            startup.Trace("");
+                startup.Trace("");
+                Initialization.Complete();
+            });
             return this;
         }
 
