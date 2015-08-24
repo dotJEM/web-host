@@ -38,7 +38,7 @@ namespace DotJEM.Web.Host.Initialization
 
         public void SetProgress(string message, params object[] args)
         {
-            SetProgress(Percent, message);
+            SetProgress(Percent, message, args);
         }
 
         public void SetProgress(double percent, string message, params object[] args)

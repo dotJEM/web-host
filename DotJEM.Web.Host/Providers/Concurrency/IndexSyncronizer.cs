@@ -108,9 +108,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 if (tuples.All(t => t.Item2.Count.Total < 1))
                     return;
 
-                this.tracker.SetProgress(this.tracker.Percent+1);
 
                 tuples.Select(Selector).ForEach(next => tracker[next.Item1] = next.Item2);
+
+                int total = tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
+                this.tracker.SetProgress("{0} objects indexed.", total);
             }
         }
 
