@@ -44,6 +44,10 @@ namespace DotJEM.Web.Host.Test.Validation.V2
         public override bool Test(IValidationContext contenxt, JObject entity)
         {
             JToken[] tokens = entity.SelectTokens(selector).ToArray();
+
+            IEnumerable<JsonConstraintResult> all = tokens.Select(token => constraint.Matches(contenxt, token));
+
+
             return tokens.All(token => constraint.Matches(contenxt, entity).Value);
         }
     }
