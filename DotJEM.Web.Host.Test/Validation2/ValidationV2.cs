@@ -79,7 +79,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
         public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
         {
-            return True();
+            return true;
         }
     }
 
@@ -98,9 +98,9 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             if (value.Length >= maxLength)
             {
                 //TODO: Provide Constraint Desciption instead.
-                return False("Length must be less than '{0}'.", maxLength);
+                return false;
             }
-            return True();
+            return true;
         }
         }
 
@@ -119,9 +119,9 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             if (value.Length <= minLength)
             {
                 //TODO: Provide Constraint Desciption instead.
-                return False("Length must be longer than '{0}'.", minLength);
+                return false;
             }
-            return True();
+            return true;
         }
     }
 }

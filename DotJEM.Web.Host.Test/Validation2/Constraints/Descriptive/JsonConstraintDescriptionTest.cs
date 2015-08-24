@@ -1,4 +1,5 @@
 ﻿using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;

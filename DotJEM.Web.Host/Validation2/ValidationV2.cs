@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
 using DotJEM.Web.Host.Validation2.Rules;
@@ -168,9 +169,9 @@ namespace DotJEM.Web.Host.Validation2
             if (value.Length >= maxLength)
             {
                 //TODO: Provide Constraint Desciption instead.
-                return False("Length must be less than '{0}'.", maxLength);
+                return false;
             }
-            return True();
+            return true;
         }
     }
 
@@ -190,9 +191,9 @@ namespace DotJEM.Web.Host.Validation2
             if (value.Length <= minLength)
             {
                 //TODO: Provide Constraint Desciption instead.
-                return False("Length must be longer than '{0}'.", minLength);
+                return false;
             }
-            return True();
+            return true;
         }
     }
 
