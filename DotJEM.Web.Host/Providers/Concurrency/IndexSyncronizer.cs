@@ -97,6 +97,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
+            int total = 0;
             Dictionary<string, long> tracker = InitializeFromTracker();
 
             while (true)
@@ -111,7 +112,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
                 tuples.Select(Selector).ForEach(next => tracker[next.Item1] = next.Item2);
 
-                int total = tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
+                total += tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
                 this.tracker.SetProgress("{0} objects indexed.", total);
             }
         }
