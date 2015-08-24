@@ -5,23 +5,10 @@ using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Providers.Concurrency;
-using NCrontab;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 {
-    public interface IScheduledTask : IDisposable
-    {
-        event EventHandler<TaskEventArgs> TaskCompleted;
-        event EventHandler<TaskExceptionEventArgs> TaskException;
-
-        Guid Id { get; }
-        string Name { get; }
-
-        IScheduledTask Start();
-        IScheduledTask Signal();
-    }
-
     public abstract class ScheduledTask : Disposeable, IScheduledTask
     {
         public event EventHandler<TaskEventArgs> TaskCompleted;
@@ -109,75 +96,6 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         {
             handle.Set();
             return this;
-        }
-    }
-
-    public class PeriodicScheduledTask : ScheduledTask
-    {
-        private readonly TimeSpan delay;
-
-        public PeriodicScheduledTask(string name, Action<bool> callback, TimeSpan delay, IPerformanceLogger perf)
-            : base(name, callback, perf)
-        {
-            this.delay = delay;
-        }
-
-        public override IScheduledTask Start()
-        {
-            return RegisterWait(delay);
-        }
-
-        protected override bool ExecuteCallback(bool timedout)
-        {
-            bool success = base.ExecuteCallback(timedout);
-            //TODO: Count exceptions, increase callback time if reoccurences.                
-            RegisterWait(delay);
-            return success;
-        }
-    }
-
-    public class CronScheduledTask : ScheduledTask
-    {
-        private readonly CrontabSchedule trigger;
-
-        public CronScheduledTask(string name, Action<bool> callback, string trigger, IPerformanceLogger perf)
-            : base(name, callback, perf)
-        {
-            this.trigger = CrontabSchedule.Parse(trigger);
-        }
-
-        public override IScheduledTask Start()
-        {
-            return RegisterWait(Next());
-        }
-
-        private TimeSpan Next()
-        {
-            return trigger.GetNextOccurrence(DateTime.Now).Subtract(DateTime.Now);
-        }
-
-        protected override bool ExecuteCallback(bool timedout)
-        {
-            bool success = base.ExecuteCallback(timedout);
-            //TODO: Count exceptions, increase callback time if reoccurences.                
-            RegisterWait(Next());
-            return success;
-        }
-    }
-
-    public class SingleFireScheduledTask : ScheduledTask
-    {
-        private readonly TimeSpan delay;
-
-        public override IScheduledTask Start()
-        {
-            return RegisterWait(delay);
-        }
-
-        public SingleFireScheduledTask(string name, Action<bool> callback, TimeSpan? delay, IPerformanceLogger perf)
-            : base(name, callback, perf)
-        {
-            this.delay = delay ?? TimeSpan.Zero;
         }
     }
 }

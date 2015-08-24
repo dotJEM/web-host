@@ -188,6 +188,11 @@
     <Compile Include="Diagnostics\Performance\PerformanceLogger.cs" />
     <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />
     <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
+    <Compile Include="Initialization\Initialization.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\CronScheduledTask.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\PeriodicScheduledTask.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\SingleFireScheduledTask.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />
@@ -210,6 +215,39 @@
     <Compile Include="Providers\Pipeline\PipelineHandlerSet.cs" />
     <Compile Include="Util\JsonConverter.cs" />
     <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
+    <Compile Include="Validation2\Constraints\AndJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\CompositeJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\JsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescription.cs" />
+    <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescriptionAttribute.cs" />
+    <Compile Include="Validation2\Constraints\NotJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\OrJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\ExactLengthJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\LengthJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\MatchFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\MaxLengthJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\MinLengthJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\String\OneOfFieldConstraint.cs" />
+    <Compile Include="Validation2\Context\JsonValidationContext.cs" />
+    <Compile Include="Validation2\Constraints\Results\AndJsonConstraintResult.cs" />
+    <Compile Include="Validation2\Rules\Results\AndJsonRuleResult.cs" />
+    <Compile Include="Validation2\Constraints\Results\BasicJsonConstraintResult.cs" />
+    <Compile Include="Validation2\Rules\Results\BasicJsonRuleResult.cs" />
+    <Compile Include="Validation2\Constraints\Results\CompositeJsonConstraintResult.cs" />
+    <Compile Include="Validation2\Rules\Results\CompositeJsonRuleResult.cs" />
+    <Compile Include="Validation2\Constraints\Results\JsonConstraintResult.cs" />
+    <Compile Include="Validation2\Rules\Results\JsonRuleResult.cs" />
+    <Compile Include="Validation2\Constraints\Results\NotJsonConstraintResult.cs" />
+    <Compile Include="Validation2\Rules\Results\NotJsonRuleResult.cs" />
+    <Compile Include="Validation2\Constraints\Results\OrJsonConstraintResult.cs" />
+    <Compile Include="Validation2\Rules\Results\OrJsonRuleResult.cs" />
+    <Compile Include="Validation2\Rules\AndJsonRule.cs" />
+    <Compile Include="Validation2\Rules\BasicJsonRule.cs" />
+    <Compile Include="Validation2\Rules\CompositeJsonRule.cs" />
+    <Compile Include="Validation2\Rules\JsonRule.cs" />
+    <Compile Include="Validation2\Rules\NotJsonRule.cs" />
+    <Compile Include="Validation2\Rules\OrJsonRule.cs" />
+    <Compile Include="Validation2\ValidationV2.cs" />
     <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\FieldConstraint.cs" />
@@ -300,6 +338,10 @@
       <Project>{b07adec3-e2c6-470c-8eca-7241a7c8a34d}</Project>
       <Name>DotJEM.Reflection.Descriptors</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Validation2\Constraints\Common\" />
+    <Folder Include="Validation2\Constraints\Number\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
