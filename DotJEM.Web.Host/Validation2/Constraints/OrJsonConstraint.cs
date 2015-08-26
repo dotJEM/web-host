@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
@@ -21,10 +22,9 @@ namespace DotJEM.Web.Host.Validation2.Constraints
             return OptimizeAs<OrJsonConstraint>();
         }
 
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        internal override JsonConstraintResult DoMatch(IJsonValidationContext context, JToken token)
         {
-            //TODO: Aggregated JsonConstraintResult!
-            return Constraints.Any(c => c.Matches(context, token).Value);
+            return Constraints.Aggregate((JsonConstraintResult)null, (a, b) => a | b.Matches(context, token));
         }
 
         public override string ToString()

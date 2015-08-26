@@ -18,7 +18,12 @@ namespace DotJEM.Web.Host.Validation2.Constraints
                 .SingleOrDefault();
         }
 
-        public abstract JsonConstraintResult Matches(IJsonValidationContext context, JToken token);
+        public abstract bool Matches(IJsonValidationContext context, JToken token);
+
+        internal virtual JsonConstraintResult DoMatch(IJsonValidationContext context, JToken token)
+        {
+            return Matches(context, token);
+        }
 
         public virtual JsonConstraintDescription Describe(IJsonValidationContext context, JToken token)
         {
@@ -50,7 +55,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints
 
     public abstract class TypedJsonConstraint<TTokenType> : JsonConstraint
     {
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        public override bool Matches(IJsonValidationContext context, JToken token)
         {
             return token == null
                 ? Matches(context, default(TTokenType), true)

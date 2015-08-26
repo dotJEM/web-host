@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DotJEM.Web.Host.Validation2.Context;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation2.Constraints
 {
@@ -10,6 +13,11 @@ namespace DotJEM.Web.Host.Validation2.Constraints
         protected CompositeJsonConstraint(params JsonConstraint[] constraints)
         {
             Constraints = constraints.ToList();
+        }
+
+        public override bool Matches(IJsonValidationContext context, JToken token)
+        {
+            throw new InvalidOperationException();
         }
 
         protected TConstraint OptimizeAs<TConstraint>() where TConstraint : CompositeJsonConstraint, new()

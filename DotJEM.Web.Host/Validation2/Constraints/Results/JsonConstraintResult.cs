@@ -1,4 +1,6 @@
-﻿namespace DotJEM.Web.Host.Validation2.Constraints.Results
+﻿using System;
+
+namespace DotJEM.Web.Host.Validation2.Constraints.Results
 {
     public abstract class JsonConstraintResult
     {
@@ -17,11 +19,23 @@
 
         public static JsonConstraintResult operator &(JsonConstraintResult x, JsonConstraintResult y)
         {
+            if (x == null)
+                return y;
+
+            if (y == null)
+                return x;
+
             return new AndJsonConstraintResult(x, y);
         }
 
         public static JsonConstraintResult operator |(JsonConstraintResult x, JsonConstraintResult y)
         {
+            if (x == null)
+                return y;
+
+            if (y == null)
+                return x;
+
             return new OrJsonConstraintResult(x, y);
         }
 
@@ -29,6 +43,21 @@
         {
             return new NotJsonConstraintResult(x);
         }
+    }
 
+    public class NullJsonConstraintResult : JsonConstraintResult
+    {
+        public override bool Value
+        {
+            get { return false; }
+        }
+
+        public override string Message
+        {
+            get
+            {
+                return string.Empty;
+            }
+        }
     }
 }

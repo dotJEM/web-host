@@ -163,7 +163,7 @@ namespace DotJEM.Web.Host.Validation2
             this.maxLength = maxLength;
         }
 
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        public override bool Matches(IJsonValidationContext context, JToken token)
         {
             string value = (string)token;
             if (value.Length >= maxLength)
@@ -185,7 +185,7 @@ namespace DotJEM.Web.Host.Validation2
             this.minLength = minLength;
         }
 
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        public override bool Matches(IJsonValidationContext context, JToken token)
         {
             string value = (string)token;
             if (value.Length <= minLength)
