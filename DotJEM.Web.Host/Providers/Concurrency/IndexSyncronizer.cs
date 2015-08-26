@@ -197,8 +197,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //      but it ensures that the entity is prepared for us if we query it right after this...
             index.Write(entity);
 
+            //TODO: This null check is odd, but it can currentlly happen, we should probablly have a state task while initializing.
             //Note: This will cause the callback to get called right away...
-            task.Signal();
+            if(task != null) task.Signal();
         }
 
         public void QueueDelete(JObject entity)
@@ -207,7 +208,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //      but it ensures that the entity is prepared for us if we query it right after this...
             index.Delete(entity);
 
-            task.Signal();
+            //TODO: This null check is odd, but it can currentlly happen, we should probablly have a state task while initializing.
+            //Note: This will cause the callback to get called right away...
+            if (task != null) task.Signal();
         }
 
         protected virtual void OnIndexChanged(IndexChangesEventArgs args)

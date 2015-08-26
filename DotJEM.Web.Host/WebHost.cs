@@ -139,6 +139,13 @@ namespace DotJEM.Web.Host
 
                 startup.Trace("");
                 Initialization.Complete();
+                
+            }).ContinueWith(result =>
+            {
+                if (!result.IsFaulted) 
+                    return;
+                
+                Initialization.SetProgress(result.Exception != null ? result.Exception.Message : "Server startup failed. Please contact support.");
             });
             return this;
         }
