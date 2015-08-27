@@ -77,7 +77,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             return Name;
         }
 
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        public override bool Matches(IJsonValidationContext context, JToken token)
         {
             return true;
         }
@@ -92,7 +92,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             this.maxLength = maxLength;
         }
 
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        public override bool Matches(IJsonValidationContext context, JToken token)
         {
             string value = (string)token;
             if (value.Length >= maxLength)
@@ -113,7 +113,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
             this.minLength = minLength;
         }
 
-        public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+        public override bool Matches(IJsonValidationContext context, JToken token)
         {
             string value = (string)token;
             if (value.Length <= minLength)

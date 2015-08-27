@@ -42,9 +42,9 @@ namespace DotJEM.Web.Host.Test.Validation.V2
                 get { return "Hello Property"; }
             }
 
-            public override JsonConstraintResult Matches(IJsonValidationContext context, JToken token)
+            public override bool Matches(IJsonValidationContext context, JToken token)
             {
-                return null;
+                return false;
             }
             // ReSharper restore UnusedMember.Local
         }
