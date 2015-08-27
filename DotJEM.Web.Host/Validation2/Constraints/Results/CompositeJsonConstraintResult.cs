@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,23 +8,9 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Results
     public abstract class CompositeJsonConstraintResult : JsonConstraintResult
     {
         protected List<JsonConstraintResult> Results { get; private set; }
-
-        public override string Message
-        {
-            get
-            {
-                return Results.Aggregate(new StringBuilder(), (builder, result) =>
-                {
-                    if (!result.Value)
-                    {
-                        builder.AppendLine(result.Message);
-                    }
-                    return builder;
-                }).ToString();
-            }
-        }
         
-        protected CompositeJsonConstraintResult(List<JsonConstraintResult> results)
+        protected CompositeJsonConstraintResult(bool value, List<JsonConstraintResult> results)
+            : base(value)
         {
             Results = results;
         }

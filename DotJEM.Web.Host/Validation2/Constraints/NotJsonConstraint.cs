@@ -22,7 +22,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints
 
         internal override JsonConstraintResult DoMatch(IJsonValidationContext context, JToken token)
         {
-            return !Constraint.Matches(context, token);
+            return !Constraint.DoMatch(context, token);
         }
 
         public override bool Matches(IJsonValidationContext context, JToken token)

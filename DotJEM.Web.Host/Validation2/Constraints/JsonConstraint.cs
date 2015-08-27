@@ -22,7 +22,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints
 
         internal virtual JsonConstraintResult DoMatch(IJsonValidationContext context, JToken token)
         {
-            return Matches(context, token);
+            return new BasicJsonConstraintResult(Matches(context, token), Describe(context, token), GetType());
         }
 
         public virtual JsonConstraintDescription Describe(IJsonValidationContext context, JToken token)

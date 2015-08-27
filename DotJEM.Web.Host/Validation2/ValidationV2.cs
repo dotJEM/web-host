@@ -102,6 +102,11 @@ namespace DotJEM.Web.Host.Validation2
         {
             this.results = results;
         }
+
+        public string Describe()
+        {
+            return "";
+        }
     }
 
     public interface IJsonValidatorRuleFactory

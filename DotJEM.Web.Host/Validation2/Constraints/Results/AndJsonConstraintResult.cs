@@ -10,18 +10,19 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Results
             get { return Results.All(r => r.Value); }
         }
 
-        public AndJsonConstraintResult() 
-            : base(new List<JsonConstraintResult>())
+        //TODO: There was some reason for this constructor, but we should try and get rid of it.
+        public AndJsonConstraintResult()
+            : this(new List<JsonConstraintResult>())
         {
         }
 
         public AndJsonConstraintResult(params JsonConstraintResult[] results)
-            : base(results.ToList())
+            : this(results.ToList())
         {
         }
 
-        public AndJsonConstraintResult(List<JsonConstraintResult> results) 
-            : base(results)
+        public AndJsonConstraintResult(List<JsonConstraintResult> results)
+            : base(results.All(r => r.Value), results)
         {
         }
 

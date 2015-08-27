@@ -1,28 +1,17 @@
 using System;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 
 namespace DotJEM.Web.Host.Validation2.Constraints.Results
 {
     public sealed class BasicJsonConstraintResult : JsonConstraintResult
     {
-        private readonly bool value;
-        private readonly string message;
-
-        public override bool Value
-        {
-            get { return value; }
-        }
-
-        public override string Message
-        {
-            get { return message; }
-        }
-
+        public JsonConstraintDescription Description { get; private set; }
         public Type ConstraintType { get; private set; }
 
-        public BasicJsonConstraintResult(bool value, string message, Type constraintType)
+        public BasicJsonConstraintResult(bool value, JsonConstraintDescription description, Type constraintType)
+            : base(value)
         {
-            this.value = value;
-            this.message = message;
+            Description = description;
             ConstraintType = constraintType;
         }
     }

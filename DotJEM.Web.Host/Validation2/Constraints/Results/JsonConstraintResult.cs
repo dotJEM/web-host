@@ -1,22 +1,23 @@
 ﻿using System;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 
 namespace DotJEM.Web.Host.Validation2.Constraints.Results
 {
     public abstract class JsonConstraintResult
     {
-        public abstract bool Value { get; }
-        public abstract string Message { get; }
+        public virtual bool Value { get; private set; }
+
+        protected JsonConstraintResult(bool value)
+        {
+            Value = value;
+        }
 
         public virtual JsonConstraintResult Optimize()
         {
             return this;
         }
-        
-        public static implicit operator JsonConstraintResult(bool value)
-        {
-            return new BasicJsonConstraintResult(value, null, null);
-        }
 
+        #region Operator Overloads
         public static JsonConstraintResult operator &(JsonConstraintResult x, JsonConstraintResult y)
         {
             if (x == null)
@@ -43,21 +44,6 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Results
         {
             return new NotJsonConstraintResult(x);
         }
-    }
-
-    public class NullJsonConstraintResult : JsonConstraintResult
-    {
-        public override bool Value
-        {
-            get { return false; }
-        }
-
-        public override string Message
-        {
-            get
-            {
-                return string.Empty;
-            }
-        }
+        #endregion
     }
 }

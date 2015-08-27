@@ -4,17 +4,8 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Results
     {
         public JsonConstraintResult Result { get; private set; }
 
-        public override bool Value
-        {
-            get { return !Result.Value; }
-        }
-
-        public override string Message
-        {
-            get { return Result.Message; }
-        }
-
         public NotJsonConstraintResult(JsonConstraintResult result)
+            : base(!result.Value)
         {
             Result = result;
         }

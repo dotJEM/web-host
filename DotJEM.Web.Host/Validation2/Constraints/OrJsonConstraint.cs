@@ -24,7 +24,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints
 
         internal override JsonConstraintResult DoMatch(IJsonValidationContext context, JToken token)
         {
-            return Constraints.Aggregate((JsonConstraintResult)null, (a, b) => a | b.Matches(context, token));
+            return Constraints.Aggregate((JsonConstraintResult)null, (a, b) => a | b.DoMatch(context, token));
         }
 
         public override string ToString()
