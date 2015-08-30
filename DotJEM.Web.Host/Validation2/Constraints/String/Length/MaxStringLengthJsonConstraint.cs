@@ -1,14 +1,14 @@
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Context;
 
-namespace DotJEM.Web.Host.Validation2.Constraints.String
+namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
 {
     [JsonConstraintDescription("String length must be less than or equal to '{maxLength}'.")]
-    public class MaxLengthJsonConstraint : TypedJsonConstraint<string>
+    public class MaxStringLengthJsonConstraint : TypedJsonConstraint<string>
     {
         private readonly int maxLength;
 
-        public MaxLengthJsonConstraint(int maxLength)
+        public MaxStringLengthJsonConstraint(int maxLength)
         {
             this.maxLength = maxLength;
         }

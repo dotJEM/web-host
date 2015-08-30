@@ -1,12 +1,7 @@
-using DotJEM.Web.Host.Validation;
-using DotJEM.Web.Host.Validation.Constraints;
-using DotJEM.Web.Host.Validation.Results;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
-using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
-using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Validation2.Constraints.String
+namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
 {
     [JsonConstraintDescription("String length must be '{length}'.")]
     public class ExactStringLengthJsonConstraint : TypedJsonConstraint<string>

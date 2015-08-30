@@ -1,11 +1,10 @@
 ﻿using DotJEM.Web.Host.Validation2;
 using DotJEM.Web.Host.Validation2.Constraints;
-using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
-namespace DotJEM.Web.Host.Test.Validation.V2
+namespace DotJEM.Web.Host.Test.Validation2
 {
     [TestFixture]
     public class ValidationV2ConstraintBuilder
@@ -27,9 +26,9 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
         public int counter = 1;
 
-        public NamedJsonConstraint N
+        public FakeJsonConstraint N
         {
-            get { return new NamedJsonConstraint("" + counter++); }
+            get { return new FakeJsonConstraint("" + counter++); }
         }
 
         [Test]
@@ -40,7 +39,7 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
             var result = validator.Validate(new JsonValidationContext(null, null), JObject.FromObject(new
             {
-                test="01234567890123456789", other="0"
+                test= "01234567890123456789", other="0"
             }));
 
             Assert.That(result.IsValid, Is.True);
@@ -51,8 +50,10 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     {
         public SpecificValidator()
         {
-            When("test", Is.LongerThan(5)).Then("test", Must.BeShorterThan(200));
-            When("other", Is.LongerThan(0)).Then("test", Must.BeShorterThan(10));
+            When("test", Is.LongerThan(5)).Then("test", Must.HaveMaxLength(200));
+            When("other", Is.LongerThan(0)).Then("test", Must.HaveMaxLength(25));
+
+            When(Field("test", Is.LongerThan(5))).Then(Field("other", Should.BeEqual("0")));
 
             //When(Field("A", Is.Defined()) | Field("B", Is.Defined()))
             //    .Then(
@@ -63,11 +64,11 @@ namespace DotJEM.Web.Host.Test.Validation.V2
     }
 
 
-    public class NamedJsonConstraint : JsonConstraint
+    public class FakeJsonConstraint : JsonConstraint
     {
         public string Name { get; private set; }
 
-        public NamedJsonConstraint(string name)
+        public FakeJsonConstraint(string name)
         {
             this.Name = name;
         }
@@ -79,48 +80,6 @@ namespace DotJEM.Web.Host.Test.Validation.V2
 
         public override bool Matches(IJsonValidationContext context, JToken token)
         {
-            return true;
-        }
-    }
-
-    public class ShorterJsonConstraint : JsonConstraint
-    {
-        private readonly int maxLength;
-
-        public ShorterJsonConstraint(int maxLength)
-        {
-            this.maxLength = maxLength;
-        }
-
-        public override bool Matches(IJsonValidationContext context, JToken token)
-        {
-            string value = (string)token;
-            if (value.Length >= maxLength)
-            {
-                //TODO: Provide Constraint Desciption instead.
-                return false;
-            }
-            return true;
-        }
-        }
-
-    public class LongerJsonConstraint : JsonConstraint
-    {
-        private readonly int minLength;
-
-        public LongerJsonConstraint(int minLength)
-        {
-            this.minLength = minLength;
-        }
-
-        public override bool Matches(IJsonValidationContext context, JToken token)
-        {
-            string value = (string)token;
-            if (value.Length <= minLength)
-            {
-                //TODO: Provide Constraint Desciption instead.
-                return false;
-            }
             return true;
         }
     }

@@ -1,8 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using DotJEM.Web.Host.Validation2.Constraints;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
+using DotJEM.Web.Host.Validation2.Constraints.String;
+using DotJEM.Web.Host.Validation2.Constraints.String.Length;
 using DotJEM.Web.Host.Validation2.Context;
 using DotJEM.Web.Host.Validation2.Rules;
 using DotJEM.Web.Host.Validation2.Rules.Results;
@@ -17,7 +21,7 @@ namespace DotJEM.Web.Host.Validation2
     {
         public static JsonConstraint LongerThan(this IGuardConstraintFactory self, int length)
         {
-            return new LongerJsonConstraint(length);
+            return new MinStringLengthJsonConstraint(length);
         }
 
         public static JsonConstraint ShorterThan(this IGuardConstraintFactory self, int length)
@@ -26,31 +30,41 @@ namespace DotJEM.Web.Host.Validation2
         }
     }
 
-    public static class JsonValidatorExtensions
+    public static class ValidatorConstraintFactoryStringExtensions
     {
-        public static JsonConstraint BeLongerThan(this IValidatorConstraintFactory self, int length)
+        public static JsonConstraint HaveLength(this IValidatorConstraintFactory self, int length)
         {
-            return new LongerJsonConstraint(length);
+            return new ExactStringLengthJsonConstraint(length);
         }
 
-        public static JsonConstraint BeShorterThan(this IValidatorConstraintFactory self, int length)
+        public static JsonConstraint HaveMinLength(this IValidatorConstraintFactory self, int minLength)
         {
-            return new ShorterJsonConstraint(length);
+            return new MinStringLengthJsonConstraint(minLength);
         }
 
-        public static JsonConstraint BeDefined(this IValidatorConstraintFactory self)
+        public static JsonConstraint HaveMaxLength(this IValidatorConstraintFactory self, int maxLength)
         {
-            return null;
+            return new MaxStringLengthJsonConstraint(maxLength);
         }
 
-        public static IValidatorConstraintFactory Not(this IValidatorConstraintFactory self)
+        public static JsonConstraint HaveLengthBetween(this IValidatorConstraintFactory self, int minLength, int maxLength)
         {
-            return null;
+            return new StringLengthJsonConstraint(minLength, maxLength);
         }
 
-        public static JsonConstraint BeEqual(this IValidatorConstraintFactory self, object value)
+        public static JsonConstraint Match(this IValidatorConstraintFactory self, Regex expression)
         {
-            return null;
+            return new MatchStringJsonConstraint(expression);
+        }
+
+        public static JsonConstraint Match(this IValidatorConstraintFactory self, string pattern, RegexOptions options = RegexOptions.Compiled)
+        {
+            return self.Match(new Regex(pattern, options));
+        }
+
+        public static JsonConstraint BeEqual(this IValidatorConstraintFactory self, string value, StringComparison comparison = StringComparison.Ordinal)
+        {
+            return new StringEqualsJsonConstraint(value, comparison);
         }
     }
 
@@ -64,20 +78,28 @@ namespace DotJEM.Web.Host.Validation2
 
         protected IJsonValidatorRuleFactory When(JsonRule rule)
         {
+            if (rule == null) throw new ArgumentNullException("rule");
+
             return new JsonValidatorRuleFactory(this, rule);
         }
 
         protected IJsonValidatorRuleFactory When(string selector, JsonConstraint constraint)
         {
+            if (selector == null) throw new ArgumentNullException("selector");
+            if (constraint == null) throw new ArgumentNullException("constraint");
+
             return When(Field(selector, constraint));
         }
 
         protected JsonRule Field(string selector, JsonConstraint constraint)
         {
+            if (selector == null) throw new ArgumentNullException("selector");
+            if (constraint == null) throw new ArgumentNullException("constraint");
+
             return new BasicJsonRule(selector, constraint);
         }
 
-        public void AddFieldValidator(JsonFieldValidator jsonFieldValidator)
+        internal void AddValidator(JsonFieldValidator jsonFieldValidator)
         {
             validators.Add(jsonFieldValidator);
         }
@@ -128,7 +150,7 @@ namespace DotJEM.Web.Host.Validation2
 
         public void Then(JsonRule rule)
         {
-            validator.AddFieldValidator(new JsonFieldValidator(this.rule, rule));
+            validator.AddValidator(new JsonFieldValidator(this.rule, rule));
         }
 
         public void Then(string selector, JsonConstraint constraint)
