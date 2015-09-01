@@ -216,6 +216,8 @@
     <Compile Include="Util\JsonConverter.cs" />
     <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
     <Compile Include="Validation2\Constraints\AndJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\Common\IsDefinedJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\Common\ValidatorConstraintFactoryCommonExtensions.cs" />
     <Compile Include="Validation2\Constraints\CompositeJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\JsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescription.cs" />
@@ -231,6 +233,7 @@
     <Compile Include="Validation2\Constraints\String\StringEqualsJsonConstraint.cs" />
     <Compile Include="Validation2\Context\JsonValidationContext.cs" />
     <Compile Include="Validation2\Constraints\Results\AndJsonConstraintResult.cs" />
+    <Compile Include="Validation2\Factories\IConstraintFactory.cs" />
     <Compile Include="Validation2\Rules\Results\AndJsonRuleResult.cs" />
     <Compile Include="Validation2\Constraints\Results\BasicJsonConstraintResult.cs" />
     <Compile Include="Validation2\Rules\Results\BasicJsonRuleResult.cs" />
@@ -249,6 +252,7 @@
     <Compile Include="Validation2\Rules\NotJsonRule.cs" />
     <Compile Include="Validation2\Rules\OrJsonRule.cs" />
     <Compile Include="Validation2\ValidationV2.cs" />
+    <Compile Include="Validation2\Constraints\String\ValidatorConstraintFactoryStringExtensions.cs" />
     <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\FieldConstraint.cs" />
@@ -341,7 +345,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Validation2\Constraints\Common\" />
     <Folder Include="Validation2\Constraints\Number\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

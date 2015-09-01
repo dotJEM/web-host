@@ -111,6 +111,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
 
                 tuples.Select(Selector).ForEach(next => tracker[next.Item1] = next.Item2);
+                //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
+                //      if we do that we should either send a "initialized" even that instructs controllers
+                //      and services that the index is now fully ready. Or we neen to collect all data
+                OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
 
                 total += tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
                 this.tracker.SetProgress("{0} objects indexed.", total);

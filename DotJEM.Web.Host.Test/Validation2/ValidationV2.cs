@@ -1,5 +1,6 @@
 ﻿using DotJEM.Web.Host.Validation2;
 using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Constraints.String;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -50,10 +51,10 @@ namespace DotJEM.Web.Host.Test.Validation2
     {
         public SpecificValidator()
         {
-            When("test", Is.LongerThan(5)).Then("test", Must.HaveMaxLength(200));
-            When("other", Is.LongerThan(0)).Then("test", Must.HaveMaxLength(25));
+            When("test", Has.MaxLength(5)).Then("test", Must.Have.MaxLength(200));
+            When("other", Has.MinLength(0)).Then("test", Must.Have.MaxLength(25));
 
-            When(Field("test", Is.LongerThan(5))).Then(Field("other", Should.BeEqual("0")));
+            When(Field("test", Has.MinLength(5))).Then(Field("other", Should.Be.Equal("0")));
 
             //When(Field("A", Is.Defined()) | Field("B", Is.Defined()))
             //    .Then(
