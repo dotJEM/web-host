@@ -11,6 +11,10 @@ namespace DotJEM.Web.Host.Util
             foreach (T elm in source)
                 action(elm);
         }
+        public static void ForEach<TKey, TValue>(this IDictionary<TKey, TValue> source, Action<TKey, TValue> action)
+        {
+            source.ForEach(kv => action(kv.Key, kv.Value));
+        }
 
         public static void ForEach<T, TIgnore>(this IEnumerable<T> source, Func<T, TIgnore> action)
         {
