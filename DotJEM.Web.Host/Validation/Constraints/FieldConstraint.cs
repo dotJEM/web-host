@@ -7,7 +7,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
     {
         public void Validate(IValidationContext context, JToken token, IValidationCollector collector)
         {
-            if (token != null)
+            if (token != null && token.Type != JTokenType.Null)
             {
                 OnValidate(context, token, collector);
             }
@@ -15,7 +15,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
 
         public bool Matches(JToken token)
         {
-            return token != null && OnMatches(token);
+            return token != null && token.Type != JTokenType.Null && OnMatches(token);
         }
 
         protected abstract void OnValidate(IValidationContext context, JToken token, IValidationCollector collector);
