@@ -18,6 +18,7 @@ using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -110,8 +111,8 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
-            var perf = container.Resolve<IPerformanceLogger>();
-            var startup = perf.TrackTask("Start");
+            IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
+            IPerformanceTracker<object> startup = perf.TrackTask("Start");
 
             DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
           
