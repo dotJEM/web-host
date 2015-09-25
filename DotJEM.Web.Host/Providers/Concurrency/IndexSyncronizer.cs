@@ -97,6 +97,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
+            //TODO: (jmd 2015-09-24) Build spartial indexes and merge them in the end. 
+            // http://lucene.apache.org/core/3_0_3/api/core/org/apache/lucene/index/IndexWriter.html#addIndexesNoOptimize%28org.apache.lucene.store.Directory...%29
+
             int total = 0;
             Dictionary<string, long> tracker = InitializeFromTracker();
 

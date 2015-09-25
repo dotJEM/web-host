@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Hosting;
@@ -15,6 +16,7 @@ using DotJEM.Json.Storage.Migration;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
@@ -46,6 +48,7 @@ namespace DotJEM.Web.Host
         protected IStorageContext Storage { get; set; }
         protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
         protected IWebHostConfiguration Configuration { get; set; }
+        protected IDiagnosticsLogger DiagnosticsLogger { get; set; }
 
         public HttpConfiguration HttpConfiguration
         {
@@ -110,6 +113,7 @@ namespace DotJEM.Web.Host
             var perf = container.Resolve<IPerformanceLogger>();
             var startup = perf.TrackTask("Start");
 
+            DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
           
             perf.TrackAction(BeforeConfigure);
             perf.TrackAction("Configure Pipeline", () => Configure(container.Resolve<IPipeline>()));
@@ -144,8 +148,16 @@ namespace DotJEM.Web.Host
             {
                 if (!result.IsFaulted) 
                     return;
-                
-                Initialization.SetProgress(result.Exception != null ? result.Exception.Message : "Server startup failed. Please contact support.");
+                Guid ticket = Guid.NewGuid();
+                if (result.Exception != null)
+                {
+                    DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                }
+                else
+                {
+                    DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                }
+                Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
             });
             return this;
         }
