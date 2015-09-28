@@ -169,6 +169,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActionResults\ForbiddenErrorMessageResult.cs" />
+    <Compile Include="ActionResults\ServiceUnavailableMessageResult.cs" />
     <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />

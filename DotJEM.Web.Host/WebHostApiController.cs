@@ -29,6 +29,12 @@ namespace DotJEM.Web.Host
             return new ForbiddenErrorMessageResult(HttpStatusCode.Forbidden, message, this);
         }
 
+
+        protected virtual ServiceUnavailableMessageResult ServiceUnavailable(string message)
+        {
+            return new ServiceUnavailableMessageResult(HttpStatusCode.ServiceUnavailable, message, this);
+        }
+
         protected dynamic FromFile(string path, string mediaType)
         {
             if (!File.Exists(path))
