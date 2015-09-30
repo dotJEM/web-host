@@ -58,11 +58,19 @@ namespace DotJEM.Web.Host.Providers.Scheduler
 
         private void HandleTaskException(object sender, TaskExceptionEventArgs args)
         {
-            logger.LogException(args.Exception, new
+            try
             {
-                TaskName = args.Task.Name,
-                TaskId = args.Task.Id
-            });
+                logger.LogException(args.Exception, new
+                {
+                    TaskName = args.Task.Name,
+                    TaskId = args.Task.Id
+                });
+            }
+            catch (Exception)
+            {
+                //ignore
+                //TODO: (jmd 2015-09-30) Ohh shit, log to the event log or something!. 
+            }
         }
     }
 }
