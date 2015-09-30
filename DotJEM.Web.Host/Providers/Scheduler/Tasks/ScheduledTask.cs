@@ -97,5 +97,11 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             handle.Set();
             return this;
         }
+
+        public IScheduledTask Signal(TimeSpan delay)
+        {
+            pool.RegisterWaitForSingleObject(new AutoResetEvent(false), (state, tout) => Signal(), null, delay, true);
+            return this;
+        }
     }
 }
