@@ -52,6 +52,9 @@ namespace DotJEM.Web.Host.Util
         /// <exception cref="FormatException">The given input could not be converted to a <see cref="TimeSpan"/> because the format was invalid.</exception>
         public static TimeSpan ToTimeSpan(string input)
         {
+            if (input == null)
+                throw new ArgumentNullException(nameof(input));
+
             TimeSpan outPut;
             if (TimeSpan.TryParse(input, out outPut))
                 return outPut;
