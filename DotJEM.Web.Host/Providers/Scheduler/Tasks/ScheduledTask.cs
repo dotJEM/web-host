@@ -62,7 +62,6 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             {
                 bool seenBefore = exception != null && exception.GetType() == ex.GetType();
                 exception = ex;
-
                 OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
                 return false;
             }
@@ -70,6 +69,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
         protected virtual void OnTaskException(TaskExceptionEventArgs args)
         {
+            //TODO: (jmd 2015-09-30) Consider wrapping in try catch. They can force the thread to close the app. 
             EventHandler<TaskExceptionEventArgs> handler = TaskException;
             if (handler != null)
             {
@@ -79,6 +79,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
         protected virtual void OnTaskCompleted(TaskEventArgs args)
         {
+            //TODO: (jmd 2015-09-30) Consider wrapping in try catch. They can force the thread to close the app. 
             EventHandler<TaskEventArgs> handler = TaskCompleted;
             if (handler != null)
             {
