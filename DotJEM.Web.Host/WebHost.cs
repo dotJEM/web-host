@@ -199,14 +199,18 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageIndex CreateIndex()
         {
-            string cachePath = Configuration.Index.CacheLocation;
-            if (!string.IsNullOrEmpty(cachePath))
+            IndexStorageConfiguration storage = Configuration.Index.Storage;
+            switch (storage.Type)
             {
-                cachePath = HostingEnvironment.MapPath(cachePath);
-                return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(cachePath));
+                case IndexStorageType.File:
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(HostingEnvironment.MapPath(storage.Path)));
+                case IndexStorageType.CachedMemmory:
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(HostingEnvironment.MapPath(storage.Path)));
+                case IndexStorageType.Memmory:
+                    return new LuceneStorageIndex();
+                default:
+                    return new LuceneStorageIndex();
             }
-            //TODO: use app.config (web.config)
-            return new LuceneStorageIndex();
         }
 
         protected virtual IStorageContext CreateStorage()

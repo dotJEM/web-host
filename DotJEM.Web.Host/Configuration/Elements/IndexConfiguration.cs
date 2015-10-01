@@ -4,10 +4,10 @@ namespace DotJEM.Web.Host.Configuration.Elements
 {
     public class IndexConfiguration : ConfigurationElement
     {
-        [ConfigurationProperty("cache-location", IsRequired = false)]
-        public string CacheLocation
+        [ConfigurationProperty("storage", IsRequired = false)]
+        public IndexStorageConfiguration Storage
         {
-            get { return this["cache-location"] as string; }
+            get { return this["storage"] as IndexStorageConfiguration; }
         }
 
         [ConfigurationProperty("watch", IsRequired = true)]
@@ -16,4 +16,15 @@ namespace DotJEM.Web.Host.Configuration.Elements
             get { return this["watch"] as WatchElementCollection; }
         }
     }
+
+    public class IndexStorageConfiguration : ConfigurationElement
+    {
+        [ConfigurationProperty("path", IsRequired = false)]
+        public string Path => this["path"] as string;
+
+        [ConfigurationProperty("type", IsRequired = true)]
+        public IndexStorageType Type => (IndexStorageType)this["type"];
+    }
+
+    public enum IndexStorageType { Memmory, File, CachedMemmory }
 }
