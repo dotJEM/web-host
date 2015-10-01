@@ -206,14 +206,25 @@ namespace DotJEM.Web.Host
             switch (storage.Type)
             {
                 case IndexStorageType.File:
-                    return new LuceneStorageIndex(new LuceneFileIndexStorage(HostingEnvironment.MapPath(storage.Path)));
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)));
                 case IndexStorageType.CachedMemmory:
-                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(HostingEnvironment.MapPath(storage.Path)));
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)));
                 case IndexStorageType.Memmory:
                     return new LuceneStorageIndex();
                 default:
                     return new LuceneStorageIndex();
             }
+        }
+
+        private static string ClearLuceneLock(string path)
+        {
+            path = HostingEnvironment.MapPath(path);
+            string padlock = Path.Combine(path, "write.lock");
+            if (File.Exists(padlock))
+            {
+                File.Delete(padlock);
+            }
+            return path;
         }
 
         protected virtual IStorageContext CreateStorage()
