@@ -200,6 +200,9 @@ namespace DotJEM.Web.Host
         protected virtual IStorageIndex CreateIndex()
         {
             IndexStorageConfiguration storage = Configuration.Index.Storage;
+            if(storage == null)
+                return new LuceneStorageIndex();
+
             switch (storage.Type)
             {
                 case IndexStorageType.File:

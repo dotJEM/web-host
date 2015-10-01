@@ -78,9 +78,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 logs[watch.Area] = storage.Area(watch.Area).Log;
             }
             //TODO: Use the below to store a index pointer.
-            if (!string.IsNullOrEmpty(configuration.Index.CacheLocation)) {
-                cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
-            }
+            //if (!string.IsNullOrEmpty(configuration.Index.CacheLocation)) {
+            //    cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
+            //}
         }
 
         public void Start()
@@ -142,6 +142,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 return map;
             }));
             OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+            index.Flush();
         }
 
         private static long GetTracker(Dictionary<string, long> changes, string key)
@@ -179,7 +180,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .WriteAll(changes.Updated)
                 .DeleteAll(changes.Deleted);
             OptimizeIndex(changes.Count);
-
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
         
