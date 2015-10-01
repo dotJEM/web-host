@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Hosting;
@@ -51,10 +54,7 @@ namespace DotJEM.Web.Host
         protected IWebHostConfiguration Configuration { get; set; }
         protected IDiagnosticsLogger DiagnosticsLogger { get; set; }
 
-        public HttpConfiguration HttpConfiguration
-        {
-            get { return configuration; }
-        }
+        public HttpConfiguration HttpConfiguration => configuration;
 
         protected WebHost()
             : this(GlobalConfiguration.Configuration, new WindsorContainer())
@@ -102,6 +102,7 @@ namespace DotJEM.Web.Host
 
             container
                 .Register(Component.For<IPathResolver>().ImplementedBy<PathResolver>())
+                .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
                 .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
                 .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
                 .Register(Component.For<IWindsorContainer>().Instance(container))
@@ -110,6 +111,7 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IStorageContext>().Instance(Storage))
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
+                
 
             IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
             IPerformanceTracker<object> startup = perf.TrackTask("Start");
@@ -149,16 +151,35 @@ namespace DotJEM.Web.Host
             {
                 if (!result.IsFaulted) 
                     return;
+
+                IDiagnosticsDumpService dump = Resolve<IDiagnosticsDumpService>();
+
                 Guid ticket = Guid.NewGuid();
-                if (result.Exception != null)
+                try
                 {
-                    DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                    if (result.Exception != null)
+                    {
+                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                        dump.Dump(ticket, result.Exception.ToString());
+                    }
+                    else
+                    {
+                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                        dump.Dump(ticket, "Server startup failed. Unknown Error.");
+                    }
+                    Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
+
+
                 }
-                else
+                catch (Exception ex)
                 {
-                    DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                    //TODO: (jmd 2015-10-01) Temporary Dumping of failure we don't know where to put. 
+                    string dumpMessage =
+                        ex.ToString() + Environment.NewLine + "-----------------------------------" +
+                        result.Exception?.ToString();
+                    Initialization.SetProgress(dumpMessage);
+                    dump.Dump(ticket, dumpMessage);
                 }
-                Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
             });
             return this;
         }
@@ -191,9 +212,6 @@ namespace DotJEM.Web.Host
         protected virtual IStorageContext CreateStorage()
         {
             var context = new SqlServerStorageContext(Configuration.Storage.ConnectionString);
-
-
-
             return context;
         }
 
