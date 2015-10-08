@@ -232,7 +232,11 @@ namespace DotJEM.Web.Host
             {
                 Directory.GetFiles(path)
                     .ForEach(File.Delete);
-            }catch(Exception) {}
+            }
+            catch (Exception)
+            {
+                //ignore for now.
+            }
 
             return path;
         }
