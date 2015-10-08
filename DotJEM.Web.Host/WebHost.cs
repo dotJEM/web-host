@@ -26,6 +26,7 @@ using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
+using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -224,6 +225,15 @@ namespace DotJEM.Web.Host
             {
                 File.Delete(padlock);
             }
+
+            //TODO: (jmd 2015-10-08) Temporary workaround to ensure indexes are build from scratch.
+            //                       untill we have a way to track the index generation again. 
+            try
+            {
+                Directory.GetFiles(path)
+                    .ForEach(File.Delete);
+            }catch(Exception) {}
+
             return path;
         }
 
@@ -254,6 +264,8 @@ namespace DotJEM.Web.Host
 
         public void Shutdown()
         {
+            Resolve<IWebScheduler>().Stop();
+
             Index.Close();
         }
     }

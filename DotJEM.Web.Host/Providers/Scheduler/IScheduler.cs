@@ -12,6 +12,8 @@ namespace DotJEM.Web.Host.Providers.Scheduler
         IScheduledTask ScheduleTask(string name, Action<bool> callback, TimeSpan interval);
         IScheduledTask ScheduleCallback(string name, Action<bool> callback, TimeSpan? timeout = null);
         IScheduledTask ScheduleCron(string name, Action<bool> callback, string trigger);
+
+        void Stop();
     }
 
     public class WebScheduler : IWebScheduler
@@ -54,6 +56,12 @@ namespace DotJEM.Web.Host.Providers.Scheduler
         {
             IScheduledTask task;
             tasks.TryRemove(args.Task.Id, out task);
+        }
+
+        public void Stop()
+        {
+            foreach (IScheduledTask task in tasks.Values)
+                task.Dispose();
         }
 
         private void HandleTaskException(object sender, TaskExceptionEventArgs args)

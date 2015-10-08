@@ -42,15 +42,28 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
         public abstract IScheduledTask Start();
 
+        /// <summary>
+        /// Registers the next call for the scheduled task onto the threadpool.
+        /// </summary>
+        /// <remarks>
+        /// If the task has been disposed this method dows nothing.
+        /// </remarks>
+        /// <param name="timeout">Time untill next execution</param>
+        /// <returns>self</returns>
         protected virtual IScheduledTask RegisterWait(TimeSpan timeout)
         {
+            if (Disposed)
+                return this;
+
             executing = pool.RegisterWaitForSingleObject(handle, (state, timedout) => ExecuteCallback(timedout), null, timeout, true);
             return this;
         }
 
         protected virtual bool ExecuteCallback(bool timedout)
         {
-            if (Disposed) return false;
+            if (Disposed)
+                return false;
+
             try
             {
                 IPerformanceTracker<object> tracker = perf.TrackTask(Name);
@@ -87,9 +100,14 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             }
         }
 
+        /// <summary>
+        /// Marks the task for shutdown and signals any waiting tasks.
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+            Signal();
             OnTaskCompleted(new TaskEventArgs(this));
         }
 
