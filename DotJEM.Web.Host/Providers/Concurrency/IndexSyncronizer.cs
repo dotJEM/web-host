@@ -110,10 +110,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .ToList();
                 
                 if (tuples.All(t => t.Item2.Count.Total < 1))
-                    return;
+                    break;
 
 
-                tuples.Select(Selector).ForEach(next => tracker[next.Item1] = next.Item2);
+                tuples.Select(InitialzeSelector).ForEach(next => tracker[next.Item1] = next.Item2);
                 //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                 //      if we do that we should either send a "initialized" even that instructs controllers
                 //      and services that the index is now fully ready. Or we neen to collect all data
@@ -122,6 +122,16 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 total += tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
                 this.tracker.SetProgress("{0} objects indexed.", total);
             }
+            OptimizeIndex(total);
+        }
+
+        private Tuple<string, long> InitialzeSelector(Tuple<string, IStorageChanges> tuple)
+        {
+            IStorageChanges changes = tuple.Item2;
+            index
+                .WriteAll(changes.Created)
+                .WriteAll(changes.Updated);
+            return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
 
         private void UpdateIndex()
