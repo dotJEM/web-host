@@ -14,8 +14,9 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         bool Enabled { get; }
         IDiagnosticsLogger Diag { get; }
 
-        IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request);
-        IPerformanceTracker<object> TrackTask(string name);
+        IPerformanceTracker Track(string type, params object[] args);
+        IPerformanceTracker TrackRequest(HttpRequestMessage request);
+        IPerformanceTracker TrackTask(string name);
 
         void TrackAction(Action action);
         void TrackAction(string name, Action action);
@@ -28,8 +29,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
     {
         private readonly ILogWriter writer;
 
-        public bool Enabled { get; private set; }
-        public IDiagnosticsLogger Diag { get; private set; }
+        public bool Enabled { get; }
+        public IDiagnosticsLogger Diag { get; }
 
         public PerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration, IDiagnosticsLogger diagnostics)
         {
@@ -44,15 +45,19 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             writer = factory.Create(config.Path, AdvConvert.ToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         }
 
-
-        public IPerformanceTracker<HttpStatusCode> TrackRequest(HttpRequestMessage request)
+        public IPerformanceTracker TrackRequest(HttpRequestMessage request)
         {
-            return new HttpRequestPerformanceTracker(LogPerformanceEvent, request);
+            return Track("request", request.Method.Method, request.RequestUri.ToString());
         }
 
-        public IPerformanceTracker<object> TrackTask(string name)
+        public IPerformanceTracker TrackTask(string name)
         {
-            return new TaskPerformanceTracker(LogPerformanceEvent, name);
+            return Track("task", name);
+        }
+
+        public IPerformanceTracker Track(string type, params object[] args)
+        {
+            return new PerformanceTracker(LogPerformanceEvent, type, args);
         }
 
         public void TrackAction(Action action)
@@ -65,7 +70,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             var methodName = action.Method.Name;
             var tracker = TrackTask(name);
             action();
-            tracker.Trace(methodName);
+            tracker.Commit(methodName);
         }
 
         public T TrackFunction<T>(Func<T> func)

@@ -115,7 +115,7 @@ namespace DotJEM.Web.Host
                 
 
             IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
-            IPerformanceTracker<object> startup = perf.TrackTask("Start");
+            IPerformanceTracker startup = perf.TrackTask("Start");
 
             DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
           
@@ -145,7 +145,7 @@ namespace DotJEM.Web.Host
                 perf.TrackAction(indexManager.Start);
                 perf.TrackAction(AfterStart);
 
-                startup.Trace("");
+                startup.Commit();
                 Initialization.Complete();
                 
             }).ContinueWith(result =>

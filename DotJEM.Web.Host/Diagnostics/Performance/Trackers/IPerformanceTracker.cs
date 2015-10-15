@@ -8,92 +8,63 @@ using System.Threading.Tasks;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
 {
-    public interface IPerformanceTracker<in TFinalizer>
+    public interface IPerformanceTracker
     {
-        void Trace(TFinalizer final);
+        void Commit(params object[] args);
+        void Commit(Func<object[]> argsFactory);
     }
 
-    public abstract class PerformanceTracker<TFinalizer> : IPerformanceTracker<TFinalizer>
+    public class PerformanceTracker : IPerformanceTracker
     {
         private readonly Action<string> completed;
 
-        protected DateTime Time { get; private set; }
-        protected string Identity { get; private set; }
+        protected DateTime Time { get; }
+        protected string Identity { get; }
 
-        protected long ElapsedTicks { get { return end - start; } }
+        protected long ElapsedTicks => end - start;
+        protected long ElapsedMilliseconds => (ElapsedTicks * 1000) / Stopwatch.Frequency;
 
-        protected abstract string Type { get; }
+        private readonly string type;
+        private readonly string[] arguments;
 
         private readonly long start;
         private long end = -1;
 
-        protected PerformanceTracker(Action<string> completed)
+        public PerformanceTracker(Action<string> completed, string type, params object[] arguments)
         {
             start = Stopwatch.GetTimestamp();
 
             this.completed = completed;
+            this.type = type;
+            this.arguments = Array.ConvertAll(arguments, obj => (obj ?? "N/A").ToString());
 
             Time = DateTime.UtcNow;
             Identity = ClaimsPrincipal.Current.Identity.Name;
         }
 
-        protected void Commit(Func<string> value)
+        public void Commit(Func<object[]> argsFactory)
         {
             end = Stopwatch.GetTimestamp();
-            Task.Run(() => completed(value()));
+            Task.Run(() => Complete(argsFactory()));
         }
 
-        protected void Commit(params string[] args)
+        public void Commit(params object[] args)
         {
             end = Stopwatch.GetTimestamp();
-            Task.Run(() => completed(Format(args)));
+            Task.Run(() => Complete(args));
         }
 
-        private string Format(string[] args)
+        private void Complete(params object[] args)
         {
-            string iden = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
-            string[] prefix = { Time.ToString("s"), ElapsedTicks.ToString(), Type, iden };
+            completed(Format(args));
+        }
+
+        private string Format(object[] args)
+        {
+            args = arguments.Union(args).ToArray();
+            string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
+            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, identity };
             return string.Join("\t", prefix.Union(args));
-        }
-
-        public abstract void Trace(TFinalizer final);
-    }
-
-    public class TaskPerformanceTracker : PerformanceTracker<object>
-    {
-        private readonly string name;
-
-        protected override string Type{get { return "task"; }}
-
-        public TaskPerformanceTracker(Action<string> completed, string name)
-            : base(completed)
-        {
-            this.name = name;
-        }
-
-        public override void Trace(object final)
-        {
-            Commit(name);
-        }
-    }
-
-    public class HttpRequestPerformanceTracker : PerformanceTracker<HttpStatusCode>
-    {
-        private readonly string uri;
-        private readonly string method;
-
-        protected override string Type { get { return "request"; } }
-
-        public HttpRequestPerformanceTracker(Action<string> completed, HttpRequestMessage request)
-            : base(completed)
-        {
-            method = request.Method.Method;
-            uri = request.RequestUri.ToString();
-        }
-
-        public override void Trace(HttpStatusCode final)
-        {
-            Commit(method, uri, final.ToString());
         }
     }
 }

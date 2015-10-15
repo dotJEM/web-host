@@ -66,9 +66,9 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
             try
             {
-                IPerformanceTracker<object> tracker = perf.TrackTask(Name);
+                IPerformanceTracker tracker = perf.TrackTask(Name);
                 callback(!timedout);
-                tracker.Trace(null);
+                tracker.Commit();
                 return true;
             }
             catch (Exception ex)

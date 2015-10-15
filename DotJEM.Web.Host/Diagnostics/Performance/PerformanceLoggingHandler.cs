@@ -15,14 +15,20 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             this.logger = logger;
         }
 
+        public PerformanceLoggingHandler(IPerformanceLogger logger, HttpMessageHandler innerHandler)
+            : base(innerHandler)
+        {
+            this.logger = logger;
+        }
+
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if(!logger.Enabled)
+            if (!logger.Enabled)
                 return await base.SendAsync(request, cancellationToken);
-            
-            IPerformanceTracker<HttpStatusCode> tracker = logger.TrackRequest(request);
+
+            IPerformanceTracker tracker = logger.TrackRequest(request);
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-            tracker.Trace(response.StatusCode);
+            tracker.Commit(response.StatusCode);
             return response;
         }
     }
