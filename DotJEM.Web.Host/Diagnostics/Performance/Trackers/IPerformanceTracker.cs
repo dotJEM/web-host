@@ -45,13 +45,13 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         public void Commit(Func<object[]> argsFactory)
         {
             end = Stopwatch.GetTimestamp();
-            Task.Run(() => Complete(argsFactory()));
+            Task.Run(() => Complete(argsFactory())).ConfigureAwait(false);
         }
 
         public void Commit(params object[] args)
         {
             end = Stopwatch.GetTimestamp();
-            Task.Run(() => Complete(args));
+            Task.Run(() => Complete(args)).ConfigureAwait(false);
         }
 
         private void Complete(params object[] args)

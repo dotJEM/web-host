@@ -24,7 +24,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (!logger.Enabled)
-                return await base.SendAsync(request, cancellationToken);
+                return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
             IPerformanceTracker tracker = logger.TrackRequest(request);
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);

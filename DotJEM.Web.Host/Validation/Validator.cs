@@ -101,7 +101,7 @@ namespace DotJEM.Web.Host.Validation
         public ValidationResult Validate(JObject entity, IValidationContext context)
         {
             //TODO: Need a better concept for this, specifically a "Dependant field" concept, that can also be used in cross validation.
-            return RequiresValidation(entity)
+            return RequiresValidation(entity, context.PreviousEntity)
                 ? new ValidationResult(ContentType, entity, Validators.SelectMany(v => v.Validate(entity, context)).ToList())
                 : new ValidationResult(ContentType, entity, Enumerable.Empty<FieldValidationResults>().ToList());
         }
