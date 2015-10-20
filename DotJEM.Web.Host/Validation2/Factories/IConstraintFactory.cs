@@ -15,18 +15,18 @@
     {
     }
 
+    public class ConstraintFactory : IGuardConstraintFactory { }
 
     public interface IValidatorConstraintFactory
     {
         IBeConstraintFactory Be { get; }
-
         IHaveConstraintFactory Have { get; }
     }
 
     public class ValidatorConstraintFactory : IValidatorConstraintFactory
     {
-        public IBeConstraintFactory Be { get; set; }
-        public IHaveConstraintFactory Have { get; set; }
+        public IBeConstraintFactory Be { get; } = new ConstraintFactory();
+        public IHaveConstraintFactory Have { get; } = new ConstraintFactory();
     }
 
     //public static class GuardConstraintFactoryCommonExtensions

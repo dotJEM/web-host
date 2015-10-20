@@ -86,7 +86,7 @@
       <Name>DotJEM.Json.Storage</Name>
     </ProjectReference>
     <ProjectReference Include="..\DotJEM.Web.Host\DotJEM.Web.Host.csproj">
-      <Project>{D7393445-A4C4-4BB4-BB9F-89A6B631E970}</Project>
+      <Project>{d7393445-a4c4-4bb4-bb9f-89a6b631e970}</Project>
       <Name>DotJEM.Web.Host</Name>
     </ProjectReference>
   </ItemGroup>

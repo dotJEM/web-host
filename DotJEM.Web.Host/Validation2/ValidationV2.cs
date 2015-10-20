@@ -13,34 +13,38 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation2
 {
+    public interface IJsonValidator
+    {
+        JsonValidatorResult Validate(IJsonValidationContext contenxt, JObject entity);
+    }
 
-    public class JsonValidator
+    public class JsonValidator : IJsonValidator
     {
         private readonly List<JsonFieldValidator> validators = new List<JsonFieldValidator>();
-        protected IGuardConstraintFactory Is { get; set; }
-        protected IGuardConstraintFactory Has { get; set; }
-        protected IValidatorConstraintFactory Must { get; set; }
-        protected IValidatorConstraintFactory Should { get; set; }
+        protected IGuardConstraintFactory Is { get; } = new ConstraintFactory();
+        protected IGuardConstraintFactory Has { get; } = new ConstraintFactory();
+        protected IValidatorConstraintFactory Must { get; } = new ValidatorConstraintFactory();
+        protected IValidatorConstraintFactory Should { get; } = new ValidatorConstraintFactory();
 
         protected IJsonValidatorRuleFactory When(JsonRule rule)
         {
-            if (rule == null) throw new ArgumentNullException("rule");
+            if (rule == null) throw new ArgumentNullException(nameof(rule));
 
             return new JsonValidatorRuleFactory(this, rule);
         }
 
         protected IJsonValidatorRuleFactory When(string selector, JsonConstraint constraint)
         {
-            if (selector == null) throw new ArgumentNullException("selector");
-            if (constraint == null) throw new ArgumentNullException("constraint");
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            if (constraint == null) throw new ArgumentNullException(nameof(constraint));
 
             return When(Field(selector, constraint));
         }
 
         protected JsonRule Field(string selector, JsonConstraint constraint)
         {
-            if (selector == null) throw new ArgumentNullException("selector");
-            if (constraint == null) throw new ArgumentNullException("constraint");
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            if (constraint == null) throw new ArgumentNullException(nameof(constraint));
 
             return new BasicJsonRule(selector, constraint);
         }

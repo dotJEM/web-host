@@ -1,5 +1,6 @@
 ﻿using DotJEM.Web.Host.Validation2;
 using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Constraints.Common;
 using DotJEM.Web.Host.Validation2.Constraints.String;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
@@ -40,7 +41,7 @@ namespace DotJEM.Web.Host.Test.Validation2
 
             var result = validator.Validate(new JsonValidationContext(null, null), JObject.FromObject(new
             {
-                test= "01234567890123456789", other="0"
+                test= "01234567890123456789", other="0", A = ""
             }));
 
             Assert.That(result.IsValid, Is.True);
@@ -56,10 +57,10 @@ namespace DotJEM.Web.Host.Test.Validation2
 
             When(Field("test", Has.MinLength(5))).Then(Field("other", Should.Be.Equal("0")));
 
-            //When(Field("A", Is.Defined()) | Field("B", Is.Defined()))
-            //    .Then(
-            //          Field("A", Must.BeEqual("") | Must.BeEqual(""))
-            //        & Field("B", Must.Not().BeEqual("")));
+            When(Field("A", Is.Defined()) | Field("B", Is.Defined()))
+                .Then(
+                      Field("A", Must.Be.Equal("") | Must.Be.Equal(""))
+                    & Field("B", Must.Be.Equal("")));
         }
 
     }

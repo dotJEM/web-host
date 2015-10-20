@@ -27,7 +27,7 @@ namespace DotJEM.Web.Host.Validation2.Rules
         {
             return new AndJsonRuleResult(
                 (from token in SelectTokens(entity)
-                    select (JsonRuleResult)new BasicJsonRuleResult(token.Path, constraint.DoMatch(context, token))).ToList());
+                 select (JsonRuleResult)new BasicJsonRuleResult(token?.Path ?? selector, constraint.DoMatch(context, token))).ToList());
         }
 
         private IEnumerable<JToken> SelectTokens(JObject entity)
