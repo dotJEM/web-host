@@ -1,24 +1,29 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
+
 
 namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
 {
     public class JsonConstraintDescription
     {
         // { field or property, spacing : format }
-        private static readonly Regex replacer = new Regex(@"\{\s*(?<field>\w+?)\s*(\,\s*(?<spacing>\-?\d+?))?\s*(\:\s*(?<format>.*?))?\s*\}", 
+        private static readonly Regex replacer = new Regex(@"\{\s*(?<field>\w+?(\.\w+)*)\s*(\,\s*(?<spacing>\-?\d+?))?\s*(\:\s*(?<format>.*?))?\s*\}", 
             RegexOptions.Compiled | RegexOptions.Multiline);
 
         private readonly Type type;
         private readonly JsonConstraint source;
         private readonly string format;
+        private readonly JToken token;
 
-        public JsonConstraintDescription(JsonConstraint source, string format)
+        public JsonConstraintDescription(JsonConstraint source, string format, JToken token)
         {
             this.source = source;
             this.format = format;
+            this.token = token;
 
             type = source.GetType();
         }
@@ -31,6 +36,11 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
         private string GetValue(Match match)
         {
             string fieldOrProperty = match.Groups["field"].Value;
+
+            if (fieldOrProperty.StartsWith("token"))
+            {
+                return Evaluate(fieldOrProperty, token);
+            }
             string format = BuildFormat(match);
 
             FieldInfo field = type.GetField(fieldOrProperty, BindingFlags.NonPublic | BindingFlags.Instance);
@@ -46,6 +56,29 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
             }
 
             return "(UNKNOWN FIELD OR PROPERTY)";
+        }
+
+        private string Evaluate(string expression, JToken token)
+        {
+            //TODO: We need a more "evaluating" aproach.
+            //      One posibility would be to use Roslyn
+            if (expression == "token")
+                return token.ToString();
+
+
+
+            switch (token.Type)
+            {
+                case JTokenType.Array:
+                    return ((JArray) token).Count.ToString();
+                case JTokenType.String:
+                    return ((string) token).Length.ToString();
+                case JTokenType.Bytes:
+                    return ((byte[]) token).Length.ToString();
+                default:
+                    return token.ToString();
+            }
+
         }
 
         private static string BuildFormat(Match match)

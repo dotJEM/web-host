@@ -6,12 +6,15 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
     {
         private readonly JsonConstraintResult result;
 
-        public override bool Value { get { return result.Value; } }
-        public string Path { get; private set; }
+        public override bool Value => result.Value;
+        public string Selector { get; }
+        public string Path { get; }
 
-        public BasicJsonRuleResult(string path, JsonConstraintResult result)
+        public BasicJsonRuleResult(string selector, string path, JsonConstraintResult result)
         {
             Path = path;
+            Selector = selector;
+
             this.result = result.Optimize();
         }
     }

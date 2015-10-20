@@ -237,6 +237,9 @@
     <Compile Include="Validation2\Context\JsonValidationContext.cs" />
     <Compile Include="Validation2\Constraints\Results\AndJsonConstraintResult.cs" />
     <Compile Include="Validation2\Factories\IConstraintFactory.cs" />
+    <Compile Include="Validation2\JsonFieldValidator.cs" />
+    <Compile Include="Validation2\JsonValidatorResult.cs" />
+    <Compile Include="Validation2\JsonValidatorRuleFactory.cs" />
     <Compile Include="Validation2\Rules\Results\AndJsonRuleResult.cs" />
     <Compile Include="Validation2\Constraints\Results\BasicJsonConstraintResult.cs" />
     <Compile Include="Validation2\Rules\Results\BasicJsonRuleResult.cs" />
@@ -254,7 +257,7 @@
     <Compile Include="Validation2\Rules\JsonRule.cs" />
     <Compile Include="Validation2\Rules\NotJsonRule.cs" />
     <Compile Include="Validation2\Rules\OrJsonRule.cs" />
-    <Compile Include="Validation2\ValidationV2.cs" />
+    <Compile Include="Validation2\JsonValidator.cs" />
     <Compile Include="Validation2\Constraints\String\ValidatorConstraintFactoryStringExtensions.cs" />
     <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />

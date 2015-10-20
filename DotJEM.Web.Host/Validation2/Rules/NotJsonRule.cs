@@ -6,7 +6,7 @@ namespace DotJEM.Web.Host.Validation2.Rules
 {
     public sealed class NotJsonRule : JsonRule
     {
-        public JsonRule Rule { get; private set; }
+        public JsonRule Rule { get; }
 
         public NotJsonRule(JsonRule rule)
         {

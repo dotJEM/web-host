@@ -59,77 +59,8 @@ namespace DotJEM.Web.Host.Validation2
             IEnumerable<JsonRuleResult> results = from validator in validators
                 let result = validator.Validate(contenxt, entity)
                 where result != null
-                select result;
+                select result.Optimize();
             return new JsonValidatorResult(results.ToList());
-        }
-    }
-
-    public class JsonValidatorResult
-    {
-        private readonly List<JsonRuleResult> results;
-
-        public bool IsValid
-        {
-            get { return results.All(r => r.Value); }
-        }
-
-        public JsonValidatorResult(List<JsonRuleResult> results)
-        {
-            this.results = results;
-        }
-
-        public string Describe()
-        {
-            return "";
-        }
-    }
-
-    public interface IJsonValidatorRuleFactory
-    {
-        void Then(JsonRule validator);
-        void Then(string selector, JsonConstraint validator);
-    }
-
-    public class JsonValidatorRuleFactory : IJsonValidatorRuleFactory
-    {
-        private readonly JsonRule rule;
-        private readonly JsonValidator validator;
-
-        public JsonValidatorRuleFactory(JsonValidator validator, JsonRule rule)
-        {
-            this.validator = validator;
-            this.rule = rule;
-        }
-
-        public void Then(JsonRule rule)
-        {
-            validator.AddValidator(new JsonFieldValidator(this.rule, rule));
-        }
-
-        public void Then(string selector, JsonConstraint constraint)
-        {
-            Then(new BasicJsonRule(selector, constraint));
-        }
-    }
-
-    public class JsonFieldValidator
-    {
-        private readonly JsonRule guard;
-        private readonly JsonRule rule;
-
-        public JsonFieldValidator(JsonRule guard, JsonRule rule)
-        {
-            this.guard = guard.Optimize();
-            this.rule = rule.Optimize();
-        }
-
-        public JsonRuleResult Validate(IJsonValidationContext context, JObject entity)
-        {
-            var gr = guard.Test(context, entity);
-            if (!gr.Value)
-                return null;
-
-            return rule.Test(context, entity);
         }
     }
 }

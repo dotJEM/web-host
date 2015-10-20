@@ -36,21 +36,21 @@ namespace DotJEM.Web.Host.Test.Validation2
         [Test]
         public void SpecificValidator_InvalidData_ShouldReturnErrors()
         {
-            SpecificValidator validator = new SpecificValidator();
+            TestValidator validator = new TestValidator();
 
 
             var result = validator.Validate(new JsonValidationContext(null, null), JObject.FromObject(new
             {
-                test= "01234567890123456789", other="0", A = ""
+                test= "01234567890123456789", other="0", A = "asd"
             }));
 
-            Assert.That(result.IsValid, Is.True);
+            Assert.That(result.IsValid, Is.False);
         }
     }
 
-    public class SpecificValidator : JsonValidator
+    public class TestValidator : JsonValidator
     {
-        public SpecificValidator()
+        public TestValidator()
         {
             When("test", Has.MaxLength(5)).Then("test", Must.Have.MaxLength(200));
             When("other", Has.MinLength(0)).Then("test", Must.Have.MaxLength(25));

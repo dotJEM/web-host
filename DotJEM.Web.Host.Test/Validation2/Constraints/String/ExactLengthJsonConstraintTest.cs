@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using DotJEM.Web.Host.Test.Validation.V2;
 using DotJEM.Web.Host.Validation2.Constraints;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.String;
@@ -65,6 +64,7 @@ namespace DotJEM.Web.Host.Test.Validation2.Constraints.String
     [TestFixture]
     public class MatchStringJsonConstraintString
     {
+        [TestCase("[a-z0-9].*", "String must match the expression: '[a-z0-9].*'.")]
         public void Describe_FormatsDescription(string regex, string expected)
         {
             Assert.That(new MatchStringJsonConstraint(new Regex(regex, RegexOptions.Compiled)).Describe(null, null).ToString(), Is.EqualTo(expected));
