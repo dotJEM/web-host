@@ -79,11 +79,11 @@ namespace DotJEM.Web.Host
             this.configuration = configuration;
             this.container = container;
 
-            configuration.Services.Replace(typeof (IHttpControllerSelector), new ControllerSelector(configuration));
-            configuration.Services.Replace(typeof (IHttpControllerActivator), new WindsorControllerActivator(container));
+            configuration.Services.Replace(typeof(IHttpControllerSelector), new ControllerSelector(configuration));
+            configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
 
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
-            
+
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new IsoDateTimeConverter());
@@ -112,13 +112,13 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IStorageContext>().Instance(Storage))
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
-                
+
 
             IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
             IPerformanceTracker startup = perf.TrackTask("Start");
 
             DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
-          
+
             perf.TrackAction(BeforeConfigure);
             perf.TrackAction("Configure Pipeline", () => Configure(container.Resolve<IPipeline>()));
             perf.TrackAction("Configure Container", () => Configure(container));
@@ -128,7 +128,7 @@ namespace DotJEM.Web.Host
             perf.TrackAction(AfterConfigure);
 
             ResolveComponents();
-            
+
             Initialization.SetProgress("Bootstrapping.");
             Task.Factory.StartNew(() =>
             {
@@ -147,10 +147,10 @@ namespace DotJEM.Web.Host
 
                 startup.Commit();
                 Initialization.Complete();
-                
+
             }).ContinueWith(result =>
             {
-                if (!result.IsFaulted) 
+                if (!result.IsFaulted)
                     return;
 
                 IDiagnosticsDumpService dump = Resolve<IDiagnosticsDumpService>();
@@ -188,8 +188,8 @@ namespace DotJEM.Web.Host
         private void ResolveComponents()
         {
             container.ResolveAll<IExceptionLogger>()
-                .ForEach(logger => HttpConfiguration.Services.Add(typeof (IExceptionLogger), logger));
-            configuration.Services.Replace(typeof (IExceptionHandler), container.Resolve<IExceptionHandler>());
+                .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
+            configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
 
             configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
             container
@@ -201,7 +201,7 @@ namespace DotJEM.Web.Host
         protected virtual IStorageIndex CreateIndex()
         {
             IndexStorageConfiguration storage = Configuration.Index.Storage;
-            if(storage == null)
+            if (storage == null)
                 return new LuceneStorageIndex();
 
             switch (storage.Type)
@@ -221,10 +221,29 @@ namespace DotJEM.Web.Host
         {
             path = HostingEnvironment.MapPath(path);
             string padlock = Path.Combine(path, "write.lock");
+
+            //TODO: (jmd 2015-10-19) All this needs prober refactorings...
+            //      Basically all what we do here should be in dotjem index as a "Unlock" feature as well as an "Clear" feature. 
+            Random rnd = new Random();
             if (File.Exists(padlock))
             {
-                File.Delete(padlock);
+                for (int i = 0;; i++)
+                {
+                    try
+                    {
+                        File.Delete(padlock);
+                    }
+                    catch (Exception)
+                    {
+                        //file might be locked...
+                        if (i > 10)
+                            throw;
+
+                        Thread.Sleep(rnd.Next(10)*100 + i * 100);
+                    }
+                }
             }
+
 
             //TODO: (jmd 2015-10-08) Temporary workaround to ensure indexes are build from scratch.
             //                       untill we have a way to track the index generation again. 
