@@ -45,6 +45,8 @@ namespace DotJEM.Web.Host.Test.Validation2
             }));
 
             Assert.That(result.IsValid, Is.False);
+
+            string description = validator.Describe().ToString();
         }
     }
 
@@ -62,7 +64,6 @@ namespace DotJEM.Web.Host.Test.Validation2
                       Field("A", Must.Be.Equal("") | Must.Be.Equal(""))
                     & Field("B", Must.Be.Equal("")));
         }
-
     }
 
 

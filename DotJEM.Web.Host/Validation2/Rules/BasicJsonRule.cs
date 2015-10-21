@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Context;
 using DotJEM.Web.Host.Validation2.Rules.Results;
 using Newtonsoft.Json.Linq;
@@ -13,12 +14,15 @@ namespace DotJEM.Web.Host.Validation2.Rules
         private static readonly Regex arraySelector = new Regex(@".*\[\*|.+].*", RegexOptions.Compiled);
 
         private readonly string selector;
+        private readonly string alias;
+
         private readonly JsonConstraint constraint;
         private readonly bool hasArray;
 
-        public BasicJsonRule(string selector, JsonConstraint constraint)
+        public BasicJsonRule(string selector, string alias, JsonConstraint constraint)
         {
             this.selector = selector;
+            this.alias = alias;
             this.constraint = constraint.Optimize();
             this.hasArray = arraySelector.IsMatch(selector);
         }
@@ -34,9 +38,14 @@ namespace DotJEM.Web.Host.Validation2.Rules
         {
             if (hasArray)
             {
-                return entity.SelectTokens(selector).ToList();
+                return entity.SelectTokens(selector);
             }
             return new[] { entity.SelectToken(selector) };
+        }
+
+        public override JsonRuleDescription Describe()
+        {
+            return new JsonRuleDescription(alias, selector, constraint);
         }
     }
 }

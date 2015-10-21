@@ -25,6 +25,11 @@ namespace DotJEM.Web.Host.Validation2.Constraints
             return new BasicJsonConstraintResult(Matches(context, token), Describe(context, token), GetType());
         }
 
+        public virtual JsonConstraintDescription Describe()
+        {
+            return new JsonConstraintDescription(this, description.Format, null);
+        }
+
         public virtual JsonConstraintDescription Describe(IJsonValidationContext context, JToken token)
         {
             return new JsonConstraintDescription(this, description.Format, token);

@@ -222,6 +222,7 @@
     <Compile Include="Validation2\Constraints\Common\IsDefinedJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\Common\ValidatorConstraintFactoryCommonExtensions.cs" />
     <Compile Include="Validation2\Constraints\CompositeJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\Descriptive\JsonValidatorDescription.cs" />
     <Compile Include="Validation2\Constraints\JsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescription.cs" />
     <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescriptionAttribute.cs" />

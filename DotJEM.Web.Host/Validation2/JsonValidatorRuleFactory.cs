@@ -27,7 +27,12 @@ namespace DotJEM.Web.Host.Validation2
 
         public void Then(string selector, JsonConstraint constraint)
         {
-            Then(new BasicJsonRule(selector, constraint));
+            Then(selector, selector,constraint);
+        }
+
+        public void Then(string selector, string alias, JsonConstraint constraint)
+        {
+            Then(new BasicJsonRule(selector, alias, constraint));
         }
     }
 }

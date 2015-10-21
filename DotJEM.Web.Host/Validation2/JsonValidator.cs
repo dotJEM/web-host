@@ -16,6 +16,7 @@ namespace DotJEM.Web.Host.Validation2
     public interface IJsonValidator
     {
         JsonValidatorResult Validate(IJsonValidationContext contenxt, JObject entity);
+        JsonValidatorDescription Describe();
     }
 
     public class JsonValidator : IJsonValidator
@@ -35,19 +36,28 @@ namespace DotJEM.Web.Host.Validation2
 
         protected IJsonValidatorRuleFactory When(string selector, JsonConstraint constraint)
         {
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            if (constraint == null) throw new ArgumentNullException(nameof(constraint));
-
             return When(Field(selector, constraint));
+        }
+
+        protected IJsonValidatorRuleFactory When(string selector, string alias, JsonConstraint constraint)
+        {
+            return When(Field(selector, alias, constraint));
         }
 
         protected JsonRule Field(string selector, JsonConstraint constraint)
         {
+            return Field(selector, selector, constraint);
+        }
+
+        protected JsonRule Field(string selector, string alias, JsonConstraint constraint)
+        {
             if (selector == null) throw new ArgumentNullException(nameof(selector));
             if (constraint == null) throw new ArgumentNullException(nameof(constraint));
+            if (alias == null) throw new ArgumentNullException(nameof(alias));
 
-            return new BasicJsonRule(selector, constraint);
+            return new BasicJsonRule(selector, alias, constraint);
         }
+
 
         internal void AddValidator(JsonFieldValidator jsonFieldValidator)
         {
@@ -61,6 +71,15 @@ namespace DotJEM.Web.Host.Validation2
                 where result != null
                 select result.Optimize();
             return new JsonValidatorResult(results.ToList());
+        }
+        
+        public JsonValidatorDescription Describe()
+        {
+            IEnumerable<JsonFieldValidatorDescription> descriptions = from validator in validators
+                               select validator.Describe();
+
+            return new JsonValidatorDescription(this, descriptions.ToList());
+
         }
     }
 }

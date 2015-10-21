@@ -4,7 +4,7 @@ using Lucene.Net.Analysis;
 
 namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
 {
-    [JsonConstraintDescription("String length must be '{length}', but was '{token.length}'")]
+    [JsonConstraintDescription("String length must be '{length}'.")]
     public class ExactStringLengthJsonConstraint : TypedJsonConstraint<string>
     {
         private readonly int length;

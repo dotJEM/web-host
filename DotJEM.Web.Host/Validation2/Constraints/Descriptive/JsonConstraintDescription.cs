@@ -39,7 +39,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
 
             if (fieldOrProperty.StartsWith("token"))
             {
-                return Evaluate(fieldOrProperty, token);
+                return Evaluate(fieldOrProperty);
             }
             string format = BuildFormat(match);
 
@@ -58,14 +58,15 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
             return "(UNKNOWN FIELD OR PROPERTY)";
         }
 
-        private string Evaluate(string expression, JToken token)
+        private string Evaluate(string expression)
         {
             //TODO: We need a more "evaluating" aproach.
             //      One posibility would be to use Roslyn
+            if (token == null)
+                return "";
+
             if (expression == "token")
                 return token.ToString();
-
-
 
             switch (token.Type)
             {
