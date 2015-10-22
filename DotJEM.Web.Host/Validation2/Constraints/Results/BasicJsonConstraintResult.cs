@@ -1,5 +1,6 @@
 using System;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
+using DotJEM.Web.Host.Validation2.Descriptive;
 
 namespace DotJEM.Web.Host.Validation2.Constraints.Results
 {

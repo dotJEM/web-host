@@ -1,5 +1,7 @@
 using System.Linq;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Context;
+using DotJEM.Web.Host.Validation2.Descriptive;
 using DotJEM.Web.Host.Validation2.Rules.Results;
 using Newtonsoft.Json.Linq;
 
@@ -25,6 +27,10 @@ namespace DotJEM.Web.Host.Validation2.Rules
         public override JsonRule Optimize()
         {
             return OptimizeAs<AndJsonRule>();
+        }
+        public override JsonRuleDescription Describe()
+        {
+            return new CompositeJsonRuleDescription(Rules.Select(rule => rule.Describe()), " and ");
         }
     }
 }

@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation2.Constraints.Common
 {
-    [JsonConstraintDescription("String must be equal to '{value}' ({comparison}).")]
+    [JsonConstraintDescription("value must be defined.")]
     public class IsDefinedJsonConstraint : JsonConstraint
     {
         public override bool Matches(IJsonValidationContext context, JToken token)

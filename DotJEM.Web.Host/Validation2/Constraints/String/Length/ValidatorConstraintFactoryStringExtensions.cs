@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using DotJEM.Web.Host.Validation2.Constraints.String.Length;
 using DotJEM.Web.Host.Validation2.Factories;
 
-namespace DotJEM.Web.Host.Validation2.Constraints.String
+namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
 {
     public static class ConstraintFactoryStringExtensions
     {

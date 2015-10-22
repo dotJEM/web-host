@@ -3,7 +3,7 @@ using DotJEM.Web.Host.Validation2.Context;
 
 namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
 {
-    [JsonConstraintDescription("String length must be from '{minLength}' to '{maxLength}'.")]
+    [JsonConstraintDescription("length must be from '{minLength}' to '{maxLength}'.")]
     public class StringLengthJsonConstraint : TypedJsonConstraint<string>
     {
         private readonly int minLength;

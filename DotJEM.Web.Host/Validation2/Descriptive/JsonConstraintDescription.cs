@@ -1,14 +1,13 @@
 using System;
-using System.Collections;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using DotJEM.Web.Host.Validation2.Constraints;
 using Newtonsoft.Json.Linq;
 
-
-namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
+namespace DotJEM.Web.Host.Validation2.Descriptive
 {
-    public class JsonConstraintDescription
+    public class JsonConstraintDescription : IDescription
     {
         // { field or property, spacing : format }
         private static readonly Regex replacer = new Regex(@"\{\s*(?<field>\w+?(\.\w+)*)\s*(\,\s*(?<spacing>\-?\d+?))?\s*(\:\s*(?<format>.*?))?\s*\}", 
@@ -17,7 +16,6 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
         private readonly Type type;
         private readonly JsonConstraint source;
         private readonly string format;
-        private readonly JToken token;
 
         public JsonConstraintDescription(JsonConstraint source, string format)
         {
@@ -30,6 +28,11 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
         public override string ToString()
         {
             return replacer.Replace(format, GetValue);
+        }
+
+        public IDescriptionWriter WriteTo(IDescriptionWriter writer)
+        {
+            return writer.WriteLine(ToString());
         }
 
         private string GetValue(Match match)
