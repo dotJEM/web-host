@@ -59,7 +59,6 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
         public override string ToString()
         {
             return $"{alias} should {constraint.Describe()}";
-            return base.ToString();
         }
     }
 }

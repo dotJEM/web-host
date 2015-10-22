@@ -19,11 +19,10 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
         private readonly string format;
         private readonly JToken token;
 
-        public JsonConstraintDescription(JsonConstraint source, string format, JToken token)
+        public JsonConstraintDescription(JsonConstraint source, string format)
         {
             this.source = source;
             this.format = format;
-            this.token = token;
 
             type = source.GetType();
         }
@@ -36,11 +35,6 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
         private string GetValue(Match match)
         {
             string fieldOrProperty = match.Groups["field"].Value;
-
-            if (fieldOrProperty.StartsWith("token"))
-            {
-                return Evaluate(fieldOrProperty);
-            }
             string format = BuildFormat(match);
 
             FieldInfo field = type.GetField(fieldOrProperty, BindingFlags.NonPublic | BindingFlags.Instance);
@@ -58,29 +52,6 @@ namespace DotJEM.Web.Host.Validation2.Constraints.Descriptive
             return "(UNKNOWN FIELD OR PROPERTY)";
         }
 
-        private string Evaluate(string expression)
-        {
-            //TODO: We need a more "evaluating" aproach.
-            //      One posibility would be to use Roslyn
-            if (token == null)
-                return "";
-
-            if (expression == "token")
-                return token.ToString();
-
-            switch (token.Type)
-            {
-                case JTokenType.Array:
-                    return ((JArray) token).Count.ToString();
-                case JTokenType.String:
-                    return ((string) token).Length.ToString();
-                case JTokenType.Bytes:
-                    return ((byte[]) token).Length.ToString();
-                default:
-                    return token.ToString();
-            }
-
-        }
 
         private static string BuildFormat(Match match)
         {
