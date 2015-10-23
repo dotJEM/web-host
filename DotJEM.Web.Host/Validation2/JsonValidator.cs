@@ -6,6 +6,7 @@ using DotJEM.Web.Host.Validation2.Constraints;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
+using DotJEM.Web.Host.Validation2.Descriptive;
 using DotJEM.Web.Host.Validation2.Factories;
 using DotJEM.Web.Host.Validation2.Rules;
 using DotJEM.Web.Host.Validation2.Rules.Results;

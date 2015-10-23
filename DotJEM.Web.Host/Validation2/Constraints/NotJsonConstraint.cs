@@ -1,10 +1,12 @@
 using System;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation2.Constraints
 {
+    [JsonConstraintDescription("not {Constraint}")]
     public sealed class NotJsonConstraint : JsonConstraint
     {
         public JsonConstraint Constraint { get; private set; }

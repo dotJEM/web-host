@@ -1,7 +1,9 @@
-﻿using DotJEM.Web.Host.Validation2;
+﻿using System;
+using DotJEM.Web.Host.Validation2;
 using DotJEM.Web.Host.Validation2.Constraints;
 using DotJEM.Web.Host.Validation2.Constraints.Common;
 using DotJEM.Web.Host.Validation2.Constraints.String;
+using DotJEM.Web.Host.Validation2.Constraints.String.Length;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -44,9 +46,9 @@ namespace DotJEM.Web.Host.Test.Validation2
                 test= "01234567890123456789", other="0", A = "asd"
             }));
 
-            Assert.That(result.IsValid, Is.False);
-
             string description = validator.Describe().ToString();
+            Console.WriteLine(description);
+            Assert.That(result.IsValid, Is.False);
         }
     }
 

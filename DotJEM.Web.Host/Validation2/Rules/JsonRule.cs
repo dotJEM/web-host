@@ -1,5 +1,6 @@
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Context;
+using DotJEM.Web.Host.Validation2.Descriptive;
 using DotJEM.Web.Host.Validation2.Rules.Results;
 using Newtonsoft.Json.Linq;
 
@@ -29,9 +30,6 @@ namespace DotJEM.Web.Host.Validation2.Rules
             return this;
         }
 
-        public virtual JsonRuleDescription Describe()
-        {
-            return new JsonRuleDescription("","",null);
-        }
+        public abstract JsonRuleDescription Describe();
     }
 }

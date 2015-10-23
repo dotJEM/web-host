@@ -1,12 +1,14 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
+using DotJEM.Web.Host.Validation2.Descriptive;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation2.Constraints
 {
-    public abstract class JsonConstraint
+    public abstract class JsonConstraint : IDescribable
     {
         private readonly JsonConstraintDescriptionAttribute description;
 
@@ -16,6 +18,11 @@ namespace DotJEM.Web.Host.Validation2.Constraints
                 .GetCustomAttributes(typeof (JsonConstraintDescriptionAttribute), false)
                 .OfType<JsonConstraintDescriptionAttribute>()
                 .SingleOrDefault();
+
+            //if (description == null)
+            //{
+            //    throw new InvalidOperationException("JsonConstraints must have a JsonConstraintDescription attribute.");
+            //}
         }
 
         public abstract bool Matches(IJsonValidationContext context, JToken token);
@@ -25,7 +32,7 @@ namespace DotJEM.Web.Host.Validation2.Constraints
             return new BasicJsonConstraintResult(Matches(context, token), Describe(context, token), GetType());
         }
 
-        public virtual JsonConstraintDescription Describe()
+        public virtual IDescription Describe()
         {
             return new JsonConstraintDescription(this, description.Format);
         }

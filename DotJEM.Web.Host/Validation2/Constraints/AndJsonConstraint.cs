@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Linq;
+using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Constraints.Results;
 using DotJEM.Web.Host.Validation2.Context;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation2.Constraints
 {
+    [JsonConstraintDescription("{Described}")]
     public sealed class AndJsonConstraint : CompositeJsonConstraint
     {
         public AndJsonConstraint()
@@ -29,7 +31,8 @@ namespace DotJEM.Web.Host.Validation2.Constraints
 
         public override string ToString()
         {
-            return "( " + string.Join(" AND ", Constraints) + " )";
+            return "( " + string.Join(" AND ", Constraints.Select(c => c.Describe())) + " )";
         }
+        private string Described => ToString();
     }
 }
