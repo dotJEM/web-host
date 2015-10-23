@@ -341,11 +341,11 @@
     <Folder Include="Validation2\Constraints\Number\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\external\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
+    <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
       <Project>{61ea751b-691b-4f68-87c5-46d115d51cc3}</Project>
       <Name>DotJEM.Json.Index</Name>
     </ProjectReference>
-    <ProjectReference Include="..\external\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
+    <ProjectReference Include="..\..\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
       <Project>{672d1e1d-c559-4914-b233-807cc7ce3b52}</Project>
       <Name>DotJEM.Json.Storage</Name>
     </ProjectReference>
