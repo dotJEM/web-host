@@ -33,6 +33,10 @@ namespace DotJEM.Web.Host.Validation2.Constraints
         {
             return "( " + string.Join(" OR ", Constraints.Select(c => c.Describe())) + " )";
         }
+
+        // ReSharper disable UnusedMember.Local
+        // Note: Used by description attribute
         private string Described => ToString();
+        // ReSharper restore UnusedMember.Local
     }
 }

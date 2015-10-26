@@ -19,7 +19,6 @@ namespace DotJEM.Web.Host.Test.Validation2
             var constraint = (N & N) | (N & N & !N & N);
 
             string str = constraint.ToString();
-
             Assert.That(constraint, Is.TypeOf<OrJsonConstraint>());
 
             constraint = constraint.Optimize();
@@ -28,36 +27,38 @@ namespace DotJEM.Web.Host.Test.Validation2
             Assert.That(constraint, Is.TypeOf<OrJsonConstraint>());
         }
 
-        public int counter = 1;
-
-        public FakeJsonConstraint N
-        {
-            get { return new FakeJsonConstraint("" + counter++); }
-        }
-
+        
         [Test]
         public void SpecificValidator_InvalidData_ShouldReturnErrors()
         {
             TestValidator validator = new TestValidator();
 
 
-            var result = validator.Validate(new JsonValidationContext(null, null), JObject.FromObject(new
+            JsonValidatorResult result = validator.Validate(new JsonValidationContext(null, null), JObject.FromObject(new
             {
                 test= "01234567890123456789", other="0", A = "asd"
             }));
+
+            string rdesc = result.Describe().ToString();
+            Console.WriteLine(rdesc);
 
             string description = validator.Describe().ToString();
             Console.WriteLine(description);
             Assert.That(result.IsValid, Is.False);
         }
+
+        public int counter = 1;
+        public FakeJsonConstraint N => new FakeJsonConstraint("" + counter++);
     }
 
     public class TestValidator : JsonValidator
     {
         public TestValidator()
         {
-            When("test", Has.MaxLength(5)).Then("test", Must.Have.MaxLength(200));
-            When("other", Has.MinLength(0)).Then("test", Must.Have.MaxLength(25));
+            When(Any).Then("x", Must.Have.MinLength(3));
+
+            When("name", Is.Defined()).Then("test", Must.Have.MaxLength(200));
+            When("surname", Is.Defined()).Then("test", Must.Have.MaxLength(25));
 
             When(Field("test", Has.MinLength(5))).Then(Field("other", Should.Be.Equal("0")));
 

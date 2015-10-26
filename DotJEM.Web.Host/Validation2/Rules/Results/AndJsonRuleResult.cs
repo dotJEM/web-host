@@ -26,5 +26,6 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
         {
             return OptimizeAs<AndJsonRuleResult>();
         }
+
     }
 }

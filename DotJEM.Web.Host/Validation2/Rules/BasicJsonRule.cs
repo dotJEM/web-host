@@ -44,9 +44,22 @@ namespace DotJEM.Web.Host.Validation2.Rules
             return new[] { entity.SelectToken(selector) };
         }
 
-        public override JsonRuleDescription Describe()
+        public override Description Describe()
         {
             return new BasicJsonRuleDescription(alias, selector, constraint);
+        }
+    }
+
+    public sealed class AnyJsonRule : JsonRule
+    {
+        public override JsonRuleResult Test(IJsonValidationContext contenxt, JObject entity)
+        {
+            return new AnyJsonRuleResult();
+        }
+
+        public override Description Describe()
+        {
+            return new AnyJsonRuleDescription();
         }
     }
 }

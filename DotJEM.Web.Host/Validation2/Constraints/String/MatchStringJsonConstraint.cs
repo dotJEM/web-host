@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Context;
 
-namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
+namespace DotJEM.Web.Host.Validation2.Constraints.String
 {
     [JsonConstraintDescription("match the expression: '{expression}'.")]
     public class MatchStringJsonConstraint : TypedJsonConstraint<string>

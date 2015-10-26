@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using DotJEM.Web.Host.Validation2.Descriptive;
 using DotJEM.Web.Host.Validation2.Rules.Results;
 
 namespace DotJEM.Web.Host.Validation2
@@ -18,10 +20,11 @@ namespace DotJEM.Web.Host.Validation2
             this.results = results;
         }
 
-        public string Describe()
+        public JsonValidatorResultDescription Describe()
         {
 
-            return "";
+
+            return new JsonValidatorResultDescription(results.Where(r => r.Value));
         }
     }
 }

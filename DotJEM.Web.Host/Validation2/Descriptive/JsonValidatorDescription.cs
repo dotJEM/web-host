@@ -2,11 +2,45 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Castle.Core.Internal;
 using DotJEM.Web.Host.Validation2.Constraints;
+using DotJEM.Web.Host.Validation2.Rules.Results;
 
 namespace DotJEM.Web.Host.Validation2.Descriptive
 {
-    public class JsonValidatorDescription
+    public abstract class Description : IDescription
+    {
+        public override string ToString()
+        {
+            return WriteTo(new DescriptionWriter()).ToString();
+        }
+
+        public abstract IDescriptionWriter WriteTo(IDescriptionWriter writer);
+    }
+
+    public class JsonValidatorResultDescription : Description
+    {
+        private readonly IEnumerable<JsonRuleResult> failed;
+
+        public JsonValidatorResultDescription(IEnumerable<JsonRuleResult> failed)
+        {
+            this.failed = failed;
+        }
+
+        public override IDescriptionWriter WriteTo(IDescriptionWriter writer)
+        {
+            using (writer.Indent())
+            {
+                foreach (JsonRuleResult result in failed)
+                {
+                    
+                }
+            }
+            return writer;
+        }
+    }
+
+    public class JsonValidatorDescription : Description
     {
         private readonly JsonValidator validator;
         private readonly List<JsonFieldValidatorDescription> descriptions;
@@ -25,9 +59,16 @@ namespace DotJEM.Web.Host.Validation2.Descriptive
 
             return writer.ToString();
         }
+
+        public override IDescriptionWriter WriteTo(IDescriptionWriter writer)
+        {
+            //TODO: (jmd 2015-10-26) Indentation? 
+            descriptions.ForEach(d => d.WriteTo(writer));
+            return writer;
+        }
     }
 
-    public class JsonFieldValidatorDescription
+    public class JsonFieldValidatorDescription : Description
     {
         private readonly IDescription rule;
         private readonly IDescription guard;
@@ -43,19 +84,25 @@ namespace DotJEM.Web.Host.Validation2.Descriptive
         {
             return $"When {guard} then {rule}";
         }
-    }
 
-    public abstract class JsonRuleDescription : IDescription
-    {
-        public abstract IDescriptionWriter WriteTo(IDescriptionWriter writer);
-
-        public override string ToString()
+        public override IDescriptionWriter WriteTo(IDescriptionWriter writer)
         {
-            return WriteTo(new DescriptionWriter()).ToString();
+            writer.Write("When ");
+            guard.WriteTo(writer);
+            writer.Write(" then ");
+            return rule.WriteTo(writer);
         }
     }
 
-    public class BasicJsonRuleDescription : JsonRuleDescription
+    public class AnyJsonRuleDescription : Description
+    {
+        public override IDescriptionWriter WriteTo(IDescriptionWriter writer)
+        {
+            return writer;
+        }
+    }
+
+    public class BasicJsonRuleDescription : Description
     {
         private readonly string alias;
         private readonly string selector;
@@ -74,11 +121,11 @@ namespace DotJEM.Web.Host.Validation2.Descriptive
         }
     }
 
-    public class JsonNotRuleDescription : JsonRuleDescription
+    public class JsonNotRuleDescription : Description
     {
-        private readonly JsonRuleDescription inner;
+        private readonly Description inner;
 
-        public JsonNotRuleDescription(JsonRuleDescription inner)
+        public JsonNotRuleDescription(Description inner)
         {
             this.inner = inner;
         }
@@ -89,12 +136,12 @@ namespace DotJEM.Web.Host.Validation2.Descriptive
         }
     }
 
-    public class CompositeJsonRuleDescription : JsonRuleDescription
+    public class CompositeJsonRuleDescription : Description
     {
-        private readonly IEnumerable<JsonRuleDescription> list;
+        private readonly IEnumerable<Description> list;
         private readonly string @join;
 
-        public CompositeJsonRuleDescription(IEnumerable<JsonRuleDescription> list, string join)
+        public CompositeJsonRuleDescription(IEnumerable<Description> list, string join)
         {
             this.list = list;
             this.@join = @join;

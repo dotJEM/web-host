@@ -18,4 +18,9 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
             this.result = result.Optimize();
         }
     }
+
+    public sealed class AnyJsonRuleResult : JsonRuleResult
+    {
+        public override bool Value { get; } = true;
+    }
 }

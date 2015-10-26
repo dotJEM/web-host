@@ -29,7 +29,7 @@ namespace DotJEM.Web.Host.Validation2.Rules
             return OptimizeAs<OrJsonRule>();
         }
 
-        public override JsonRuleDescription Describe()
+        public override Description Describe()
         {
             return new CompositeJsonRuleDescription(Rules.Select(rule => rule.Describe()), " or ");
         }

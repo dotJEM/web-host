@@ -2,7 +2,7 @@ using System;
 using DotJEM.Web.Host.Validation2.Constraints.Descriptive;
 using DotJEM.Web.Host.Validation2.Context;
 
-namespace DotJEM.Web.Host.Validation2.Constraints.String.Length
+namespace DotJEM.Web.Host.Validation2.Constraints.String
 {
     [JsonConstraintDescription("be equal to '{value}' ({comparison}).")]
     public class StringEqualsJsonConstraint : TypedJsonConstraint<string>

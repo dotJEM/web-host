@@ -30,6 +30,6 @@ namespace DotJEM.Web.Host.Validation2.Rules
             return this;
         }
 
-        public abstract JsonRuleDescription Describe();
+        public abstract Description Describe();
     }
 }

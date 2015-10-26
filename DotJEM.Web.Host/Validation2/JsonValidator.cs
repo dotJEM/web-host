@@ -28,6 +28,8 @@ namespace DotJEM.Web.Host.Validation2
         protected IValidatorConstraintFactory Must { get; } = new ValidatorConstraintFactory();
         protected IValidatorConstraintFactory Should { get; } = new ValidatorConstraintFactory();
 
+        protected JsonRule Any => new AnyJsonRule();
+        
         protected IJsonValidatorRuleFactory When(JsonRule rule)
         {
             if (rule == null) throw new ArgumentNullException(nameof(rule));
@@ -59,28 +61,29 @@ namespace DotJEM.Web.Host.Validation2
             return new BasicJsonRule(selector, alias, constraint);
         }
 
-
         internal void AddValidator(JsonFieldValidator jsonFieldValidator)
         {
             validators.Add(jsonFieldValidator);
         }
 
-        public JsonValidatorResult Validate(IJsonValidationContext contenxt, JObject entity)
+
+        public JsonValidatorResult Validate(IJsonValidationContext context, JObject entity)
         {
-            IEnumerable<JsonRuleResult> results = from validator in validators
-                let result = validator.Validate(contenxt, entity)
-                where result != null
-                select result.Optimize();
+            IEnumerable<JsonRuleResult> results
+                = from validator in validators
+                  let result = validator.Validate(context, entity)
+                  where result != null
+                  select result.Optimize();
             return new JsonValidatorResult(results.ToList());
         }
-        
+
         public JsonValidatorDescription Describe()
         {
-            IEnumerable<JsonFieldValidatorDescription> descriptions = from validator in validators
-                               select validator.Describe();
+            IEnumerable<JsonFieldValidatorDescription> descriptions
+                = from validator in validators
+                  select validator.Describe();
 
             return new JsonValidatorDescription(this, descriptions.ToList());
-
         }
     }
 }

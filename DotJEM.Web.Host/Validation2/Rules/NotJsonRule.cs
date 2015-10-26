@@ -26,7 +26,7 @@ namespace DotJEM.Web.Host.Validation2.Rules
             return not != null ? not.Rule : base.Optimize();
         }
 
-        public override JsonRuleDescription Describe()
+        public override Description Describe()
         {
             return new JsonNotRuleDescription(Rule.Describe());
         }

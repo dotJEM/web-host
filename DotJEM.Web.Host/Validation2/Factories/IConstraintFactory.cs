@@ -15,13 +15,17 @@
     {
     }
 
-    public class ConstraintFactory : IGuardConstraintFactory { }
+    public class ConstraintFactory : IGuardConstraintFactory
+    {
+        
+    }
 
     public interface IValidatorConstraintFactory
     {
         IBeConstraintFactory Be { get; }
         IHaveConstraintFactory Have { get; }
     }
+    
 
     public class ValidatorConstraintFactory : IValidatorConstraintFactory
     {
