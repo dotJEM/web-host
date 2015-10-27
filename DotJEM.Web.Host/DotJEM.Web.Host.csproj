@@ -189,6 +189,7 @@
     <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />
     <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
     <Compile Include="Initialization\Initialization.cs" />
+    <Compile Include="Providers\Pipeline\PipelineContext.cs" />
     <Compile Include="Providers\Scheduler\Tasks\CronScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\PeriodicScheduledTask.cs" />

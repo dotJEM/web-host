@@ -10,8 +10,8 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         JObject ExecuteBeforePost(JObject json, string contentType);
         JObject ExecuteAfterPost(JObject json, string contentType);
 
-        JObject ExecuteBeforePut(JObject json, JObject prev, string contentType);
-        JObject ExecuteAfterPut(JObject json, JObject prev, string contentType);
+        JObject ExecuteBeforePut(JObject json, JObject prev, string contentType, PipelineContext context);
+        JObject ExecuteAfterPut(JObject json, JObject prev, string contentType, PipelineContext context);
 
         JObject ExecuteBeforeDelete(JObject json, string contentType);
         JObject ExecuteAfterDelete(JObject json, string contentType);

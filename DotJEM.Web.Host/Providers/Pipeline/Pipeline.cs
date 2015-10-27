@@ -33,18 +33,18 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers.Where(step => step.Accept(contentType)).Aggregate(json, (jo, step) => step.AfterPost(jo, contentType));
         }
 
-        public JObject ExecuteBeforePut(JObject json, JObject prev, string contentType)
+        public JObject ExecuteBeforePut(JObject json, JObject prev, string contentType, PipelineContext context)
         {
             return handlers
                 .Where(step => step.Accept(contentType))
-                .Aggregate(json, (jo, step) => step.BeforePut(jo, prev, contentType));
+                .Aggregate(json, (jo, step) => step.BeforePut(jo, prev, contentType, context));
         }
 
-        public JObject ExecuteAfterPut(JObject json, JObject prev, string contentType)
+        public JObject ExecuteAfterPut(JObject json, JObject prev, string contentType, PipelineContext context)
         {
             return handlers
                 .Where(step => step.Accept(contentType))
-                .Aggregate(json, (jo, step) => step.AfterPut(jo, prev, contentType));
+                .Aggregate(json, (jo, step) => step.AfterPut(jo, prev, contentType, context));
         }
 
         public JObject ExecuteBeforeDelete(JObject json, string contentType)
