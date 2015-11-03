@@ -2,12 +2,9 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
 {
     public sealed class NotJsonRuleResult : JsonRuleResult
     {
-        public JsonRuleResult Result { get; private set; }
+        public JsonRuleResult Result { get; }
 
-        public override bool Value
-        {
-            get { return !Result.Value; }
-        }
+        public override bool Value => !Result.Value;
 
         public NotJsonRuleResult(JsonRuleResult result)
         {

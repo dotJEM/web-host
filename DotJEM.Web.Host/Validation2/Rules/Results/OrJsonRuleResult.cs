@@ -5,10 +5,7 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
 {
     public sealed class OrJsonRuleResult : CompositeJsonRuleResult
     {
-        public override bool Value
-        {
-            get { return Results.Any(r => r.Value); }
-        }
+        public override bool Value => Results.Any(r => r.Value);
 
         public OrJsonRuleResult() 
             : base(new List<JsonRuleResult>())

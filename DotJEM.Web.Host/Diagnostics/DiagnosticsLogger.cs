@@ -84,6 +84,11 @@ namespace DotJEM.Web.Host.Diagnostics
     {
         public static void LogException(this IDiagnosticsLogger self, Exception exception, object entity = null)
         {
+            self.LogException(Severity.Error, exception);
+        }
+
+        public static void LogException(this IDiagnosticsLogger self,Severity severity, Exception exception, object entity = null)
+        {
             JObject json;
             if (entity != null)
             {
@@ -94,7 +99,7 @@ namespace DotJEM.Web.Host.Diagnostics
             {
                 json = self.Converter.ToJObject(exception);
             }
-            self.LogFailure(Severity.Error, json);
+            self.LogFailure(severity, json);
         }
     }
 

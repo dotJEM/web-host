@@ -49,9 +49,13 @@ namespace DotJEM.Web.Host.Util
         /// }
         /// </code>
         /// </example>
+        /// <exception cref="ArgumentNullException">Input was null</exception>
         /// <exception cref="FormatException">The given input could not be converted to a <see cref="TimeSpan"/> because the format was invalid.</exception>
         public static TimeSpan ToTimeSpan(string input)
         {
+            if (input == null)
+                throw new ArgumentNullException(nameof(input));
+
             TimeSpan outPut;
             if (TimeSpan.TryParse(input, out outPut))
                 return outPut;
@@ -97,8 +101,12 @@ namespace DotJEM.Web.Host.Util
         /// </code>
         /// </example>
         /// <exception cref="FormatException">The given input could not be converted because the format was invalid.</exception>
+        /// <exception cref="ArgumentNullException">Input was null</exception>
         public static long ToByteCount(string input)
         {
+            if (input == null)
+                throw new ArgumentNullException(nameof(input));
+
             Match match = byteCountExpression.Match(input);
             if (match == null || !match.Success)
                 throw new FormatException("Input string was not in a correct format.");
@@ -110,6 +118,15 @@ namespace DotJEM.Web.Host.Util
             return bytes + (1024L * (kiloBytes + (1024L * (megaBytes + (1024L * gigaBytes)))));
         }
 
+        /// <summary>
+        /// Parses an enum genericly.
+        /// </summary>
+        /// <remarks>
+        /// See Enum.Parse for details on exception behavior etc.
+        /// </remarks>
+        /// <typeparam name="TEnumeration">Target enum type</typeparam>
+        /// <param name="state">value to parse</param>
+        /// <returns>Parsed value</returns>
         public static TEnumeration ToEnum<TEnumeration>(string state)
         {
             return (TEnumeration)Enum.Parse(typeof(TEnumeration), state, true);

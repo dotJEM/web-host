@@ -12,5 +12,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
         IScheduledTask Start();
         IScheduledTask Signal();
+        IScheduledTask Signal(TimeSpan delay);
+
     }
 }

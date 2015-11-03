@@ -1,4 +1,8 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Hosting;
@@ -15,11 +19,14 @@ using DotJEM.Json.Storage.Migration;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
+using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -46,11 +53,9 @@ namespace DotJEM.Web.Host
         protected IStorageContext Storage { get; set; }
         protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
         protected IWebHostConfiguration Configuration { get; set; }
+        protected IDiagnosticsLogger DiagnosticsLogger { get; set; }
 
-        public HttpConfiguration HttpConfiguration
-        {
-            get { return configuration; }
-        }
+        public HttpConfiguration HttpConfiguration => configuration;
 
         protected WebHost()
             : this(GlobalConfiguration.Configuration, new WindsorContainer())
@@ -74,11 +79,11 @@ namespace DotJEM.Web.Host
             this.configuration = configuration;
             this.container = container;
 
-            configuration.Services.Replace(typeof (IHttpControllerSelector), new ControllerSelector(configuration));
-            configuration.Services.Replace(typeof (IHttpControllerActivator), new WindsorControllerActivator(container));
+            configuration.Services.Replace(typeof(IHttpControllerSelector), new ControllerSelector(configuration));
+            configuration.Services.Replace(typeof(IHttpControllerActivator), new WindsorControllerActivator(container));
 
             container.Kernel.Resolver.AddSubResolver(new ArraySubResolver(container.Kernel));
-            
+
             configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new IsoDateTimeConverter());
@@ -98,6 +103,7 @@ namespace DotJEM.Web.Host
 
             container
                 .Register(Component.For<IPathResolver>().ImplementedBy<PathResolver>())
+                .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
                 .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
                 .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
                 .Register(Component.For<IWindsorContainer>().Instance(container))
@@ -107,10 +113,12 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
-            var perf = container.Resolve<IPerformanceLogger>();
-            var startup = perf.TrackTask("Start");
 
-          
+            IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
+            IPerformanceTracker startup = perf.TrackTask("Start");
+
+            DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
+
             perf.TrackAction(BeforeConfigure);
             perf.TrackAction("Configure Pipeline", () => Configure(container.Resolve<IPipeline>()));
             perf.TrackAction("Configure Container", () => Configure(container));
@@ -120,7 +128,7 @@ namespace DotJEM.Web.Host
             perf.TrackAction(AfterConfigure);
 
             ResolveComponents();
-            
+
             Initialization.SetProgress("Bootstrapping.");
             Task.Factory.StartNew(() =>
             {
@@ -137,15 +145,42 @@ namespace DotJEM.Web.Host
                 perf.TrackAction(indexManager.Start);
                 perf.TrackAction(AfterStart);
 
-                startup.Trace("");
+                startup.Commit();
                 Initialization.Complete();
-                
+
             }).ContinueWith(result =>
             {
-                if (!result.IsFaulted) 
+                if (!result.IsFaulted)
                     return;
-                
-                Initialization.SetProgress(result.Exception != null ? result.Exception.Message : "Server startup failed. Please contact support.");
+
+                IDiagnosticsDumpService dump = Resolve<IDiagnosticsDumpService>();
+
+                Guid ticket = Guid.NewGuid();
+                try
+                {
+                    if (result.Exception != null)
+                    {
+                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                        dump.Dump(ticket, result.Exception.ToString());
+                    }
+                    else
+                    {
+                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                        dump.Dump(ticket, "Server startup failed. Unknown Error.");
+                    }
+                    Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
+
+
+                }
+                catch (Exception ex)
+                {
+                    //TODO: (jmd 2015-10-01) Temporary Dumping of failure we don't know where to put. 
+                    string dumpMessage =
+                        ex.ToString() + Environment.NewLine + "-----------------------------------" +
+                        result.Exception?.ToString();
+                    Initialization.SetProgress(dumpMessage);
+                    dump.Dump(ticket, dumpMessage);
+                }
             });
             return this;
         }
@@ -153,8 +188,8 @@ namespace DotJEM.Web.Host
         private void ResolveComponents()
         {
             container.ResolveAll<IExceptionLogger>()
-                .ForEach(logger => HttpConfiguration.Services.Add(typeof (IExceptionLogger), logger));
-            configuration.Services.Replace(typeof (IExceptionHandler), container.Resolve<IExceptionHandler>());
+                .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
+            configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
 
             configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
             container
@@ -165,22 +200,69 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageIndex CreateIndex()
         {
-            string cachePath = Configuration.Index.CacheLocation;
-            if (!string.IsNullOrEmpty(cachePath))
+            IndexStorageConfiguration storage = Configuration.Index.Storage;
+            if (storage == null)
+                return new LuceneStorageIndex();
+
+            switch (storage.Type)
             {
-                cachePath = HostingEnvironment.MapPath(cachePath);
-                return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(cachePath));
+                case IndexStorageType.File:
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)));
+                case IndexStorageType.CachedMemmory:
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)));
+                case IndexStorageType.Memmory:
+                    return new LuceneStorageIndex();
+                default:
+                    return new LuceneStorageIndex();
             }
-            //TODO: use app.config (web.config)
-            return new LuceneStorageIndex();
+        }
+
+        private static string ClearLuceneLock(string path)
+        {
+            path = HostingEnvironment.MapPath(path);
+            string padlock = Path.Combine(path, "write.lock");
+
+            //TODO: (jmd 2015-10-19) All this needs prober refactorings...
+            //      Basically all what we do here should be in dotjem index as a "Unlock" feature as well as an "Clear" feature. 
+            Random rnd = new Random();
+            if (File.Exists(padlock))
+            {
+                for (int i = 0;; i++)
+                {
+                    try
+                    {
+                        File.Delete(padlock);
+                    }
+                    catch (Exception)
+                    {
+                        //file might be locked...
+                        if (i > 10)
+                            throw;
+
+                        Thread.Sleep(rnd.Next(10)*100 + i * 100);
+                    }
+                }
+            }
+
+
+            //TODO: (jmd 2015-10-08) Temporary workaround to ensure indexes are build from scratch.
+            //                       untill we have a way to track the index generation again. 
+            try
+            {
+                Directory.GetFiles(path)
+                    .ForEach(File.Delete);
+            }
+            catch (Exception)
+            {
+                //ignore for now.
+            }
+
+            return path;
         }
 
         protected virtual IStorageContext CreateStorage()
         {
             var context = new SqlServerStorageContext(Configuration.Storage.ConnectionString);
-
-
-
             return context;
         }
 
@@ -205,6 +287,8 @@ namespace DotJEM.Web.Host
 
         public void Shutdown()
         {
+            Resolve<IWebScheduler>().Stop();
+
             Index.Close();
         }
     }

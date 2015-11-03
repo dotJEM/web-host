@@ -23,5 +23,18 @@
         {
             return new NotJsonRuleResult(x);
         }
+
+        public virtual JsonRuleResultDescription Describe()
+        {
+            return new JsonRuleResultDescription(this);
+        }
+    }
+
+    public class JsonRuleResultDescription
+    {
+        public JsonRuleResultDescription(JsonRuleResult result)
+        {
+            
+        }
     }
 }

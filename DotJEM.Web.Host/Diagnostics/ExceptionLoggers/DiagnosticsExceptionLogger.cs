@@ -14,11 +14,13 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionLoggers
     {
         private readonly IDiagnosticsLogger logger;
         private readonly IJsonConverter converter;
+        private readonly IDiagnosticsDumpService dump;
 
-        public DiagnosticsExceptionLogger(IDiagnosticsLogger logger, IJsonConverter converter)
+        public DiagnosticsExceptionLogger(IDiagnosticsLogger logger, IJsonConverter converter, IDiagnosticsDumpService dump)
         {
             this.logger = logger;
             this.converter = converter;
+            this.dump = dump;
         }
 
         public Task LogAsync(ExceptionLoggerContext context, CancellationToken cancellationToken)
@@ -40,7 +42,14 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionLoggers
             string message = context.Exception.Message;
             return Task.Factory.StartNew(() =>
             {
-                logger.LogFailure(Severity.Error, message, json);
+                try
+                {
+                    logger.LogFailure(Severity.Error, message, json);
+                }
+                catch (Exception ex)
+                {
+                    dump.Dump("Failed to log error to diagnostic log: " + Environment.NewLine + Environment.NewLine + ex);
+                }
             }, cancellationToken);
         }
 

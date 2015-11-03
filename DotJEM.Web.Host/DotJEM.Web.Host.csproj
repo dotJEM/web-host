@@ -13,6 +13,7 @@
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -169,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActionResults\ForbiddenErrorMessageResult.cs" />
+    <Compile Include="ActionResults\ServiceUnavailableMessageResult.cs" />
     <Compile Include="Addin\IAddinLoader.cs" />
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="ActionResults\NotFoundErrorMessageResult.cs" />
@@ -188,6 +190,7 @@
     <Compile Include="Diagnostics\Performance\PerformanceLogger.cs" />
     <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />
     <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
+    <Compile Include="IDiagnosticsDumpService.cs" />
     <Compile Include="Initialization\Initialization.cs" />
     <Compile Include="Providers\Pipeline\PipelineContext.cs" />
     <Compile Include="Providers\Scheduler\Tasks\CronScheduledTask.cs" />
@@ -220,21 +223,26 @@
     <Compile Include="Validation2\Constraints\Common\IsDefinedJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\Common\ValidatorConstraintFactoryCommonExtensions.cs" />
     <Compile Include="Validation2\Constraints\CompositeJsonConstraint.cs" />
+    <Compile Include="Validation2\Descriptive\JsonValidatorDescription.cs" />
     <Compile Include="Validation2\Constraints\JsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescription.cs" />
-    <Compile Include="Validation2\Constraints\Descriptive\JsonConstraintDescriptionAttribute.cs" />
+    <Compile Include="Validation2\Descriptive\JsonConstraintDescription.cs" />
+    <Compile Include="Validation2\Descriptive\JsonConstraintDescriptionAttribute.cs" />
     <Compile Include="Validation2\Constraints\NotJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\OrJsonConstraint.cs" />
+    <Compile Include="Validation2\Constraints\Generic\ValidatorConstraintFactoryStringExtensions.cs" />
     <Compile Include="Validation2\Constraints\String\Length\ExactStringLengthJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\Length\StringLengthJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\MatchStringJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\Length\MaxStringLengthJsonConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\Length\MinStringLengthJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\OneOfFieldConstraint.cs" />
+    <Compile Include="Validation2\Constraints\Generic\InConstraint.cs" />
     <Compile Include="Validation2\Constraints\String\StringEqualsJsonConstraint.cs" />
     <Compile Include="Validation2\Context\JsonValidationContext.cs" />
     <Compile Include="Validation2\Constraints\Results\AndJsonConstraintResult.cs" />
     <Compile Include="Validation2\Factories\IConstraintFactory.cs" />
+    <Compile Include="Validation2\JsonFieldValidator.cs" />
+    <Compile Include="Validation2\JsonValidatorResult.cs" />
+    <Compile Include="Validation2\JsonValidatorRuleFactory.cs" />
     <Compile Include="Validation2\Rules\Results\AndJsonRuleResult.cs" />
     <Compile Include="Validation2\Constraints\Results\BasicJsonConstraintResult.cs" />
     <Compile Include="Validation2\Rules\Results\BasicJsonRuleResult.cs" />
@@ -252,7 +260,7 @@
     <Compile Include="Validation2\Rules\JsonRule.cs" />
     <Compile Include="Validation2\Rules\NotJsonRule.cs" />
     <Compile Include="Validation2\Rules\OrJsonRule.cs" />
-    <Compile Include="Validation2\ValidationV2.cs" />
+    <Compile Include="Validation2\JsonValidator.cs" />
     <Compile Include="Validation2\Constraints\String\ValidatorConstraintFactoryStringExtensions.cs" />
     <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />
@@ -332,17 +340,17 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Validation2\Constraints\Number\" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
-      <Project>{61EA751B-691B-4F68-87C5-46D115D51CC3}</Project>
+      <Project>{61ea751b-691b-4f68-87c5-46d115d51cc3}</Project>
       <Name>DotJEM.Json.Index</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
-      <Project>{672D1E1D-C559-4914-B233-807CC7CE3B52}</Project>
+      <Project>{672d1e1d-c559-4914-b233-807cc7ce3b52}</Project>
       <Name>DotJEM.Json.Storage</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Validation2\Constraints\Number\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

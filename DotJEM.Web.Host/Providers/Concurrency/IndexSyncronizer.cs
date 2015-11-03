@@ -78,9 +78,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 logs[watch.Area] = storage.Area(watch.Area).Log;
             }
             //TODO: Use the below to store a index pointer.
-            if (!string.IsNullOrEmpty(configuration.Index.CacheLocation)) {
-                cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
-            }
+            //if (!string.IsNullOrEmpty(configuration.Index.CacheLocation)) {
+            //    cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
+            //}
         }
 
         public void Start()
@@ -97,6 +97,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
+            //TODO: (jmd 2015-09-24) Build spartial indexes and merge them in the end. 
+            // http://lucene.apache.org/core/3_0_3/api/core/org/apache/lucene/index/IndexWriter.html#addIndexesNoOptimize%28org.apache.lucene.store.Directory...%29
+
             int total = 0;
             Dictionary<string, long> tracker = InitializeFromTracker();
 
@@ -107,10 +110,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .ToList();
                 
                 if (tuples.All(t => t.Item2.Count.Total < 1))
-                    return;
+                    break;
 
 
-                tuples.Select(Selector).ForEach(next => tracker[next.Item1] = next.Item2);
+                tuples.Select(InitialzeSelector).ForEach(next => tracker[next.Item1] = next.Item2);
                 //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                 //      if we do that we should either send a "initialized" even that instructs controllers
                 //      and services that the index is now fully ready. Or we neen to collect all data
@@ -119,6 +122,16 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 total += tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
                 this.tracker.SetProgress("{0} objects indexed.", total);
             }
+            OptimizeIndex(total);
+        }
+
+        private Tuple<string, long> InitialzeSelector(Tuple<string, IStorageChanges> tuple)
+        {
+            IStorageChanges changes = tuple.Item2;
+            index
+                .WriteAll(changes.Created)
+                .WriteAll(changes.Updated);
+            return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
 
         private void UpdateIndex()
@@ -139,6 +152,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 return map;
             }));
             OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+            index.Flush();
         }
 
         private static long GetTracker(Dictionary<string, long> changes, string key)
@@ -176,7 +190,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .WriteAll(changes.Updated)
                 .DeleteAll(changes.Deleted);
             OptimizeIndex(changes.Count);
-
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
         

@@ -5,10 +5,7 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
 {
     public sealed class AndJsonRuleResult : CompositeJsonRuleResult
     {
-        public override bool Value
-        {
-            get { return Results.All(r => r.Value); }
-        }
+        public override bool Value => Results.All(r => r.Value);
 
         public AndJsonRuleResult() 
             : base(new List<JsonRuleResult>())
@@ -29,5 +26,6 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
         {
             return OptimizeAs<AndJsonRuleResult>();
         }
+
     }
 }

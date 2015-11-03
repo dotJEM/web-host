@@ -5,7 +5,7 @@ namespace DotJEM.Web.Host.Validation2.Rules.Results
 {
     public abstract class CompositeJsonRuleResult : JsonRuleResult
     {
-        protected List<JsonRuleResult> Results { get; private set; }
+        protected List<JsonRuleResult> Results { get; }
         
         protected CompositeJsonRuleResult(List<JsonRuleResult> results)
         {
