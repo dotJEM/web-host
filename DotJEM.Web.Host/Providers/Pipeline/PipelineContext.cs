@@ -9,19 +9,19 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 {
     public class PipelineContext
     {
-        private readonly Hashtable inner = new Hashtable();
+        private readonly IDictionary<string, object> inner = new Dictionary<string, object>();
 
-        public void Add(object key, object value)
+        public void Add(string key, object value)
         {
             inner.Add(key, value);
         }
 
-        public object this[object key]
+        public object this[string key]
         {
             get { return inner[key]; }
             set { inner[key] = value; }
         }
 
-        public ICollection Keys => inner.Keys;
+        public ICollection<string> Keys => inner.Keys;
     }
 }
