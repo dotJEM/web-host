@@ -45,16 +45,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return entity;
         }
 
-        public virtual JObject BeforePut(dynamic entity, dynamic previous, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject AfterPut(dynamic entity, dynamic previous, string contentType)
-        {
-            return entity;
-        }
-
         public virtual JObject BeforeDelete(dynamic entity, string contentType)
         {
             return entity;
@@ -64,5 +54,16 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         {
             return entity;
         }
+
+        public virtual JObject BeforePut(dynamic entity, dynamic previous, string contentType, PipelineContext context)
+        {
+            return entity;
+        }
+
+        public virtual JObject AfterPut(dynamic entity, dynamic previous, string contentType, PipelineContext context)
+        {
+            return entity;
+        }
+
     }
 }

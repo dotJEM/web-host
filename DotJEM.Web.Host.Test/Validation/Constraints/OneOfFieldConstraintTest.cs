@@ -25,7 +25,7 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
             Validator validator = new OneOfValidator(true);
 
             var entity = JObject.Parse(json);
-            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.True);
         }
@@ -37,7 +37,7 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
             Validator validator = new OneOfValidator(true);
 
             var entity = JObject.Parse(json);
-            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.False);
         }
@@ -49,7 +49,7 @@ namespace DotJEM.Web.Host.Test.Validation.Constraints
             Validator validator = new OneOfValidator(false);
 
             var entity = JObject.Parse(json);
-            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.False);
         }

@@ -25,7 +25,7 @@ namespace DotJEM.Web.Host.Test.Validation
             IValidator validator = new TestValidator();
 
             var entity = JObject.Parse(json);
-            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.True);
         }
@@ -40,7 +40,7 @@ namespace DotJEM.Web.Host.Test.Validation
             IValidator validator = new TestArraysValidator();
 
             var entity = JObject.Parse(json);
-            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, HttpVerbs.Post));
+            ValidationResult result = validator.Validate(entity, new ValidationContext(entity, null, null, HttpVerbs.Post));
 
             Assert.That(result.HasErrors, Is.True);
             Debug.WriteLine(result);

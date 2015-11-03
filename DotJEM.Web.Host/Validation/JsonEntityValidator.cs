@@ -21,9 +21,9 @@ namespace DotJEM.Web.Host.Validation
             return Validate(entity, contentType);
         }
 
-        public override JObject BeforePut(dynamic entity, dynamic prev, string contentType)
+        public override JObject BeforePut(dynamic entity, dynamic prev, string contentType, PipelineContext context)
         {
-            return Validate(entity, prev, contentType);
+            return Validate(entity, prev, contentType, context);
         }
 
         private dynamic Validate(dynamic entity, string contentType)
@@ -31,7 +31,7 @@ namespace DotJEM.Web.Host.Validation
             IValidator validator;
             if (validators.TryGetValue(contentType, out validator))
             {
-                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, null, HttpVerbs.Post));
+                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, null, null, HttpVerbs.Post));
                 if (result.HasErrors)
                 {
                     throw new JsonEntityValidationException(result);
@@ -45,7 +45,21 @@ namespace DotJEM.Web.Host.Validation
             IValidator validator;
             if (validators.TryGetValue(contentType, out validator))
             {
-                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, (JObject)prev, HttpVerbs.Put));
+                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, (JObject)prev, null, HttpVerbs.Put));
+                if (result.HasErrors)
+                {
+                    throw new JsonEntityValidationException(result);
+                }
+            }
+            return entity;
+        }
+
+        private dynamic Validate(dynamic entity, dynamic prev, string contentType, PipelineContext context)
+        {
+            IValidator validator;
+            if (validators.TryGetValue(contentType, out validator))
+            {
+                ValidationResult result = validator.Validate((JObject)entity, new ValidationContext((JObject)entity, (JObject)prev, context, HttpVerbs.Put));
                 if (result.HasErrors)
                 {
                     throw new JsonEntityValidationException(result);
