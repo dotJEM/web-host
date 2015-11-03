@@ -219,49 +219,6 @@
     <Compile Include="Providers\Pipeline\PipelineHandlerSet.cs" />
     <Compile Include="Util\JsonConverter.cs" />
     <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
-    <Compile Include="Validation2\Constraints\AndJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\Common\IsDefinedJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\Common\ValidatorConstraintFactoryCommonExtensions.cs" />
-    <Compile Include="Validation2\Constraints\CompositeJsonConstraint.cs" />
-    <Compile Include="Validation2\Descriptive\JsonValidatorDescription.cs" />
-    <Compile Include="Validation2\Constraints\JsonConstraint.cs" />
-    <Compile Include="Validation2\Descriptive\JsonConstraintDescription.cs" />
-    <Compile Include="Validation2\Descriptive\JsonConstraintDescriptionAttribute.cs" />
-    <Compile Include="Validation2\Constraints\NotJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\OrJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\Generic\ValidatorConstraintFactoryStringExtensions.cs" />
-    <Compile Include="Validation2\Constraints\String\Length\ExactStringLengthJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\Length\StringLengthJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\MatchStringJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\Length\MaxStringLengthJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\Length\MinStringLengthJsonConstraint.cs" />
-    <Compile Include="Validation2\Constraints\Generic\InConstraint.cs" />
-    <Compile Include="Validation2\Constraints\String\StringEqualsJsonConstraint.cs" />
-    <Compile Include="Validation2\Context\JsonValidationContext.cs" />
-    <Compile Include="Validation2\Constraints\Results\AndJsonConstraintResult.cs" />
-    <Compile Include="Validation2\Factories\IConstraintFactory.cs" />
-    <Compile Include="Validation2\JsonFieldValidator.cs" />
-    <Compile Include="Validation2\JsonValidatorResult.cs" />
-    <Compile Include="Validation2\JsonValidatorRuleFactory.cs" />
-    <Compile Include="Validation2\Rules\Results\AndJsonRuleResult.cs" />
-    <Compile Include="Validation2\Constraints\Results\BasicJsonConstraintResult.cs" />
-    <Compile Include="Validation2\Rules\Results\BasicJsonRuleResult.cs" />
-    <Compile Include="Validation2\Constraints\Results\CompositeJsonConstraintResult.cs" />
-    <Compile Include="Validation2\Rules\Results\CompositeJsonRuleResult.cs" />
-    <Compile Include="Validation2\Constraints\Results\JsonConstraintResult.cs" />
-    <Compile Include="Validation2\Rules\Results\JsonRuleResult.cs" />
-    <Compile Include="Validation2\Constraints\Results\NotJsonConstraintResult.cs" />
-    <Compile Include="Validation2\Rules\Results\NotJsonRuleResult.cs" />
-    <Compile Include="Validation2\Constraints\Results\OrJsonConstraintResult.cs" />
-    <Compile Include="Validation2\Rules\Results\OrJsonRuleResult.cs" />
-    <Compile Include="Validation2\Rules\AndJsonRule.cs" />
-    <Compile Include="Validation2\Rules\BasicJsonRule.cs" />
-    <Compile Include="Validation2\Rules\CompositeJsonRule.cs" />
-    <Compile Include="Validation2\Rules\JsonRule.cs" />
-    <Compile Include="Validation2\Rules\NotJsonRule.cs" />
-    <Compile Include="Validation2\Rules\OrJsonRule.cs" />
-    <Compile Include="Validation2\JsonValidator.cs" />
-    <Compile Include="Validation2\Constraints\String\ValidatorConstraintFactoryStringExtensions.cs" />
     <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\FieldConstraint.cs" />
@@ -339,9 +296,7 @@
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Validation2\Constraints\Number\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
       <Project>{61ea751b-691b-4f68-87c5-46d115d51cc3}</Project>
