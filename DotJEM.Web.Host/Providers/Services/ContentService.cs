@@ -30,7 +30,7 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IStorageIndexManager manager;
         private readonly IPipeline pipeline;
 
-        public IStorageArea StorageArea { get { return area; } }
+        public IStorageArea StorageArea => area;
 
         public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline)
         {
@@ -46,7 +46,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 .Skip(skip).Take(take)
                 .Select(hit => hit.Json)
                 //Note: Execute the pipeline for each element found
-                .Select(json => pipeline.ExecuteAfterGet(json, contentType))
+                .Select(json => pipeline.ExecuteAfterGet(json, contentType, new PipelineContext()))
                 .Cast<JObject>().ToArray();
 
             return res;
@@ -58,17 +58,19 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Get(Guid id, string contentType)
         {
+            PipelineContext context = new PipelineContext();
             //TODO: Use search for optimized performance!...
             //TODO: Throw exception if not found?
             JObject entity = area.Get(id);
-            return pipeline.ExecuteAfterGet(entity, contentType);
+            return pipeline.ExecuteAfterGet(entity, contentType, context);
         }
 
         public JObject Post(string contentType, JObject entity)
         {
-            entity = pipeline.ExecuteBeforePost(entity, contentType);
+            PipelineContext context = new PipelineContext();
+            entity = pipeline.ExecuteBeforePost(entity, contentType, context);
             entity = area.Insert(contentType, entity);
-            entity = pipeline.ExecuteAfterPost(entity, contentType);
+            entity = pipeline.ExecuteAfterPost(entity, contentType, context);
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -86,14 +88,15 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Delete(Guid id, string contentType)
         {
-            pipeline.ExecuteBeforeDelete(area.Get(id), contentType);
+            PipelineContext context = new PipelineContext();
+            pipeline.ExecuteBeforeDelete(area.Get(id), contentType, context);
             JObject deleted = area.Delete(id);
             //TODO: Throw exception if not found?
             if (deleted == null)
                 return null;
 
             manager.QueueDelete(deleted);
-            return pipeline.ExecuteAfterDelete(deleted, contentType);
+            return pipeline.ExecuteAfterDelete(deleted, contentType, context);
         }
     }
 }

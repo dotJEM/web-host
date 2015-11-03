@@ -58,7 +58,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             //TODO: extract contenttype based on configuration.
             return new SearchResult(result
-                .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType))
+                .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, new PipelineContext()))
                 .ToArray(), result.TotalCount);
         }
 
