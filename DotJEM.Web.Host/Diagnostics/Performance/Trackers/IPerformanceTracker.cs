@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
 {
-    public interface IPerformanceTracker
+    public interface IPerformanceTracker : IDisposable
     {
         void Commit(params object[] args);
         void Commit(Func<object[]> argsFactory);
@@ -65,6 +65,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
             string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
             string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, identity };
             return string.Join("\t", prefix.Union(args));
+        }
+
+        public void Dispose()
+        {
+            Commit();
         }
     }
 }

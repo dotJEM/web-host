@@ -4,8 +4,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 {
     public interface IPipeline
     {
-        //TODO: (jmd 2015-11-03) Delete, not used. 
-        JObject ExecuteBeforeGet(JObject json, string contentType, PipelineContext context);
         JObject ExecuteAfterGet(JObject json, string contentType, PipelineContext context);
 
         JObject ExecuteBeforePost(JObject json, string contentType, PipelineContext context);

@@ -53,7 +53,6 @@ namespace DotJEM.Web.Host.Providers.Services
 
             //TODO: Execute pipeline for array
             //TODO: Paging and other neat stuff...
-            //TODO: Use search for optimized performance!...
         }
 
         public JObject Get(Guid id, string contentType)

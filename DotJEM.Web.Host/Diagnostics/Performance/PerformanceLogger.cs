@@ -18,11 +18,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         IPerformanceTracker TrackRequest(HttpRequestMessage request);
         IPerformanceTracker TrackTask(string name);
 
-        void TrackAction(Action action);
-        void TrackAction(string name, Action action);
+        void TrackAction(Action action, params object[] args);
+        void TrackAction(string name, Action action, params object[] args);
 
-        T TrackFunction<T>(Func<T> func);
-        T TrackFunction<T>(string name, Func<T> func);
+        T TrackFunction<T>(Func<T> func, params object[] args);
+        T TrackFunction<T>(string name, Func<T> func, params object[] args);
     }
 
     public class PerformanceLogger : IPerformanceLogger
@@ -60,31 +60,30 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             return new PerformanceTracker(LogPerformanceEvent, type, args);
         }
 
-        public void TrackAction(Action action)
+        public void TrackAction(Action action, params object[] args)
         {
             TrackAction(action.Method.Name, action);
         }
 
-        public void TrackAction(string name, Action action)
+        public void TrackAction(string name, Action action, params object[] args)
         {
-            var methodName = action.Method.Name;
-            var tracker = TrackTask(name);
-            action();
-            tracker.Commit(methodName);
+            using (Track(name, args))
+            {
+                action();
+            }
         }
 
-        public T TrackFunction<T>(Func<T> func)
+        public T TrackFunction<T>(Func<T> func, params object[] args)
         {
-            return TrackFunction(func.Method.Name, func);
+            return TrackFunction(func.Method.Name, func, args);
         }
 
-        public T TrackFunction<T>(string name, Func<T> func)
+        public T TrackFunction<T>(string name, Func<T> func, params object[] args)
         {
             T output = default (T);
-            TrackAction(name, () => output = func());
+            TrackAction(name, () => output = func(), args);
             return output;
         }
-
 
         private void LogPerformanceEvent(string message)
         {
