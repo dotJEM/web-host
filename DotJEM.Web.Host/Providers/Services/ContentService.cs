@@ -14,6 +14,7 @@ namespace DotJEM.Web.Host.Providers.Services
         IStorageArea StorageArea { get; }
         //TODO: Use a Content Result
         IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20);
+        IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
         JObject Get(Guid id, string contentType);
 
         JObject Post(string contentType, JObject entity);
@@ -63,6 +64,15 @@ namespace DotJEM.Web.Host.Providers.Services
             JObject entity = area.Get(id);
             return pipeline.ExecuteAfterGet(entity, contentType, context);
         }
+
+        public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
+        {
+            //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
+            if (!area.HistoryEnabled)
+                return Enumerable.Empty<JObject>();
+
+            return area.History.Get(id, from, to);
+        } 
 
         public JObject Post(string contentType, JObject entity)
         {
