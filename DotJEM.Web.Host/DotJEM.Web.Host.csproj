@@ -197,6 +197,7 @@
     <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\PeriodicScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\SingleFireScheduledTask.cs" />
+    <Compile Include="Providers\Services\JTokenDiffService.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />
