@@ -7,128 +7,174 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services
 {
-    public class JTokenComparison
+    public interface IJTokenMergeVisitor
     {
-        
+        MergeResult Merge(JToken update, JToken other, JToken origin);
     }
 
-    public interface IJTokenCompareService
+    public interface IJTokenMergeContext
     {
-        JTokenComparison Compare(JToken current, JToken conflict, JToken parrent);
+        JToken Origin { get; }
+
+        MergeResult TryMerge(JToken update, JToken other);
+
+        IJTokenMergeContext Child(object key, JObject update);
     }
 
-    public class JTokenCompareService : IJTokenCompareService
+    public class JTokenMergeContext : IJTokenMergeContext
     {
-        public JTokenComparison Compare(JToken current, JToken conflict, JToken parrent)
+        private readonly object key;
+        private readonly JToken parent;
+        public JToken Origin { get; }
+
+        public JTokenMergeContext(JToken origin)
         {
+            this.Origin = origin;
+        }
 
+        public JTokenMergeContext(JToken origin, JToken parent, object key)
+        {
+            this.Origin = origin;
+            this.parent = parent;
+            this.key = key;
+        }
 
+        public MergeResult TryMerge(JToken update, JToken other)
+        {
+            if (JToken.DeepEquals(Origin, other))
+            {
+                //NOTE: The update is valid.
+                return new MergeResult(false, update,other,Origin);
+            }
 
+            if (JToken.DeepEquals(Origin, update))
+            {
+                if (other == null)
+                {
+                    update.Parent.Remove();
+                }
+                else
+                {
+                    parent[key] = other;
+                }
+                return new MergeResult(false, update, other, Origin);
+            }
 
+            //NOTE: Conflict.
+            return new MergeResult(true, update, other, Origin);
+        }
 
-            return null;
+        public IJTokenMergeContext Child(object key, JObject parent)
+        {
+            return new JTokenMergeContext(Origin?[key], parent, key);
         }
     }
 
-    public interface IJTokenCompareVisitor
+    public class JTokenMergeVisitor : IJTokenMergeVisitor
     {
-        
+        public MergeResult Merge(JToken update, JToken other, JToken origin)
+        {
+            return Merge(update, other, new JTokenMergeContext(origin));
+        }
+
+        public virtual MergeResult Merge(JToken update, JToken other, IJTokenMergeContext context)
+        {
+            //TODO: Test the object for simple value, if it's a simple value we can use DeepEquals right away.
+
+            if (update == null && other == null)
+                return new MergeResult(false, null, null, context.Origin);
+
+            if (update == null || other == null || update.Type != other.Type)
+                return context.TryMerge(update, other);
+
+            switch (update.Type)
+            {
+                case JTokenType.Object:
+                    return MergeObject((JObject)update, (JObject)other, context);
+                case JTokenType.Array:
+                    return MergeArray((JArray)update, (JArray)other, context);
+                case JTokenType.Integer:
+                case JTokenType.Float:
+                case JTokenType.String:
+                case JTokenType.Boolean:
+                case JTokenType.Null:
+                case JTokenType.Undefined:
+                case JTokenType.Date:
+                case JTokenType.Raw:
+                case JTokenType.Bytes:
+                case JTokenType.Guid:
+                case JTokenType.Uri:
+                case JTokenType.TimeSpan:
+                    return MergeValue((JValue)update, (JValue)other, context);
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+
+        protected virtual MergeResult MergeValue(JValue update, JValue other, IJTokenMergeContext context)
+        {
+            return !JToken.DeepEquals(update, other) 
+                ? context.TryMerge(update, other)
+                : new MergeResult(false, update, other, context.Origin);
+        }
+
+        protected virtual MergeResult MergeObject(JObject update, JObject other, IJTokenMergeContext context)
+        {
+            IEnumerable<MergeResult> diffs = from key in UnionKeys(update, other)
+                let diff = Merge(update[key], other[key], context.Child(key, update))
+                where diff.IsConflict 
+                select diff;
+            return new CompositeMergeResult(diffs, update, other, context.Origin);
+        }
+
+        protected virtual MergeResult MergeArray(JArray update, JArray other, IJTokenMergeContext context)
+        {
+            if (!JToken.DeepEquals(update, other))
+            {
+                return context.TryMerge(update, other);
+            }
+            return new MergeResult(false, update, other, context.Origin);
+        }
+
+        private IEnumerable<string> UnionKeys(IDictionary<string, JToken> update, IDictionary<string, JToken> other)
+        {
+            HashSet<string> keys = new HashSet<string>(update.Keys);
+            keys.UnionWith(other.Keys);
+            return keys;
+        }
+
+    }
+
+    public class MergeResult
+    {
+        public JToken Update { get; }
+        public JToken Other { get; }
+        public JToken Origin { get; }
+        public bool IsConflict { get; }
+
+        //TODO: Store info about the conflict if any
+        public MergeResult(bool isConflict, JToken update, JToken other, JToken origin)
+        {
+            this.Update = update;
+            this.Other = other;
+            this.Origin = origin;
+            this.IsConflict = isConflict;
+        }
+    }
+
+    public class CompositeMergeResult : MergeResult
+    {
+        private List<MergeResult> diffs;
+
+        protected CompositeMergeResult(List<MergeResult> diffs, JToken update, JToken other, JToken origin) 
+            : base(diffs.Any(), update, other, origin)
+        {
+            this.diffs = diffs;
+        }
+
+        public CompositeMergeResult(IEnumerable<MergeResult> diffs, JToken update, JToken other, JToken origin)
+            : this(diffs.ToList(), update, other, origin)
+        {
+        }
     }
 }
-
-//public abstract class AbstractJTokenVisitor<TContext> : IJTokenVisitor<TContext>
-//{
-//    public virtual void VisitJArray(JArray json, TContext context)
-//    {
-//        foreach (JToken token in json)
-//            Visit(token, context);
-//    }
-
-//    public virtual void VisitJObject(JObject json, TContext context)
-//    {
-//        foreach (JProperty property in json.Properties())
-//            Visit(property, context);
-//    }
-
-//    public virtual void VisitProperty(JProperty json, TContext context)
-//    {
-//        Visit(json.Value, context);
-//    }
-
-//    public virtual void VisitNone(JToken json, TContext context) { }
-//    public virtual void VisitConstructor(JConstructor json, TContext context) { }
-//    public virtual void VisitComment(JToken json, TContext context) { }
-//    public virtual void VisitInteger(JValue json, TContext context) { }
-//    public virtual void VisitFloat(JValue json, TContext context) { }
-//    public virtual void VisitString(JValue json, TContext context) { }
-//    public virtual void VisitBoolean(JValue json, TContext context) { }
-//    public virtual void VisitNull(JValue json, TContext context) { }
-//    public virtual void VisitUndefined(JValue json, TContext context) { }
-//    public virtual void VisitDate(JValue json, TContext context) { }
-//    public virtual void VisitRaw(JRaw json, TContext context) { }
-//    public virtual void VisitBytes(JValue json, TContext context) { }
-//    public virtual void VisitGuid(JValue json, TContext context) { }
-//    public virtual void VisitUri(JValue json, TContext context) { }
-//    public virtual void VisitTimeSpan(JValue json, TContext context) { }
-
-//    public void Visit(JToken json, TContext context)
-//    {
-//        switch (json.Type)
-//        {
-//            case JTokenType.None:
-//                VisitNone(json, context);
-//                break;
-//            case JTokenType.Object:
-//                VisitJObject((JObject)json, context);
-//                break;
-//            case JTokenType.Array:
-//                VisitJArray((JArray)json, context);
-//                break;
-//            case JTokenType.Constructor:
-//                VisitConstructor((JConstructor)json, context);
-//                break;
-//            case JTokenType.Property:
-//                VisitProperty((JProperty)json, context);
-//                break;
-//            case JTokenType.Comment:
-//                VisitComment(json, context);
-//                break;
-//            case JTokenType.Integer:
-//                VisitInteger((JValue)json, context);
-//                break;
-//            case JTokenType.Float:
-//                VisitFloat((JValue)json, context);
-//                break;
-//            case JTokenType.String:
-//                VisitString((JValue)json, context);
-//                break;
-//            case JTokenType.Boolean:
-//                VisitBoolean((JValue)json, context);
-//                break;
-//            case JTokenType.Null:
-//                VisitNull((JValue)json, context);
-//                break;
-//            case JTokenType.Undefined:
-//                VisitUndefined((JValue)json, context);
-//                break;
-//            case JTokenType.Date:
-//                VisitDate((JValue)json, context);
-//                break;
-//            case JTokenType.Raw:
-//                VisitRaw((JRaw)json, context);
-//                break;
-//            case JTokenType.Bytes:
-//                VisitBytes((JValue)json, context);
-//                break;
-//            case JTokenType.Guid:
-//                VisitGuid((JValue)json, context);
-//                break;
-//            case JTokenType.Uri:
-//                VisitUri((JValue)json, context);
-//                break;
-//            case JTokenType.TimeSpan:
-//                VisitTimeSpan((JValue)json, context);
-//                break;
-//        }
-//    }
-//}
