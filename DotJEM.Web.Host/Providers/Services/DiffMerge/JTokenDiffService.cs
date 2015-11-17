@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Providers.Services
+namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 {
     public interface IJTokenMergeVisitor
     {
@@ -74,6 +72,8 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         public MergeResult Merge(JToken update, JToken other, JToken origin)
         {
+            //TODO: (jmd 2015-11-16) Should we merge this into a "cloned" object instead? 
+            update = update.DeepClone();
             return Merge(update, other, new JTokenMergeContext(origin));
         }
 
@@ -145,26 +145,46 @@ namespace DotJEM.Web.Host.Providers.Services
 
     }
 
-    public class MergeResult
+    public class MergeResult 
     {
-        public JToken Update { get; }
+        public JToken Merged { get; }
         public JToken Other { get; }
         public JToken Origin { get; }
+
+        public JObject Diff => BuildDiff(new JObject());
+
         public bool IsConflict { get; }
 
         //TODO: Store info about the conflict if any
         public MergeResult(bool isConflict, JToken update, JToken other, JToken origin)
         {
-            this.Update = update;
+            this.Merged = update;
             this.Other = other;
             this.Origin = origin;
             this.IsConflict = isConflict;
         }
+
+        internal virtual JObject BuildDiff(JObject diff)
+        {
+            if (!IsConflict)
+                return null;
+            
+            //NOTE: Either Merged or Other is not null here, otherwise we would not have a conflict.
+            diff[Merged?.Path ?? Other.Path] = new JObject
+            {
+                ["updated"] = Merged,
+                ["conflict"] = Other,
+                ["origin"] = Origin
+            }; 
+            return diff;
+        }
+
     }
+
 
     public class CompositeMergeResult : MergeResult
     {
-        private List<MergeResult> diffs;
+        private readonly List<MergeResult> diffs;
 
         protected CompositeMergeResult(List<MergeResult> diffs, JToken update, JToken other, JToken origin) 
             : base(diffs.Any(), update, other, origin)
@@ -175,6 +195,11 @@ namespace DotJEM.Web.Host.Providers.Services
         public CompositeMergeResult(IEnumerable<MergeResult> diffs, JToken update, JToken other, JToken origin)
             : this(diffs.ToList(), update, other, origin)
         {
+        }
+
+        internal override JObject BuildDiff(JObject diff)
+        {
+            return diffs.Aggregate(diff, (o, result) => result.BuildDiff(o));
         }
     }
 }
