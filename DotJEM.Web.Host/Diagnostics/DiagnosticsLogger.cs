@@ -48,6 +48,13 @@ namespace DotJEM.Web.Host.Diagnostics
         {
             self.Log(ContentType, severity, message, entity);
         }
+
+        public static void LogIncident(this IDiagnosticsLogger self, Severity severity, string message, Exception exception, object entity = null)
+        {
+            JObject json = entity != null ? (entity as JObject ?? self.Converter.ToJObject(entity)) : new JObject();
+            json["exception"] = self.Converter.ToJObject(exception);
+            self.Log(ContentType, severity, message, json);
+        }
     }
 
     public static class DiagnosticsLoggerWarningExtensions
@@ -139,23 +146,7 @@ namespace DotJEM.Web.Host.Diagnostics
             json["message"] = message;
             Log(contentType, severity, json);
         }
-
-
-        public void LogException(Exception exception, object entity = null)
-        {
-            JObject json;
-            if (entity != null)
-            {
-                json = entity as JObject ?? Converter.ToJObject(entity);
-                json.Merge(Converter.ToJObject(exception));
-            }
-            else
-            {
-                json = Converter.ToJObject(exception);
-            }
-            this.LogFailure(Severity.Error, json);
-        }
-
+        
         private JObject EnsureJson(object entity)
         {
             return entity == null ? new JObject() : (entity as JObject ?? Converter.ToJObject(entity));
