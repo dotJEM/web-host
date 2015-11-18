@@ -119,15 +119,15 @@ namespace DotJEM.Web.Host.Diagnostics
         private readonly Lazy<IStorageArea> area;
         private readonly Lazy<IStorageIndexManager> manager;
 
-        public IStorageArea Area { get { return area.Value; } }
-        public IStorageIndexManager Manager { get { return manager.Value; } }
-        public IJsonConverter Converter { get; private set; }
+        public IStorageArea Area => area.Value;
+        public IStorageIndexManager Manager => manager.Value;
+        public IJsonConverter Converter { get; }
 
         public DiagnosticsLogger(Lazy<IStorageContext> context, Lazy<IStorageIndexManager> manager, IJsonConverter converter)
         {
-            this.area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
+            area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
             this.manager = manager;
-            this.Converter = converter;
+            Converter = converter;
         }
 
         public void Log(string contentType, Severity severity, object entity = null)
@@ -166,7 +166,7 @@ namespace DotJEM.Web.Host.Diagnostics
                 {
                     builder.Append("   at ");
                     Type declaringType = method.DeclaringType;
-                    if (declaringType != (Type)null)
+                    if (declaringType != null)
                     {
                         builder.Append(declaringType.FullName.Replace('+', '.'));
                         builder.Append(".");
