@@ -23,16 +23,19 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
     {
         private readonly object key;
         private readonly JToken parent;
+
+        public JToken Merged { get; }
         public JToken Origin { get; }
 
-        public JTokenMergeContext(JToken origin)
+        public JTokenMergeContext(JToken merged, JToken origin)
         {
-            this.Origin = origin;
+            Merged = merged;
+            Origin = origin;
         }
 
         public JTokenMergeContext(JToken origin, JToken parent, object key)
         {
-            this.Origin = origin;
+            Origin = origin;
             this.parent = parent;
             this.key = key;
         }
@@ -73,8 +76,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         public MergeResult Merge(JToken update, JToken other, JToken origin)
         {
             //TODO: (jmd 2015-11-16) Should we merge this into a "cloned" object instead? 
-            update = update.DeepClone();
-            return Merge(update, other, new JTokenMergeContext(origin));
+            return Merge(update, other, new JTokenMergeContext(update.DeepClone(), origin));
         }
 
         public virtual MergeResult Merge(JToken update, JToken other, IJTokenMergeContext context)
@@ -86,7 +88,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
             if (update == null || other == null || update.Type != other.Type)
                 return context.TryMerge(update, other);
-
+            
             switch (update.Type)
             {
                 case JTokenType.Object:
@@ -158,10 +160,10 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         //TODO: Store info about the conflict if any
         public MergeResult(bool isConflict, JToken update, JToken other, JToken origin)
         {
-            this.Merged = update;
-            this.Other = other;
-            this.Origin = origin;
-            this.IsConflict = isConflict;
+            Merged = update;
+            Other = other;
+            Origin = origin;
+            IsConflict = isConflict;
         }
 
         internal virtual JObject BuildDiff(JObject diff)
