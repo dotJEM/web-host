@@ -52,7 +52,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
         public MergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other)
         {
-            throw new NotImplementedException();
+            return new CompositeMergeResult(diffs, update, other, Origin, Merged);
         }
 
         public MergeResult Merge(JToken update, JToken other)
