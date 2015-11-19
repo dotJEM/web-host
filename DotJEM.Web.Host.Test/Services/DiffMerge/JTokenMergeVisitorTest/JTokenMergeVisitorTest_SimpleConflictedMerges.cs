@@ -18,7 +18,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             MergeResult result = service.Merge(update, conflict, parent);
 
             Assert.That(result, HAS.Property<MergeResult>(x => x.IsConflict).True
-                                & HAS.Property<MergeResult>(x => x.Diff).EqualTo(expected));
+                                & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(expected));
         }
 
         public IEnumerable ConflictedMerges

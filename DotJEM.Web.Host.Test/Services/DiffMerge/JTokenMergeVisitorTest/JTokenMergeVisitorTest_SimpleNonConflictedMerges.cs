@@ -1,6 +1,7 @@
 using System.Collections;
 using DotJEM.Json.Index.Test.Constraints;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -16,6 +17,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             IJTokenMergeVisitor service = new JTokenMergeVisitor();
 
             MergeResult result = service.Merge(update, conflict, parent);
+
+            Assert.That(result.Merged.ToString(Formatting.Indented), Is.EqualTo(expected.ToString(Formatting.Indented)));
 
             Assert.That(result,
                 HAS.Property<MergeResult>(x => x.IsConflict).False
