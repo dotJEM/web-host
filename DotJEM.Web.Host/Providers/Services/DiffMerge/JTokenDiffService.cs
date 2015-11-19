@@ -17,9 +17,10 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         JToken Merged { get; }
 
         MergeResult Noop(JToken update, JToken other);
-        MergeResult TryMerge(JToken update, JToken other);
+        MergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other);
+        MergeResult Merge(JToken update, JToken other);
 
-        IJTokenMergeContext Child(object key);
+        IJTokenMergeContext Next(object key);
     }
 
     public class JTokenMergeContext : IJTokenMergeContext
@@ -49,7 +50,12 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             return new MergeResult(false, update, other, Origin, Merged);
         }
 
-        public MergeResult TryMerge(JToken update, JToken other)
+        public MergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other)
+        {
+            throw new NotImplementedException();
+        }
+
+        public MergeResult Merge(JToken update, JToken other)
         {
             if (JToken.DeepEquals(Origin, other))
             {
@@ -74,7 +80,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             return new MergeResult(true, update, other, Origin, Merged);
         }
 
-        public IJTokenMergeContext Child(object key)
+        public IJTokenMergeContext Next(object key)
         {
             return new JTokenMergeContext(Merged?[key], Origin?[key], Merged, key);
         }
@@ -84,7 +90,6 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
     {
         public MergeResult Merge(JToken update, JToken other, JToken origin)
         {
-            //TODO: (jmd 2015-11-16) Should we merge this into a "cloned" object instead? 
             return Merge(update, other, new JTokenMergeContext(update.DeepClone(), origin));
         }
 
@@ -96,7 +101,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
                 return context.Noop(null, null);
 
             if (update == null || other == null || update.Type != other.Type)
-                return context.TryMerge(update, other);
+                return context.Merge(update, other);
             
             switch (update.Type)
             {
@@ -125,24 +130,23 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         protected virtual MergeResult MergeValue(JValue update, JValue other, IJTokenMergeContext context)
         {
             return !JToken.DeepEquals(update, other)
-                ? context.TryMerge(update, other)
+                ? context.Merge(update, other)
                 : context.Noop(update, other);
         }
 
         protected virtual MergeResult MergeObject(JObject update, JObject other, IJTokenMergeContext context)
         {
             IEnumerable<MergeResult> diffs = from key in UnionKeys(update, other)
-                let diff = Merge(update[key], other[key], context.Child(key))
+                let diff = Merge(update[key], other[key], context.Next(key))
                 select diff;
-            //TODO: (jmd 2015-11-19) Support in context 
-            return new CompositeMergeResult(diffs, update, other, context.Origin,context.Merged);
+            return context.Multiple(diffs, update, other);
         }
 
         protected virtual MergeResult MergeArray(JArray update, JArray other, IJTokenMergeContext context)
         {
             if (!JToken.DeepEquals(update, other))
             {
-                return context.TryMerge(update, other);
+                return context.Merge(update, other);
             }
             return context.Noop(update, other);
         }
@@ -178,7 +182,19 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         }
     }
 
-    public class MergeResult 
+    public interface IMergeResult
+    {
+        JToken Update { get; }
+        JToken Merged { get; }
+        JToken Other { get; }
+        JToken Origin { get; }
+
+        JObject Conflicts { get; }
+
+        bool IsConflict { get; }
+    }
+
+    public class MergeResult : IMergeResult
     {
         private readonly JToken merged;
         public JToken Update { get; }
@@ -226,7 +242,6 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             }; 
             return diff;
         }
-
     }
 
 
