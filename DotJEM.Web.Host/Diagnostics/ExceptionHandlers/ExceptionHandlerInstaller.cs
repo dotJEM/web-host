@@ -5,6 +5,7 @@ using System.Web.Http.Results;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
+using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Validation;
 
 namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
@@ -15,6 +16,7 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
         {
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<HttpResponseExceptionHandler>());
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<JsonEntityValidationExceptionHandler>());
+            container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<JsonMergeConflictExceptionHandler>());
         }
     }
 
@@ -31,6 +33,15 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
         protected override IHttpActionResult Handle(JsonEntityValidationException exception, HttpRequestMessage request)
         {
             HttpResponseMessage message = request.CreateErrorResponse(HttpStatusCode.BadRequest,exception.Message, exception);
+            return new ResponseMessageResult(message);
+        }
+    }
+
+    public class JsonMergeConflictExceptionHandler : GenericExceptionHandler<JsonMergeConflictException>
+    {
+        protected override IHttpActionResult Handle(JsonMergeConflictException exception, HttpRequestMessage request)
+        {
+            HttpResponseMessage message = request.CreateResponse(HttpStatusCode.Conflict, exception.MergeResult);
             return new ResponseMessageResult(message);
         }
     }

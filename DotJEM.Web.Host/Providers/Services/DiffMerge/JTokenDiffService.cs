@@ -8,7 +8,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 {
     public interface IJTokenMergeVisitor
     {
-        MergeResult Merge(JToken update, JToken other, JToken origin);
+        IMergeResult Merge(JToken update, JToken other, JToken origin);
     }
 
     public interface IJTokenMergeContext
@@ -16,9 +16,9 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         JToken Origin { get; }
         JToken Merged { get; }
 
-        MergeResult Noop(JToken update, JToken other);
-        MergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other);
-        MergeResult Merge(JToken update, JToken other);
+        IMergeResult Noop(JToken update, JToken other);
+        IMergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other);
+        IMergeResult Merge(JToken update, JToken other);
 
         IJTokenMergeContext Next(object key);
     }
@@ -45,17 +45,17 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             this.key = key;
         }
 
-        public MergeResult Noop(JToken update, JToken other)
+        public IMergeResult Noop(JToken update, JToken other)
         {
             return new MergeResult(false, update, other, Origin, Merged);
         }
 
-        public MergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other)
+        public IMergeResult Multiple(IEnumerable<MergeResult> diffs, JObject update, JObject other)
         {
             return new CompositeMergeResult(diffs, update, other, Origin, Merged);
         }
 
-        public MergeResult Merge(JToken update, JToken other)
+        public IMergeResult Merge(JToken update, JToken other)
         {
             if (JToken.DeepEquals(Origin, other))
             {
@@ -88,12 +88,12 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
     public class JTokenMergeVisitor : IJTokenMergeVisitor
     {
-        public MergeResult Merge(JToken update, JToken other, JToken origin)
+        public IMergeResult Merge(JToken update, JToken other, JToken origin)
         {
             return Merge(update, other, new JTokenMergeContext(update.DeepClone(), origin));
         }
 
-        public virtual MergeResult Merge(JToken update, JToken other, IJTokenMergeContext context)
+        public virtual IMergeResult Merge(JToken update, JToken other, IJTokenMergeContext context)
         {
             //TODO: Test the object for simple value, if it's a simple value we can use DeepEquals right away.
 
@@ -127,22 +127,23 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             throw new ArgumentOutOfRangeException();
         }
 
-        protected virtual MergeResult MergeValue(JValue update, JValue other, IJTokenMergeContext context)
+        protected virtual IMergeResult MergeValue(JValue update, JValue other, IJTokenMergeContext context)
         {
             return !JToken.DeepEquals(update, other)
                 ? context.Merge(update, other)
                 : context.Noop(update, other);
         }
 
-        protected virtual MergeResult MergeObject(JObject update, JObject other, IJTokenMergeContext context)
+        protected virtual IMergeResult MergeObject(JObject update, JObject other, IJTokenMergeContext context)
         {
             IEnumerable<MergeResult> diffs = from key in UnionKeys(update, other)
-                let diff = Merge(update[key], other[key], context.Next(key))
+                let diff = (MergeResult) Merge(update[key], other[key], context.Next(key))
                 select diff;
+            
             return context.Multiple(diffs, update, other);
         }
 
-        protected virtual MergeResult MergeArray(JArray update, JArray other, IJTokenMergeContext context)
+        protected virtual IMergeResult MergeArray(JArray update, JArray other, IJTokenMergeContext context)
         {
             if (!JToken.DeepEquals(update, other))
             {
@@ -157,28 +158,27 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             keys.UnionWith(other.Keys);
             return keys;
         }
-
     }
 
     public class JsonMergeConflictException : Exception
     {
-        public MergeResult Result { get; }
+        public MergeResult MergeResult { get; }
 
         public JsonMergeConflictException(MergeResult result)
         {
-            Result = result;
+            MergeResult = result;
         }
 
         public JsonMergeConflictException(MergeResult result, string message)
             : base(message)
         {
-            Result = result;
+            MergeResult = result;
         }
 
         public JsonMergeConflictException(MergeResult result, string message, Exception inner)
             : base(message, inner)
         {
-            Result = result;
+            MergeResult = result;
         }
     }
 
@@ -191,7 +191,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
         JObject Conflicts { get; }
 
-        bool IsConflict { get; }
+        bool HasConflicts { get; }
     }
 
     public class MergeResult : IMergeResult
@@ -203,7 +203,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         {
             get
             {
-                if (IsConflict)
+                if (HasConflicts)
                     throw new JsonMergeConflictException(this);
 
                 return merged;
@@ -215,28 +215,28 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
         public JObject Conflicts => BuildDiff(new JObject(), false);
 
-        public bool IsConflict { get; }
+        public bool HasConflicts { get; }
 
         //TODO: Store info about the conflict if any
-        public MergeResult(bool isConflict, JToken update, JToken other, JToken origin, JToken merged)
+        public MergeResult(bool hasConflicts, JToken update, JToken other, JToken origin, JToken merged)
         {
             this.merged = merged;
             Update = update;
             Other = other;
             Origin = origin;
-            IsConflict = isConflict;
+            HasConflicts = hasConflicts;
         }
 
         internal virtual JObject BuildDiff(JObject diff, bool includeResolvedConflicts)
         {
             //TODO: (jmd 2015-11-19) Even when there are no conflicts we can still provide a diff, but we need to fix up the Composite first
-            if (!IsConflict && !includeResolvedConflicts)
+            if (!HasConflicts && !includeResolvedConflicts)
                 return diff;
 
             //NOTE: Either Merged or Other is not null here, otherwise we would not have a conflict.
             diff[Update?.Path ?? Other.Path] = new JObject
             {
-                ["updated"] = Update,
+                ["update"] = Update,
                 ["conflict"] = Other,
                 ["origin"] = Origin
             }; 
@@ -249,14 +249,13 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
     {
         private readonly List<MergeResult> diffs;
 
-
         public CompositeMergeResult(IEnumerable<MergeResult> diffs, JToken update, JToken other, JToken origin, JToken merged)
             : this(diffs.ToList(), update, other, origin, merged)
         {
         }
 
         protected CompositeMergeResult(List<MergeResult> diffs, JToken update, JToken other, JToken origin, JToken merged)
-            : base(diffs.Any(f => f.IsConflict), update, other, origin, merged)
+            : base(diffs.Any(f => f.HasConflicts), update, other, origin, merged)
         {
             this.diffs = diffs;
         }

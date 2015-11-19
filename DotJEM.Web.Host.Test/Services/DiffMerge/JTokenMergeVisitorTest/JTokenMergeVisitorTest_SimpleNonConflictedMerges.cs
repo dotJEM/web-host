@@ -16,12 +16,11 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
         {
             IJTokenMergeVisitor service = new JTokenMergeVisitor();
 
-            MergeResult result = service.Merge(update, conflict, parent);
+            IMergeResult result = service.Merge(update, conflict, parent);
 
-            Assert.That(result.Merged.ToString(Formatting.Indented), Is.EqualTo(expected.ToString(Formatting.Indented)));
 
             Assert.That(result,
-                HAS.Property<MergeResult>(x => x.IsConflict).False
+                HAS.Property<MergeResult>(x => x.HasConflicts).False
                 & HAS.Property<MergeResult>(x => x.Merged).EqualTo(expected));
         }
 

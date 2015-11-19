@@ -15,9 +15,9 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
         {
             IJTokenMergeVisitor service = new JTokenMergeVisitor();
 
-            MergeResult result = service.Merge(update, conflict, parent);
+            IMergeResult result = service.Merge(update, conflict, parent);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.IsConflict).True
+            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
                                 & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(expected));
         }
 

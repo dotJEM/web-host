@@ -1,6 +1,7 @@
 using System.Collections;
 using DotJEM.Json.Index.Test.Constraints;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -20,9 +21,27 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IJTokenMergeVisitor visitor = new JTokenMergeVisitor();
 
-            MergeResult result = visitor.Merge(update, conflict, origin);
+            IMergeResult result = visitor.Merge(update, conflict, origin);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.IsConflict).True
+            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
+                                & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(diff));
+        }
+        [Test]
+        public void Merge_TypeMismatchArray_IsConflicted()
+        {
+            JToken update = Json("{ arr: [1,2,3] }");
+            JToken conflict = Json("{ arr: [2,3,1] }");
+            JToken origin = Json("{ arr: 'foo' }");
+            JToken diff = Json("{ arr: { origin: 'foo', conflict: [2,3,1], update: [1,2,3] } }");
+
+            IJTokenMergeVisitor visitor = new JTokenMergeVisitor();
+
+            IMergeResult result = visitor.Merge(update, conflict, origin);
+
+            string a = result.Conflicts.ToString(Formatting.Indented);
+            string b = diff.ToString(Formatting.Indented);
+
+            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
                                 & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(diff));
         }
 
@@ -31,9 +50,9 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
         {
             IJTokenMergeVisitor service = new JTokenMergeVisitor();
 
-            MergeResult result = service.Merge(update, conflict, parent);
+            IMergeResult result = service.Merge(update, conflict, parent);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.IsConflict).EqualTo(false)
+            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).EqualTo(false)
                                 & HAS.Property<MergeResult>(x => x.Merged).EqualTo(expected));
         }
 
