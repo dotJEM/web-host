@@ -48,6 +48,13 @@ namespace DotJEM.Web.Host.Diagnostics
         {
             self.Log(ContentType, severity, message, entity);
         }
+
+        public static void LogIncident(this IDiagnosticsLogger self, Severity severity, string message, Exception exception, object entity = null)
+        {
+            JObject json = entity != null ? (entity as JObject ?? self.Converter.ToJObject(entity)) : new JObject();
+            json["exception"] = self.Converter.ToJObject(exception);
+            self.Log(ContentType, severity, message, json);
+        }
     }
 
     public static class DiagnosticsLoggerWarningExtensions
@@ -112,15 +119,15 @@ namespace DotJEM.Web.Host.Diagnostics
         private readonly Lazy<IStorageArea> area;
         private readonly Lazy<IStorageIndexManager> manager;
 
-        public IStorageArea Area { get { return area.Value; } }
-        public IStorageIndexManager Manager { get { return manager.Value; } }
-        public IJsonConverter Converter { get; private set; }
+        public IStorageArea Area => area.Value;
+        public IStorageIndexManager Manager => manager.Value;
+        public IJsonConverter Converter { get; }
 
         public DiagnosticsLogger(Lazy<IStorageContext> context, Lazy<IStorageIndexManager> manager, IJsonConverter converter)
         {
-            this.area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
+            area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
             this.manager = manager;
-            this.Converter = converter;
+            Converter = converter;
         }
 
         public void Log(string contentType, Severity severity, object entity = null)
@@ -139,23 +146,7 @@ namespace DotJEM.Web.Host.Diagnostics
             json["message"] = message;
             Log(contentType, severity, json);
         }
-
-
-        public void LogException(Exception exception, object entity = null)
-        {
-            JObject json;
-            if (entity != null)
-            {
-                json = entity as JObject ?? Converter.ToJObject(entity);
-                json.Merge(Converter.ToJObject(exception));
-            }
-            else
-            {
-                json = Converter.ToJObject(exception);
-            }
-            this.LogFailure(Severity.Error, json);
-        }
-
+        
         private JObject EnsureJson(object entity)
         {
             return entity == null ? new JObject() : (entity as JObject ?? Converter.ToJObject(entity));
@@ -175,7 +166,7 @@ namespace DotJEM.Web.Host.Diagnostics
                 {
                     builder.Append("   at ");
                     Type declaringType = method.DeclaringType;
-                    if (declaringType != (Type)null)
+                    if (declaringType != null)
                     {
                         builder.Append(declaringType.FullName.Replace('+', '.'));
                         builder.Append(".");

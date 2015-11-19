@@ -231,7 +231,11 @@ namespace DotJEM.Web.Host
                 {
                     try
                     {
-                        File.Delete(padlock);
+                        if (File.Exists(padlock))
+                        {
+                            File.Delete(padlock);
+                        }
+                        break;
                     }
                     catch (Exception)
                     {
