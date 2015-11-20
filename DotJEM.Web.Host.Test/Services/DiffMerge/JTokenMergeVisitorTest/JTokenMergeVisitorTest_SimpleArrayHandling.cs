@@ -38,11 +38,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IMergeResult result = visitor.Merge(update, conflict, origin);
 
-            string a = result.Conflicts.ToString(Formatting.Indented);
-            string b = diff.ToString(Formatting.Indented);
-
             Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
-                                & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(diff));
+                                & HAS.Property<MergeResult>(x => x.Conflicts).Matches(XIS.JsonEqual(diff)));
         }
 
         [TestCaseSource(nameof(NonConflictedMerges))]
