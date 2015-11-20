@@ -19,7 +19,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             JToken origin = Json("{ arr: [3,1,2] }");
             JToken diff = Json("{ arr: { origin: [3,1,2], conflict: [2,3,1], update: [1,2,3] } }");
 
-            IJTokenMergeVisitor visitor = new JTokenMergeVisitor();
+            IJsonMergeVisitor visitor = new JsonMergeVisitor();
 
             IMergeResult result = visitor.Merge(update, conflict, origin);
 
@@ -34,7 +34,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             JToken origin = Json("{ arr: 'foo' }");
             JToken diff = Json("{ arr: { origin: 'foo', conflict: [2,3,1], update: [1,2,3] } }");
 
-            IJTokenMergeVisitor visitor = new JTokenMergeVisitor();
+            IJsonMergeVisitor visitor = new JsonMergeVisitor();
 
             IMergeResult result = visitor.Merge(update, conflict, origin);
 
@@ -48,7 +48,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
         [TestCaseSource(nameof(NonConflictedMerges))]
         public void Merge_WithoutConflicts_Merges(JToken update, JToken conflict, JToken parent, JToken expected)
         {
-            IJTokenMergeVisitor service = new JTokenMergeVisitor();
+            IJsonMergeVisitor service = new JsonMergeVisitor();
 
             IMergeResult result = service.Merge(update, conflict, parent);
 

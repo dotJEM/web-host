@@ -13,7 +13,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
         [TestCaseSource(nameof(ConflictedMerges))]
         public void Merge_WithConflicts_DisallowsUpdate(JToken update, JToken conflict, JToken parent, JToken expected)
         {
-            IJTokenMergeVisitor service = new JTokenMergeVisitor();
+            IJsonMergeVisitor service = new JsonMergeVisitor();
 
             IMergeResult result = service.Merge(update, conflict, parent);
 

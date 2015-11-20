@@ -197,7 +197,10 @@
     <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\PeriodicScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\SingleFireScheduledTask.cs" />
-    <Compile Include="Providers\Services\DiffMerge\JTokenDiffService.cs" />
+    <Compile Include="Providers\Services\DiffMerge\JsonMergeConflictException.cs" />
+    <Compile Include="Providers\Services\DiffMerge\JsonMergeContext.cs" />
+    <Compile Include="Providers\Services\DiffMerge\JSonMergeVisitor.cs" />
+    <Compile Include="Providers\Services\DiffMerge\MergeResult.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />
