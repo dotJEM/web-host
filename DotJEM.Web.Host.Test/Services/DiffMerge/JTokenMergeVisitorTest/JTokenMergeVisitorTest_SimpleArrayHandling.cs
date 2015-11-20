@@ -50,7 +50,59 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             IMergeResult result = service.Merge(update, conflict, parent);
 
             Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).EqualTo(false)
-                                & HAS.Property<MergeResult>(x => x.Merged).EqualTo(expected));
+                                & HAS.Property<MergeResult>(x => x.Merged).Matches(XIS.JsonEqual(expected)));
+        }
+
+        [TestCaseSource(nameof(ConflictedMerges))]
+        public void Merge_WithConflicts_FailsMerge(JToken update, JToken conflict, JToken parent, JToken expected)
+        {
+            IJsonMergeVisitor service = new JsonMergeVisitor();
+
+            IMergeResult result = service.Merge(update, conflict, parent);
+
+            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).EqualTo(true));
+            Assert.That(result.Conflicts, XIS.JsonEqual(expected));
+        }
+
+        public IEnumerable ConflictedMerges
+        {
+            get
+            {
+                yield return Case(
+                    "{ arr: [1] }",
+                    "{ arr: [2] }",
+                    "{ arr: [3] }",
+                    "{ arr: { update: [1], conflict: [2], origin: [3] } }"
+                    );
+
+                yield return Case(
+                    "{ arr: [1,2] }",
+                    "{ arr: [2,1] }",
+                    "{ arr: [3] }",
+                    "{ arr: { update: [1,2], conflict: [2,1], origin: [3] } }"
+                    );
+
+                yield return Case(
+                    "{ arr: [1] }",
+                    "{ arr: 42 }",
+                    "{ arr: [3] }",
+                    "{ arr: { update: [1], conflict: 42, origin: [3] } }"
+                    );
+
+                yield return Case(
+                    "{ arr: [1] }",
+                    "{ arr: [2] }",
+                    "{ }",
+                    "{ arr: { update: [1], conflict: [2], origin: null } }"
+                    );
+
+                yield return Case(
+                    "{ arr: [1] }",
+                    "{ arr: [1,2] }",
+                    "{ arr: [2] }",
+                    "{ arr: { update: [1], conflict: [1,2], origin: [2] } }"
+                    );
+            }
         }
 
         public IEnumerable NonConflictedMerges
