@@ -10,6 +10,10 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         IMergeResult Merge(JToken update, JToken other, JToken origin);
     }
 
+    //TODO: (jmd 2015-11-23) MergeVisitor is a bit misguiding here. IT's sort of a diff visitor...
+    //                       But then again, it handles the merge though the merge context...
+    //                       - Would like to have that abstracted out, so that the Context would know what to do, and that we could implement
+    //                         simple difss this way as well. And then allow for different strategies.
     public class JsonMergeVisitor : IJsonMergeVisitor
     {
         public IMergeResult Merge(JToken update, JToken other, JToken origin)
@@ -19,14 +23,13 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
         public virtual IMergeResult Merge(JToken update, JToken other, IJsonMergeContext context)
         {
-            //TODO: Test the object for simple value, if it's a simple value we can use DeepEquals right away.
-
             if (update == null && other == null)
                 return context.Noop(null, null);
 
             if (update == null || other == null || update.Type != other.Type)
                 return context.Merge(update, other);
-            
+
+            //TODO: (jmd 2015-11-23) Could change this into try cast into JValue, JObject, JArray -> Might be easier to read.
             switch (update.Type)
             {
                 case JTokenType.Object:
