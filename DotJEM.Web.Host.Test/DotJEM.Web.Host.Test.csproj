@@ -64,7 +64,11 @@
   <ItemGroup>
     <Compile Include="Diagnostics\DiagnosticsLoggerTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleNonConflictedMerges.cs" />
+    <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleArrayHandling.cs" />
+    <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleConflictedMerges.cs" />
     <Compile Include="Services\Pipeline\PipelineHandlerSetTest.cs" />
+    <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\AbstractJTokenMergeVisitorTest.cs" />
     <Compile Include="Validation\Constraints\OneOfFieldConstraintTest.cs" />
     <Compile Include="Validation\ValidatorIntegrationTest.cs" />
   </ItemGroup>
@@ -74,6 +78,10 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <ProjectReference Include="..\..\json-index\DotJEM.Json.Index.Test\DotJEM.Json.Index.Test.csproj">
+      <Project>{2D9240E0-B1C6-4C9E-BB33-CCB0FD3FF2C1}</Project>
+      <Name>DotJEM.Json.Index.Test</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
       <Project>{61ea751b-691b-4f68-87c5-46d115d51cc3}</Project>
       <Name>DotJEM.Json.Index</Name>
