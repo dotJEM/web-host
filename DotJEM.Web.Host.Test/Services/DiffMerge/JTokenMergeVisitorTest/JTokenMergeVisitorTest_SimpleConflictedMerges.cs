@@ -29,14 +29,14 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
                     "{ prop: 'hey' }",
                     "{ prop: 'ho' }",
                     "{ prop: 'what' }",
-                    "{ prop: { origin: 'what', update: 'hey', conflict: 'ho' } }"
+                    "{ prop: { origin: 'what', update: 'hey', other: 'ho' } }"
                     );
 
                 yield return Case(
                     "{ prop: { a: 42, b: 'hey' } }",
                     "{ prop: { a: 42, b: 'ho' } }",
                     "{ prop: { a: 42, b: 'what' } }",
-                    "{ 'prop.b': { origin: 'what', update: 'hey', conflict: 'ho' } }"
+                    "{ 'prop.b': { origin: 'what', update: 'hey', other: 'ho' } }"
                     );
             }
         }

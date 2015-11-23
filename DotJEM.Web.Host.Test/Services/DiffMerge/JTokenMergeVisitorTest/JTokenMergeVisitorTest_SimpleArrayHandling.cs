@@ -17,7 +17,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             JToken update = Json("{ arr: [1,2,3] }");
             JToken conflict = Json("{ arr: [2,3,1] }");
             JToken origin = Json("{ arr: [3,1,2] }");
-            JToken diff = Json("{ arr: { origin: [3,1,2], conflict: [2,3,1], update: [1,2,3] } }");
+            JToken diff = Json("{ arr: { origin: [3,1,2], other: [2,3,1], update: [1,2,3] } }");
 
             IJsonMergeVisitor visitor = new JsonMergeVisitor();
 
@@ -32,7 +32,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
             JToken update = Json("{ arr: [1,2,3] }");
             JToken conflict = Json("{ arr: [2,3,1] }");
             JToken origin = Json("{ arr: 'foo' }");
-            JToken diff = Json("{ arr: { origin: 'foo', conflict: [2,3,1], update: [1,2,3] } }");
+            JToken diff = Json("{ arr: { origin: 'foo', other: [2,3,1], update: [1,2,3] } }");
 
             IJsonMergeVisitor visitor = new JsonMergeVisitor();
 
@@ -72,35 +72,35 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
                     "{ arr: [1] }",
                     "{ arr: [2] }",
                     "{ arr: [3] }",
-                    "{ arr: { update: [1], conflict: [2], origin: [3] } }"
+                    "{ arr: { update: [1], other: [2], origin: [3] } }"
                     );
 
                 yield return Case(
                     "{ arr: [1,2] }",
                     "{ arr: [2,1] }",
                     "{ arr: [3] }",
-                    "{ arr: { update: [1,2], conflict: [2,1], origin: [3] } }"
+                    "{ arr: { update: [1,2], other: [2,1], origin: [3] } }"
                     );
 
                 yield return Case(
                     "{ arr: [1] }",
                     "{ arr: 42 }",
                     "{ arr: [3] }",
-                    "{ arr: { update: [1], conflict: 42, origin: [3] } }"
+                    "{ arr: { update: [1], other: 42, origin: [3] } }"
                     );
 
                 yield return Case(
                     "{ arr: [1] }",
                     "{ arr: [2] }",
                     "{ }",
-                    "{ arr: { update: [1], conflict: [2], origin: null } }"
+                    "{ arr: { update: [1], other: [2], origin: null } }"
                     );
 
                 yield return Case(
                     "{ arr: [1] }",
                     "{ arr: [1,2] }",
                     "{ arr: [2] }",
-                    "{ arr: { update: [1], conflict: [1,2], origin: [2] } }"
+                    "{ arr: { update: [1], other: [1,2], origin: [2] } }"
                     );
             }
         }

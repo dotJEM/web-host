@@ -59,7 +59,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             diff[Update?.Path ?? Other.Path] = new JObject
             {
                 ["update"] = Update,
-                ["conflict"] = Other,
+                ["other"] = Other,
                 ["origin"] = Origin
             }; 
             return diff;

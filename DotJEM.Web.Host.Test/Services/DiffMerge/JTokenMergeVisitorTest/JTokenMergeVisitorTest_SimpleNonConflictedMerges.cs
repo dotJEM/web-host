@@ -11,7 +11,7 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
     // ReSharper disable once InconsistentNaming
     public class JTokenMergeVisitorTest_SimpleNonConflictedMerges : AbstractJTokenMergeVisitorTest
     {
-        [TestCaseSource(nameof(NonConflictedMerges))]
+        [TestCaseSource(typeof(JTokenMergeVisitorTestData), nameof(JTokenMergeVisitorTestData.SimpleNonConflictedMerge))]
         public void Merge_WithoutConflicts_AllowsUpdate(JToken update, JToken conflict, JToken parent, JToken expected)
         {
             IJsonMergeVisitor service = new JsonMergeVisitor();
@@ -23,52 +23,11 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
                 HAS.Property<MergeResult>(x => x.HasConflicts).False
                 & HAS.Property<MergeResult>(x => x.Merged).EqualTo(expected));
         }
-
-        public IEnumerable NonConflictedMerges
-        {
-            get
-            {
-                yield return Case(
-                    "{ prop: 'what' }",
-                    "{ prop: 'what' }",
-                    "{ prop: 'what' }",
-                    "{ prop: 'what' }"
-                    );
-
-                yield return Case(
-                    "{ prop: 'what' }",
-                    "{ prop: 'x' }",
-                    "{ prop: 'what' }",
-                    "{ prop: 'x' }"
-                    );
-
-                yield return Case(
-                    "{ prop: { a: 42 } }",
-                    "{ prop: { a: 42, b: 'foo' } }",
-                    "{ prop: { a: 42 } }",
-                    "{ prop: { a: 42, b: 'foo' } }"
-                    );
-
-                yield return Case(
-                    "{ prop: { a: 42 } }",
-                    "{ prop: { a: 42, b: 'foo' } }",
-                    "{ prop: { a: 42, b: 'foo' } }",
-                    "{ prop: { a: 42 } }"
-                    );
-
-                yield return Case(
-                    "{ prop: { a: 42, b: 'foo' } }",
-                    "{ prop: { a: 42 } }",
-                    "{ prop: { a: 42, b: 'foo' } }",
-                    "{ prop: { a: 42 } }"
-                    );
-            }
-        }
     }
 
-    public class JTokenMergeVisitor_SimpleNonConflictedMerges_TestData : AbstractJTokenMergeVisitorTest
+    public class JTokenMergeVisitorTestData : AbstractJTokenMergeVisitorTest
     {
-        public IEnumerable Cases
+        public IEnumerable SimpleNonConflictedMerge
         {
             get
             {

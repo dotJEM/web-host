@@ -52,7 +52,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         {
             if (JToken.DeepEquals(Origin, other))
             {
-                //NOTE: The update is valid.
+                //NOTE: (jmd 2015-11-23) The updated value here is already valid.
                 return new MergeResult(false, update,other,Origin, Merged);
             }
 
@@ -64,6 +64,8 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
                 }
                 else
                 {
+                    //NOTE: (jmd 2015-11-23) JSON.NET will automatically detect that other is from a different object, clone that at refresh it's parent.
+                    //      So this might seem dirty, but it is not.
                     parent[key] = other;
                 }
                 return new MergeResult(false, update, other, Origin, Merged);
