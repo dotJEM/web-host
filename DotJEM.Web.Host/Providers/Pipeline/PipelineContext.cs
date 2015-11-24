@@ -9,7 +9,14 @@ using System.Web.Query.Dynamic;
 
 namespace DotJEM.Web.Host.Providers.Pipeline
 {
-    public class PipelineContext : DynamicObject
+    public interface IPipelineContext : IDisposable
+    {
+        object this[string key] { get; set; }
+
+        void Add(string key, object value);
+    }
+
+    public class PipelineContext : DynamicObject, IPipelineContext
     {
         private readonly IDictionary<string, object> inner = new Dictionary<string, object>();
 
@@ -36,5 +43,29 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             this[binder.Name] = value;
             return true;
         }
+
+        #region Dispose pattern
+        protected volatile bool Disposed;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (Disposed)
+            {
+                throw new ObjectDisposedException(GetType().Name);
+            }
+            Disposed = true;
+        }
+
+        ~PipelineContext()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }
