@@ -6,7 +6,9 @@ using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Validation;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
 {
@@ -41,7 +43,7 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
     {
         protected override IHttpActionResult Handle(JsonMergeConflictException exception, HttpRequestMessage request)
         {
-            HttpResponseMessage message = request.CreateResponse(HttpStatusCode.Conflict, exception.MergeResult);
+            HttpResponseMessage message = request.CreateResponse(HttpStatusCode.Conflict, exception.MergeResult.Conflicts);
             return new ResponseMessageResult(message);
         }
     }

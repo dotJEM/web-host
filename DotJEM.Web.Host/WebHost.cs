@@ -27,6 +27,7 @@ using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Scheduler;
+using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -103,6 +104,7 @@ namespace DotJEM.Web.Host
 
             container
                 .Register(Component.For<IPathResolver>().ImplementedBy<PathResolver>())
+                .Register(Component.For<IJsonMergeVisitor>().ImplementedBy<JsonMergeVisitor>())
                 .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
                 .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
                 .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
@@ -113,6 +115,7 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
+            
 
             IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
             IPerformanceTracker startup = perf.TrackTask("Start");

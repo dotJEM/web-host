@@ -21,6 +21,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         private readonly JToken merged;
         public JToken Update { get; }
 
+
         public JToken Merged
         {
             get

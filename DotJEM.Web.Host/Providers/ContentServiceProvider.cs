@@ -3,6 +3,7 @@ using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services;
+using DotJEM.Web.Host.Providers.Services.DiffMerge;
 
 namespace DotJEM.Web.Host.Providers
 {
@@ -10,8 +11,8 @@ namespace DotJEM.Web.Host.Providers
     {
         private readonly IStorageContext context;
 
-        public ContentServiceProvider(IStorageIndex index, IStorageContext context, IStorageIndexManager manager, IPipeline pipeline)
-            : base(name => new ContentService(index, context.Area(name), manager, pipeline))
+        public ContentServiceProvider(IStorageIndex index, IStorageContext context, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger)
+            : base(name => new ContentService(index, context.Area(name), manager, pipeline, merger))
         {
             this.context = context;
         }
