@@ -197,7 +197,7 @@ namespace DotJEM.Web.Host
             configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
             container
                 .ResolveAll<IDataMigrator>()
-                .ForEach(migrator => Storage.Migrators.Add(migrator));
+                .ForEach(migrator => Storage.MigrationManager.Add(migrator));
         }
 
 
@@ -230,7 +230,7 @@ namespace DotJEM.Web.Host
             Random rnd = new Random();
             if (File.Exists(padlock))
             {
-                for (int i = 0;; i++)
+                for (int i = 0; ; i++)
                 {
                     try
                     {
@@ -246,7 +246,7 @@ namespace DotJEM.Web.Host
                         if (i > 10)
                             throw;
 
-                        Thread.Sleep(rnd.Next(10)*100 + i * 100);
+                        Thread.Sleep(rnd.Next(10) * 100 + i * 100);
                     }
                 }
             }
