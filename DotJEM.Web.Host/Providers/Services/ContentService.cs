@@ -45,6 +45,14 @@ namespace DotJEM.Web.Host.Providers.Services
             //TODO: (jmd 2015-11-25) Dummy for designing the interface. Remove.
             //throw new JsonMergeConflictException(new DummyMergeResult());
 
+            if (!area.HistoryEnabled)
+                return update;
+
+            if (update["$version"] == null)
+            {
+                throw new InvalidOperationException("A $version property is required for all PUT request, it should be the version of the document as you retreived it.");
+            }
+
             long uVersion = (long)update["$version"];
             long oVersion = (long)other["$version"];
 
@@ -52,7 +60,6 @@ namespace DotJEM.Web.Host.Providers.Services
                 return update;
 
             List<JObject> history = area.History.Get(id).ToList();
-
 
             //TODO: (jmd 2015-11-24) Implement a History.Get(version)!;
             JObject origin = history.Single(json => CompareVersion(uVersion, json));
