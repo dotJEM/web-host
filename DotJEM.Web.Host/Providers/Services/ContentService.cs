@@ -64,7 +64,10 @@ namespace DotJEM.Web.Host.Providers.Services
             //TODO: (jmd 2015-11-24) Implement a History.Get(version)!;
             JObject origin = history.Single(json => CompareVersion(uVersion, json));
 
-            return (JObject)merger.Merge(update, other, origin).Merged;
+            return (JObject)merger
+                .Merge(update, other, origin)
+                .AddVersion(uVersion, oVersion)
+                .Merged;
         }
 
         private bool CompareVersion(long find, JObject entry)

@@ -4,6 +4,14 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 {
+    public static class MergeResultExtensions
+    {
+        public static IMergeResult AddVersion(this IMergeResult self, long yourVersion, long otherVersion)
+        {
+            return new MergeResultWithVersion(self, yourVersion, otherVersion);
+        }
+    }
+
     public interface IMergeResult
     {
         JToken Update { get; }
@@ -14,6 +22,49 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         JObject Conflicts { get; }
 
         bool HasConflicts { get; }
+
+    }
+
+    public class MergeResultWithVersion : IMergeResult
+    {
+        private readonly IMergeResult inner;
+
+        private readonly long originVersion;
+        private readonly long otherVersion;
+
+        public JObject Conflicts => BuildDiff(inner.Conflicts, false);
+        public bool HasConflicts => inner.HasConflicts;
+        public JToken Merged => inner.Merged;
+        public JToken Origin => inner.Origin;
+        public JToken Other => inner.Other;
+        public JToken Update => inner.Update;
+
+        public MergeResultWithVersion(IMergeResult inner, long originVersion, long otherVersion)
+        {
+            this.inner = inner;
+            this.originVersion = originVersion;
+            this.otherVersion = otherVersion;
+        }
+
+        private JObject BuildDiff(JObject diff, bool includeResolvedConflicts)
+        {
+            diff["$version"] = new JObject
+            {
+                ["update"] = $"{originVersion}++",
+                ["other"] = otherVersion,
+                ["origin"] = originVersion
+            };
+            return diff;
+        }
+
+        public override string ToString()
+        {
+            if (HasConflicts)
+            {
+                return $"{inner} Latest version was {otherVersion}, update was at version {otherVersion}++.";
+            }
+            return $"{inner}, version is {otherVersion+1}";
+        }
     }
 
     public class MergeResult : IMergeResult
@@ -73,7 +124,6 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
                 return $"{Path} is conflicted, updated was '{Update}', other was '{Other}' and origin was '{Origin}'.";
             }
             return $"{Path} was not conflicted, value is '{merged}'.";
-
         }
     }
 
