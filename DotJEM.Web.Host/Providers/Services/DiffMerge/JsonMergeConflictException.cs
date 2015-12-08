@@ -7,6 +7,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         public MergeResult MergeResult { get; }
 
         public JsonMergeConflictException(MergeResult result)
+            : base(result.ToString())
         {
             MergeResult = result;
         }

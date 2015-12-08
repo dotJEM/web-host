@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Lucene.Net.Documents;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services.DiffMerge
@@ -16,6 +17,9 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
     //                         simple difss this way as well. And then allow for different strategies.
     public class JsonMergeVisitor : IJsonMergeVisitor
     {
+        private static readonly HashSet<string> meta = new HashSet<string>("id;contentType;createdBy;updatedBy;$reference;$version;$created;$updated;$schemaVersion;$area"
+            .Split(new []{';'},StringSplitOptions.RemoveEmptyEntries));
+
         public IMergeResult Merge(JToken update, JToken other, JToken origin)
         {
             return Merge(update, other, new JsonMergeContext(update.DeepClone(), origin));
@@ -23,6 +27,9 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
         public virtual IMergeResult Merge(JToken update, JToken other, IJsonMergeContext context)
         {
+            if(meta.Contains(update?.Path ?? other?.Path))
+                return context.Noop(update, other);
+
             if (update == null && other == null)
                 return context.Noop(null, null);
 

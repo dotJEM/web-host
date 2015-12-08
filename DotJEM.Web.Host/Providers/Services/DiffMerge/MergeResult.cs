@@ -19,8 +19,10 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
     public class MergeResult : IMergeResult
     {
         private readonly JToken merged;
-        public JToken Update { get; }
 
+        public JToken Update { get; }
+        public JToken Other { get; }
+        public JToken Origin { get; }
 
         public JToken Merged
         {
@@ -33,12 +35,10 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             }
         }
 
-        public JToken Other { get; }
-        public JToken Origin { get; }
-
+        public bool HasConflicts { get; }
         public JObject Conflicts => BuildDiff(new JObject(), false);
 
-        public bool HasConflicts { get; }
+        private string Path => Update?.Path ?? Other?.Path ?? Origin.Path;
 
         //TODO: Store info about the conflict if any
         public MergeResult(bool hasConflicts, JToken update, JToken other, JToken origin, JToken merged)
@@ -57,13 +57,23 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
                 return diff;
 
             //NOTE: Either Merged or Other is not null here, otherwise we would not have a conflict.
-            diff[Update?.Path ?? Other.Path] = new JObject
+            diff[Path] = new JObject
             {
                 ["update"] = Update,
                 ["other"] = Other,
                 ["origin"] = Origin
             }; 
             return diff;
+        }
+
+        public override string ToString()
+        {
+            if (HasConflicts)
+            {
+                return $"{Path} is conflicted, updated was '{Update}', other was '{Other}' and origin was '{Origin}'.";
+            }
+            return $"{Path} was not conflicted, value is '{merged}'.";
+
         }
     }
 
@@ -85,6 +95,15 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         internal override JObject BuildDiff(JObject diff, bool includeResolvedConflicts)
         {
             return diffs.Aggregate(diff, (o, result) => result.BuildDiff(o, includeResolvedConflicts));
+        }
+
+        public override string ToString()
+        {
+            if (HasConflicts)
+            {
+                return $"{diffs.Count(m => m.HasConflicts)} was detected, first conflict was {diffs.FirstOrDefault(f => f.HasConflicts)}";
+            }
+            return $"{diffs.Count} merge results without conflicts.";
         }
     }
 }

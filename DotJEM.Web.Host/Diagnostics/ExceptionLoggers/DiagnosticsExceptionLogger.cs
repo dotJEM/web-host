@@ -25,7 +25,6 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionLoggers
 
         public Task LogAsync(ExceptionLoggerContext context, CancellationToken cancellationToken)
         {
-            ReadPayload(context);
             JObject json = converter.ToJObject(new
             {
                 context.Exception,
@@ -57,7 +56,8 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionLoggers
         {
             try
             {
-                return context.Request.Content.ReadAsStringAsync().Result;
+                string content = context.Request.Content.ReadAsStringAsync().Result;
+                return content;
             }
             catch (Exception) {
                 return null;
