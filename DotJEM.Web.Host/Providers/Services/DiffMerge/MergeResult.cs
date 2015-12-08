@@ -8,7 +8,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
     {
         public static IMergeResult AddVersion(this IMergeResult self, long yourVersion, long otherVersion)
         {
-            return new MergeResultWithVersion(self, yourVersion, otherVersion);
+            return new MergeResultWithVersion((MergeResult) self, yourVersion, otherVersion);
         }
     }
 
@@ -27,19 +27,29 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
 
     public class MergeResultWithVersion : IMergeResult
     {
-        private readonly IMergeResult inner;
+        private readonly MergeResult inner;
 
         private readonly long originVersion;
         private readonly long otherVersion;
 
-        public JObject Conflicts => BuildDiff(inner.Conflicts, false);
+        public JObject Conflicts => BuildDiff(new JObject(), false);
         public bool HasConflicts => inner.HasConflicts;
-        public JToken Merged => inner.Merged;
         public JToken Origin => inner.Origin;
         public JToken Other => inner.Other;
         public JToken Update => inner.Update;
 
-        public MergeResultWithVersion(IMergeResult inner, long originVersion, long otherVersion)
+        public JToken Merged
+        {
+            get
+            {
+                if (HasConflicts)
+                    throw new JsonMergeConflictException(this);
+
+                return inner.Merged;
+            }
+        }
+
+        public MergeResultWithVersion(MergeResult inner, long originVersion, long otherVersion)
         {
             this.inner = inner;
             this.originVersion = originVersion;
@@ -54,6 +64,7 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
                 ["other"] = otherVersion,
                 ["origin"] = originVersion
             };
+            inner.BuildDiff(diff, includeResolvedConflicts);
             return diff;
         }
 
