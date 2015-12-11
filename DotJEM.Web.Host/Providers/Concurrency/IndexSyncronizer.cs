@@ -34,6 +34,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         void Start();
         void Stop();
+        void UpdateIndex();
+
         void QueueUpdate(JObject entity);
         void QueueDelete(JObject entity);
     }
@@ -134,7 +136,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             return new Tuple<string, long>(tuple.Item1, changes.Token);
         }
 
-        private void UpdateIndex()
+        public void UpdateIndex()
         {
             IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
                 .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
