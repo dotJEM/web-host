@@ -98,7 +98,7 @@ namespace DotJEM.Web.Host.Validation
             return new FieldGuardValidatorBuilder((key, validator) => fieldValidators.Add(key, validator), builder.BuildGuard(field));
         }
 
-        public ValidationResult Validate(JObject entity, IValidationContext context)
+        public virtual ValidationResult Validate(JObject entity, IValidationContext context)
         {
             //TODO: Need a better concept for this, specifically a "Dependant field" concept, that can also be used in cross validation.
             return RequiresValidation(entity, context.PreviousEntity)

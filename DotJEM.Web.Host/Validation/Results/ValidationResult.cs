@@ -37,5 +37,10 @@ namespace DotJEM.Web.Host.Validation.Results
                 .Aggregate(new StringBuilder(), (builder, result) => builder.AppendLine(result.ToString()))
                 .ToString();
         }
+
+        public void Add(FieldValidationResults item)
+        {
+            fieldsResults.Add(item);
+        }
     }
 }

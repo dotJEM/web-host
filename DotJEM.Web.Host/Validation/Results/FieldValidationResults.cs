@@ -9,9 +9,9 @@ namespace DotJEM.Web.Host.Validation.Results
     {
         private readonly JPath field;
         private readonly JToken token;
-        private readonly ValidationCollector collector;
+        private readonly IValidationCollector collector;
 
-        public FieldValidationResults(JPath field, JToken token, ValidationCollector collector)
+        public FieldValidationResults(JPath field, JToken token, IValidationCollector collector)
         {
             this.field = field;
             this.token = token;

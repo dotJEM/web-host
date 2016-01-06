@@ -4,11 +4,11 @@ using System.Linq;
 
 namespace DotJEM.Web.Host.Validation.Results
 {
-    public class ValidationCollector : IValidationCollector, IEnumerable<ValidationError>
+    public class ValidationCollector : IValidationCollector
     {
         private readonly List<ValidationError> errors = new List<ValidationError>();
       
-        public bool HasErrors { get { return errors.Any(); } }
+        public bool HasErrors => errors.Any();
 
         public IValidationCollector AddError(string format, params object[] args)
         {
