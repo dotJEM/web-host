@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Mvc;
+using DotJEM.Json.Index.Schema;
 using DotJEM.Web.Host.Validation;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
