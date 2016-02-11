@@ -315,6 +315,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="DotJEM.Web.Host.nuspec" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
