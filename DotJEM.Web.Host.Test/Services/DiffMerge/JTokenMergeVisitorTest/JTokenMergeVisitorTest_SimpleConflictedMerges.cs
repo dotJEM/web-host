@@ -1,5 +1,5 @@
 using System.Collections;
-using DotJEM.Json.Index.Test.Constraints;
+using DotJEM.NUnit.Json;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -17,8 +17,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IMergeResult result = service.Merge(update, conflict, parent);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
-                                & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(expected));
+            Assert.That(result, ObjectHas.Property<MergeResult>(x => x.HasConflicts).True
+                                & ObjectHas.Property<MergeResult>(x => x.Conflicts).EqualTo(expected));
         }
 
         public IEnumerable ConflictedMerges

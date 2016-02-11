@@ -39,6 +39,20 @@
     <Reference Include="Castle.Windsor">
       <HintPath>..\packages\Castle.Windsor.3.3.0\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
+    <Reference Include="DotJEM.Json.Index, Version=0.0.13.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\DotJEM.Json.Index.0.0.13.0\lib\net45\DotJEM.Json.Index.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DotJEM.Json.Storage, Version=0.0.33.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\DotJEM.Json.Storage.0.0.33.0\lib\net45\DotJEM.Json.Storage.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DotJEM.NUnit.Json">
+      <HintPath>..\packages\DotJEM.NUnit.Json.0.0.6.0\lib\net45\DotJEM.NUnit.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
@@ -92,9 +106,14 @@
       <HintPath>..\packages\ncrontab.2.0.0\lib\net20\NCrontab.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -301,16 +320,6 @@
     </None>
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\..\json-index\DotJEM.Json.Index\DotJEM.Json.Index.csproj">
-      <Project>{61ea751b-691b-4f68-87c5-46d115d51cc3}</Project>
-      <Name>DotJEM.Json.Index</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\json-storage\DotJEM.Json.Storage\DotJEM.Json.Storage.csproj">
-      <Project>{672d1e1d-c559-4914-b233-807cc7ce3b52}</Project>
-      <Name>DotJEM.Json.Storage</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

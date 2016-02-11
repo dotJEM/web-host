@@ -1,5 +1,5 @@
 using System.Collections;
-using DotJEM.Json.Index.Test.Constraints;
+using DotJEM.NUnit.Json;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -23,8 +23,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IMergeResult result = visitor.Merge(update, conflict, origin);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
-                                & HAS.Property<MergeResult>(x => x.Conflicts).EqualTo(diff));
+            Assert.That(result, ObjectHas.Property<MergeResult>(x => x.HasConflicts).True
+                                & ObjectHas.Property<MergeResult>(x => x.Conflicts).EqualTo(diff));
         }
         [Test]
         public void Merge_TypeMismatchArray_IsConflicted()
@@ -38,8 +38,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IMergeResult result = visitor.Merge(update, conflict, origin);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).True
-                                & HAS.Property<MergeResult>(x => x.Conflicts).Matches(XIS.JsonEqual(diff)));
+            Assert.That(result, ObjectHas.Property<MergeResult>(x => x.HasConflicts).True
+                                & ObjectHas.Property<MergeResult>(x => x.Conflicts).Matches(JsonIs.EqualTo(diff)));
         }
 
         [TestCaseSource(nameof(NonConflictedMerges))]
@@ -49,8 +49,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IMergeResult result = service.Merge(update, conflict, parent);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).EqualTo(false)
-                                & HAS.Property<MergeResult>(x => x.Merged).Matches(XIS.JsonEqual(expected)));
+            Assert.That(result, ObjectHas.Property<MergeResult>(x => x.HasConflicts).EqualTo(false)
+                                & ObjectHas.Property<MergeResult>(x => x.Merged).Matches(JsonIs.EqualTo(expected)));
         }
 
         [TestCaseSource(nameof(ConflictedMerges))]
@@ -60,8 +60,8 @@ namespace DotJEM.Web.Host.Test.Services.DiffMerge.JTokenMergeVisitorTest
 
             IMergeResult result = service.Merge(update, conflict, parent);
 
-            Assert.That(result, HAS.Property<MergeResult>(x => x.HasConflicts).EqualTo(true));
-            Assert.That(result.Conflicts, XIS.JsonEqual(expected));
+            Assert.That(result, ObjectHas.Property<MergeResult>(x => x.HasConflicts).EqualTo(true));
+            Assert.That(result.Conflicts, JsonIs.EqualTo(expected));
         }
 
         public IEnumerable ConflictedMerges
