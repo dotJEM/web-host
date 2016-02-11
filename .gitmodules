@@ -1,9 +1,0 @@
-[submodule "external/json-storage"]
-	path = external/json-storage
-	url = https://github.com/dotJEM/json-storage
-[submodule "external/json-index"]
-	path = external/json-index
-	url = https://github.com/dotJEM/json-index
-[submodule "external/reflection-descriptors"]
-	path = external/reflection-descriptors
-	url = https://github.com/dotJEM/reflection-descriptors
