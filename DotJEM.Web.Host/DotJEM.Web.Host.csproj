@@ -49,10 +49,6 @@
       <HintPath>..\packages\DotJEM.Json.Storage.0.0.33.0\lib\net45\DotJEM.Json.Storage.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="DotJEM.NUnit.Json">
-      <HintPath>..\packages\DotJEM.NUnit.Json.0.0.6.0\lib\net45\DotJEM.NUnit.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
@@ -109,10 +105,6 @@
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
