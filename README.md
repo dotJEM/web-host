@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/lj72kp8ldr5wuu2t?svg=true)](https://ci.appveyor.com/project/jeme/web-host)
+
 web-host
 ========
 
