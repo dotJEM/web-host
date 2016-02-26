@@ -36,18 +36,19 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Castle.Windsor.3.3.0\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index, Version=0.0.14.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="DotJEM.Json.Index, Version=0.0.34.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\DotJEM.Json.Index.0.0.14.0\lib\net45\DotJEM.Json.Index.dll</HintPath>
+      <HintPath>..\packages\DotJEM.Json.Index.0.0.34.0\lib\net45\DotJEM.Json.Index.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="DotJEM.Json.Storage, Version=0.0.36.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="DotJEM.Json.Storage, Version=0.0.37.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\DotJEM.Json.Storage.0.0.36.0\lib\net45\DotJEM.Json.Storage.dll</HintPath>
+      <HintPath>..\packages\DotJEM.Json.Storage.0.0.37.0\lib\net45\DotJEM.Json.Storage.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="DotJEM.NUnit.Json">
-      <HintPath>..\packages\DotJEM.NUnit.Json.0.0.6.0\lib\net45\DotJEM.NUnit.Json.dll</HintPath>
+    <Reference Include="DotJEM.NUnit.Json, Version=0.0.8.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\DotJEM.NUnit.Json.0.0.8.0\lib\net45\DotJEM.NUnit.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
