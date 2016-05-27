@@ -80,11 +80,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         public void Dispose() => Commit();
     }
 
-    internal interface IPerformanceEvent : IDisposable
+    public interface IPerformanceEvent : IDisposable
     {
     }
 
-    internal class PerformanceEvent : IPerformanceEvent
+    public class PerformanceEvent : IPerformanceEvent
     {
         private readonly string type;
         private readonly string[] arguments;
