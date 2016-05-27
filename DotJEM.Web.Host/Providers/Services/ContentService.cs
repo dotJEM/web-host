@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
@@ -74,16 +75,18 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
         private readonly IPipeline pipeline;
+        private readonly IPerformanceLogger performance;
         private readonly IContentMergeService merger;
 
         public IStorageArea StorageArea => area;
 
-        public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger)
+        public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, IPerformanceLogger performance)
         {
             this.index = index;
             this.area = area;
             this.manager = manager;
             this.pipeline = pipeline;
+            this.performance = performance;
             this.merger = new ContentMergeService(merger, area);
         }
 
@@ -113,7 +116,7 @@ namespace DotJEM.Web.Host.Providers.Services
             using (PipelineContext context = new PipelineContext())
             {
                 //TODO: Throw exception if not found?
-                JObject entity = area.Get(id);
+                JObject entity = performance.TrackFunction($"ContentService.Get({id}, {contentType})", () => area.Get(id));
                 return pipeline.ExecuteAfterGet(entity, contentType, context);
             }
         }
@@ -124,7 +127,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return null;
 
-            return area.History.Get(id, version);
+            return performance.TrackFunction($"ContentService.History({id}, {contentType}, {version})", () => area.History.Get(id, version));
         }
 
         public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
@@ -133,7 +136,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return Enumerable.Empty<JObject>();
 
-            return area.History.Get(id, from, to);
+            return performance.TrackFunction($"ContentService.History({id}, {contentType}, {from}, {to})", () => area.History.Get(id, from, to));
         }
 
         public JObject Post(string contentType, JObject entity)
@@ -141,7 +144,8 @@ namespace DotJEM.Web.Host.Providers.Services
             using (PipelineContext context = new PipelineContext())
             {
                 entity = pipeline.ExecuteBeforePost(entity, contentType, context);
-                entity = area.Insert(contentType, entity);
+                JObject closure = entity;
+                entity = performance.TrackFunction($"ContentService.Post({contentType}, $ENTITY)", () => area.Insert(contentType, closure));
                 entity = pipeline.ExecuteAfterPost(entity, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
@@ -157,7 +161,8 @@ namespace DotJEM.Web.Host.Providers.Services
                 entity = merger.EnsureMerge(id, entity, prev);
 
                 entity = pipeline.ExecuteBeforePut(entity, prev, contentType, context);
-                entity = area.Update(id, entity);
+                JObject closure = entity;
+                entity = performance.TrackFunction($"ContentService.Put({id},{contentType}, $ENTITY)", () => area.Update(id, closure));
                 entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
@@ -169,7 +174,7 @@ namespace DotJEM.Web.Host.Providers.Services
             using (PipelineContext context = new PipelineContext())
             {
                 pipeline.ExecuteBeforeDelete(area.Get(id), contentType, context);
-                JObject deleted = area.Delete(id);
+                JObject deleted = performance.TrackFunction($"ContentService.Delete({id},{contentType})", () => area.Delete(id));
                 //TODO: Throw exception if not found?
                 if (deleted == null)
                     return null;
