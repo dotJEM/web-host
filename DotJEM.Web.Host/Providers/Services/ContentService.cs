@@ -53,87 +53,17 @@ namespace DotJEM.Web.Host.Providers.Services
                 throw new InvalidOperationException("A $version property is required for all PUT request, it should be the version of the document as you retreived it.");
             }
 
-            long uVersion = (long)update["$version"];
-            long oVersion = (long)other["$version"];
+            int uVersion = (int)update["$version"];
+            int oVersion = (int)other["$version"];
 
             if (uVersion == oVersion)
                 return update;
 
-            List<JObject> history = area.History.Get(id).ToList();
-
-            //TODO: (jmd 2015-11-24) Implement a History.Get(version)!;
-            JObject origin = history.Single(json => CompareVersion(uVersion, json));
-
+            JObject origin = area.History.Get(id, uVersion);
             return (JObject)merger
                 .Merge(update, other, origin)
                 .AddVersion(uVersion, oVersion)
                 .Merged;
-        }
-
-        private bool CompareVersion(long find, JObject entry)
-        {
-            long hVersion = (long)entry["$version"];
-            return hVersion == find;
-        }
-    }
-
-    //TODO: (jmd 2015-11-25) Dummy for designing the interface. Remove.
-    public class DummyMergeResult : MergeResult
-    {
-        public DummyMergeResult()
-            : base(true, null, null, null, null)
-        {
-        }
-
-        internal override JObject BuildDiff(JObject diff, bool includeResolvedConflicts)
-        {
-            for (int i = 0; i < 20; i++)
-            {
-                diff["property" + i] = new JObject
-                {
-                    ["update"] = "A",
-                    ["other"] = "B",
-                    ["origin"] = "C"
-                };
-            }
-            for (int i = 0; i < 20; i++)
-            {
-                diff["property" + (i+20)] = new JObject
-                {
-                    ["update"] = new JObject {["A"] = "B",["C"] = 42 },
-                    ["other"] = "A:B,C=42",
-                    ["origin"] = null
-                };
-            }
-            for (int i = 0; i < 20; i++)
-            {
-                diff["property" + (i + 40)] = new JObject
-                {
-                    ["update"] = new JArray(
-                        new JObject {["A"] = "B",["C"] = 42 }, 
-                        new JObject {["A"] = "B",["C"] = 32 },
-                        new JObject {["A"] = "B",["C"] = 42 }, 
-                        new JObject {["A"] = "B",["C"] = 42 }, 
-                        new JObject {["A"] = "B",["C"] = 42 }, 
-                        new JObject {["A"] = "B",["C"] = 42 }),
-                    ["other"] = new JArray(
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 32 },
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 42 }),
-                
-                    ["origin"] = new JArray(
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 32 },
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 42 },
-                        new JObject {["A"] = "B",["C"] = 62 })
-                };
-            }
-
-            return diff;
         }
     }
 
@@ -186,6 +116,15 @@ namespace DotJEM.Web.Host.Providers.Services
                 JObject entity = area.Get(id);
                 return pipeline.ExecuteAfterGet(entity, contentType, context);
             }
+        }
+
+        public JObject History(Guid id, string contentType, int version)
+        {
+            //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
+            if (!area.HistoryEnabled)
+                return null;
+
+            return area.History.Get(id, version);
         }
 
         public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
+ using DotJEM.Web.Host.Diagnostics.Performance;
  using DotJEM.Web.Host.Providers.Pipeline;
  using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
@@ -38,11 +39,13 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         private readonly IStorageIndex index;
         private readonly IPipeline pipeline;
+        private readonly IPerformanceLogger performance;
 
-        public SearchService(IStorageIndex index, IPipeline pipeline)
+        public SearchService(IStorageIndex index, IPipeline pipeline, IPerformanceLogger performance)
         {
             this.index = index;
             this.pipeline = pipeline;
+            this.performance = performance;
         }
 
         public SearchResult Search(string query, int skip = 0, int take = 20)
@@ -57,9 +60,15 @@ namespace DotJEM.Web.Host.Providers.Services
                 .Take(take);
 
             //TODO: extract contenttype based on configuration.
-            return new SearchResult(result
+            SearchResult searchResult = new SearchResult(result
                 .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, new PipelineContext()))
                 .ToArray(), result.TotalCount);
+
+            performance.LogSingleEvent("Search", (long)result.TotalTime.TotalMilliseconds, query, $"skip={skip}, take={take}, results={result.TotalCount}");
+            performance.LogSingleEvent("Search.Find", (long) result.SearchTime.TotalMilliseconds, query, $"skip={skip}, take={take}, results={result.TotalCount}");
+            performance.LogSingleEvent("Search.Load", (long) result.LoadTime.TotalMilliseconds, query, $"skip={skip}, take={take}, results={result.TotalCount}");
+
+            return searchResult;
         }
 
         public SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc")
@@ -71,7 +80,8 @@ namespace DotJEM.Web.Host.Providers.Services
             {
                 result.Sort(CreateSortObject(sort));
             }
-            return new SearchResult(result);
+            SearchResult searchResult = new SearchResult(result);
+            return searchResult;
         }
 
         private Sort CreateSortObject(string sort)

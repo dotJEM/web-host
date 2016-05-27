@@ -92,7 +92,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             string dir = Path.GetDirectoryName(path);
             string fileName = Path.GetFileNameWithoutExtension(path);
             string ext = Path.GetExtension(path);
-            return Path.Combine(dir, string.Format("{0}-{1:x}{2}", fileName, retry, ext));
+            return Path.Combine(dir, $"{fileName}-{retry:x}{ext}");
         }
 
         private void WriteLoop()
