@@ -16,13 +16,15 @@ namespace DotJEM.Web.Host.Providers.Services
         IStorageArea StorageArea { get; }
         //TODO: Use a Content Result
         IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20);
-        IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
         JObject Get(Guid id, string contentType);
 
         JObject Post(string contentType, JObject entity);
         JObject Put(Guid id, string contentType, JObject entity);
 
         JObject Delete(Guid id, string contentType);
+
+        IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
+        JObject History(Guid id, string contentType, int version);
     }
 
     public interface IContentMergeService

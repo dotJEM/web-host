@@ -65,12 +65,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private IScheduledTask task;
 
-        public StorageIndexManager(
-            IStorageIndex index,
-            IStorageContext storage, 
-            IWebHostConfiguration configuration,
-            IWebScheduler scheduler,
-            IInitializationTracker tracker)
+        public StorageIndexManager(IStorageIndex index,IStorageContext storage, IWebHostConfiguration configuration,IWebScheduler scheduler,IInitializationTracker tracker)
         {
             this.index = index;
             this.scheduler = scheduler;
@@ -79,10 +74,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             foreach (WatchElement watch in configuration.Index.Watch.Items){
                 logs[watch.Area] = storage.Area(watch.Area).Log;
             }
-            //TODO: Use the below to store a index pointer.
-            //if (!string.IsNullOrEmpty(configuration.Index.CacheLocation)) {
-            //    cachePath = Path.Combine(HostingEnvironment.MapPath(configuration.Index.CacheLocation), "tracker");
-            //}
         }
 
         public void Start()
@@ -202,12 +193,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private void OptimizeIndex(long changes)
         {
             changeCounter -= changes;
-            if (changeCounter < 0 || (DateTime.Now - lastOptimize) > TimeSpan.FromMinutes(60))
-            {
-                index.Optimize();
-                changeCounter = CHANGE_OPTIMIZE_CAP;
-                lastOptimize = DateTime.Now;
-            }
+            if (changeCounter >= 0 && (DateTime.Now - lastOptimize) <= TimeSpan.FromMinutes(60))
+                return;
+
+            index.Optimize();
+            changeCounter = CHANGE_OPTIMIZE_CAP;
+            lastOptimize = DateTime.Now;
         }
 
         public void QueueUpdate(JObject entity)
@@ -215,10 +206,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //Note: This will cause the entity to be updated in the index twice
             //      but it ensures that the entity is prepared for us if we query it right after this...
             index.Write(entity);
-
-            //TODO: This null check is odd, but it can currentlly happen, we should probablly have a state task while initializing.
-            //Note: This will cause the callback to get called right away...
-            if(task != null) task.Signal();
+            task?.Signal();
         }
 
         public void QueueDelete(JObject entity)
@@ -226,19 +214,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //Note: This will cause the entity to be updated in the index twice
             //      but it ensures that the entity is prepared for us if we query it right after this...
             index.Delete(entity);
-
-            //TODO: This null check is odd, but it can currentlly happen, we should probablly have a state task while initializing.
-            //Note: This will cause the callback to get called right away...
-            if (task != null) task.Signal();
+            task?.Signal();
         }
 
         protected virtual void OnIndexChanged(IndexChangesEventArgs args)
         {
-            var handler = IndexChanged;
-            if (handler != null)
-            {
-                handler(this, args);
-            }
+            IndexChanged?.Invoke(this, args);
         }
     }
 }
