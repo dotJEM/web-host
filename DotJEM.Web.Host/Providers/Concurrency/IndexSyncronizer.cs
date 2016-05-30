@@ -65,7 +65,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private IScheduledTask task;
 
-        public StorageIndexManager(IStorageIndex index,IStorageContext storage, IWebHostConfiguration configuration,IWebScheduler scheduler,IInitializationTracker tracker)
+        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration,IWebScheduler scheduler, IInitializationTracker tracker)
         {
             this.index = index;
             this.scheduler = scheduler;
@@ -94,37 +94,37 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             // http://lucene.apache.org/core/3_0_3/api/core/org/apache/lucene/index/IndexWriter.html#addIndexesNoOptimize%28org.apache.lucene.store.Directory...%29
 
             int total = 0;
-            Dictionary<string, long> tracker = InitializeFromTracker();
-
             while (true)
             {
                 IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
-                    .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(GetTracker(tracker, log.Key))))
+                    .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false)))
                     .ToList();
-                
-                if (tuples.All(t => t.Item2.Count.Total < 1))
+
+                var sum = tuples.Sum(t => t.Item2.Count.Total);
+                if (sum < 1)
                     break;
-
-
-                tuples.Select(InitialzeSelector).ForEach(next => tracker[next.Item1] = next.Item2);
+                
+                var executed =tuples.Select(WriteChanges).ToList();
                 //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                 //      if we do that we should either send a "initialized" even that instructs controllers
-                //      and services that the index is now fully ready. Or we neen to collect all data
+                //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
+
                 OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
 
-                total += tuples.Aggregate(0, (t, tuple) => t + tuple.Item2.Count.Total);
-                this.tracker.SetProgress("{0} objects indexed.", total);
+                total += sum;
+                var tokens = tuples.Sum(t => t.Item2.Token);
+                this.tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
             }
             OptimizeIndex(total);
         }
 
-        private Tuple<string, long> InitialzeSelector(Tuple<string, IStorageChanges> tuple)
+        private long WriteChanges(Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
             index
                 .WriteAll(changes.Created)
                 .WriteAll(changes.Updated);
-            return new Tuple<string, long>(tuple.Item1, changes.Token);
+            return changes.Token;
         }
 
         public void UpdateIndex()
@@ -133,49 +133,15 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
                 .ToList();
 
-            if (tuples.All(t => t.Item2.Count.Total < 1))
-            {
+            if (tuples.Sum(t => t.Item2.Count.Total) < 1)
                 return;
-            }
 
-            UpdateTracker(tuples.Select(Selector)
-            .Aggregate(new Dictionary<string, long>(), (map, next) =>
-            {
-                map[next.Item1] = next.Item2;
-                return map;
-            }));
+            var executed = tuples.Select(WriteChangesAndOptimize).ToList();
             OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
             index.Flush();
         }
 
-        private static long GetTracker(Dictionary<string, long> changes, string key)
-        {
-            long value;
-            if (changes.TryGetValue(key, out value))
-                return value;
-            return -1;
-        }
-
-        private void UpdateTracker(Dictionary<string, long> changes)
-        {
-            lock (padlock)
-            {
-                if (!string.IsNullOrEmpty(cachePath))
-                {
-                    new SimpleDictionaryWriter().Write(cachePath, changes);
-                }
-            }
-        }
-
-        private Dictionary<string, long> InitializeFromTracker()
-        {
-            lock (padlock)
-            {
-                return new SimpleDictionaryWriter().Read(cachePath);
-            }
-        }
-
-        private Tuple<string, long> Selector(Tuple<string, IStorageChanges> tuple)
+        private long WriteChangesAndOptimize(Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
             index
@@ -183,7 +149,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .WriteAll(changes.Updated)
                 .DeleteAll(changes.Deleted);
             OptimizeIndex(changes.Count);
-            return new Tuple<string, long>(tuple.Item1, changes.Token);
+            return changes.Token;
         }
         
         private const long CHANGE_OPTIMIZE_CAP = 1024 * 16; // ~16.000 updates before optimize.
