@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Hosting;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
@@ -92,38 +93,40 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             //TODO: (jmd 2015-09-24) Build spartial indexes and merge them in the end. 
             // http://lucene.apache.org/core/3_0_3/api/core/org/apache/lucene/index/IndexWriter.html#addIndexesNoOptimize%28org.apache.lucene.store.Directory...%29
-
             int total = 0;
-            while (true)
+            using (ILuceneWriteContext writer = index.Writer.WriteContext())
             {
-                IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
-                    .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false)))
-                    .ToList();
+                while (true)
+                {
+                    IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
+                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false)))
+                        .ToList();
 
-                var sum = tuples.Sum(t => t.Item2.Count.Total);
-                if (sum < 1)
-                    break;
-                
-                var executed =tuples.Select(WriteChanges).ToList();
-                //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
-                //      if we do that we should either send a "initialized" even that instructs controllers
-                //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
+                    var sum = tuples.Sum(t => t.Item2.Count.Total);
+                    if (sum < 1)
+                        break;
 
-                OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+                    var executed = tuples.Select(x=>WriteChanges(writer, x).Result).ToList();
+                    //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
+                    //      if we do that we should either send a "initialized" even that instructs controllers
+                    //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
 
-                total += sum;
-                var tokens = tuples.Sum(t => t.Item2.Token);
-                this.tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
+                    OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+
+                    total += sum;
+                    var tokens = tuples.Sum(t => t.Item2.Token);
+                    this.tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
+                }
             }
+            
             OptimizeIndex(total);
         }
 
-        private long WriteChanges(Tuple<string, IStorageChanges> tuple)
+        private async Task<long> WriteChanges(ILuceneWriteContext writer,Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
-            index
-                .WriteAll(changes.Created)
-                .WriteAll(changes.Updated);
+           await writer.CreateAll(changes.Created);
+           await writer.CreateAll(changes.Updated);
             return changes.Token;
         }
 
