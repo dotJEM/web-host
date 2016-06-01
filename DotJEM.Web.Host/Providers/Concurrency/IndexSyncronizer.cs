@@ -125,8 +125,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private async Task<long> WriteChanges(ILuceneWriteContext writer,Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
-           await writer.CreateAll(changes.Created);
-           await writer.CreateAll(changes.Updated);
+            await writer.CreateAll(changes.Created);
+            await writer.CreateAll(changes.Updated);
             return changes.Token;
         }
 
