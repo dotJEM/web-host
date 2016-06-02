@@ -125,8 +125,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private async Task<long> WriteChanges(ILuceneWriteContext writer,Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
-            await writer.CreateAll(changes.Created);
-            await writer.CreateAll(changes.Updated);
+            //TODO: We would like to use "CreateAll" here instead as that would probably be faster, but this can cause
+            //      duplicates in the index due to changes happening while we index.
+            await writer.WriteAll(changes.Created);
+            await writer.WriteAll(changes.Updated);
             return changes.Token;
         }
 
