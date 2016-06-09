@@ -73,6 +73,8 @@ namespace DotJEM.Web.Host.Providers.Services
     //TODO: Apply Pipeline for all requests.
     public class ContentService : IContentService
     {
+        private const string TRACK_TYPE = "content";
+
         private readonly IStorageIndex index;
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
@@ -118,7 +120,7 @@ namespace DotJEM.Web.Host.Providers.Services
             using (PipelineContext context = new PipelineContext())
             {
                 //TODO: Throw exception if not found?
-                JObject entity = performance.TrackFunction($"ContentService.Get({id}, {contentType})", () => area.Get(id));
+                JObject entity = performance.TrackFunction(TRACK_TYPE, () => area.Get(id), $"ContentService.Get({id}, {contentType})");
                 return pipeline.ExecuteAfterGet(entity, contentType, context);
             }
         }
@@ -129,7 +131,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return null;
 
-            return performance.TrackFunction($"ContentService.History({id}, {contentType}, {version})", () => area.History.Get(id, version));
+            return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, version), $"ContentService.History({id}, {contentType}, {version})");
         }
 
         public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
@@ -138,7 +140,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return Enumerable.Empty<JObject>();
 
-            return performance.TrackFunction($"ContentService.History({id}, {contentType}, {from}, {to})", () => area.History.Get(id, from, to));
+            return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, from, to), $"ContentService.History({id}, {contentType}, {from}, {to})");
         }
 
         public JObject Post(string contentType, JObject entity)
@@ -147,7 +149,7 @@ namespace DotJEM.Web.Host.Providers.Services
             {
                 entity = pipeline.ExecuteBeforePost(entity, contentType, context);
                 JObject closure = entity;
-                entity = performance.TrackFunction($"ContentService.Post({contentType}, $ENTITY)", () => area.Insert(contentType, closure));
+                entity = performance.TrackFunction(TRACK_TYPE, () => area.Insert(contentType, closure), $"ContentService.Post({contentType}, $ENTITY)");
                 entity = pipeline.ExecuteAfterPost(entity, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
@@ -164,7 +166,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
                 entity = pipeline.ExecuteBeforePut(entity, prev, contentType, context);
                 JObject closure = entity;
-                entity = performance.TrackFunction($"ContentService.Put({id},{contentType}, $ENTITY)", () => area.Update(id, closure));
+                entity = performance.TrackFunction(TRACK_TYPE, () => area.Update(id, closure), $"ContentService.Put({id},{contentType}, $ENTITY)");
                 entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
@@ -176,7 +178,7 @@ namespace DotJEM.Web.Host.Providers.Services
             using (PipelineContext context = new PipelineContext())
             {
                 pipeline.ExecuteBeforeDelete(area.Get(id), contentType, context);
-                JObject deleted = performance.TrackFunction($"ContentService.Delete({id},{contentType})", () => area.Delete(id));
+                JObject deleted = performance.TrackFunction(TRACK_TYPE, () => area.Delete(id), $"ContentService.Delete({id},{contentType})");
                 //TODO: Throw exception if not found?
                 if (deleted == null)
                     return null;

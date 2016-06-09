@@ -1,5 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
+using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
@@ -21,7 +23,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             this.logger = logger;
         }
 
-        protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (!logger.Enabled)
                 return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -32,4 +34,5 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             return response;
         }
     }
+
 }

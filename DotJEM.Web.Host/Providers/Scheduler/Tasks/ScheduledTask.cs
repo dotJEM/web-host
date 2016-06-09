@@ -20,8 +20,8 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         private Exception exception;
         private RegisteredWaitHandle executing;
 
-        public Guid Id { get; private set; }
-        public string Name { get; private set; }
+        public Guid Id { get; }
+        public string Name { get; }
 
         private readonly IThreadPool pool;
         private readonly IPerformanceLogger perf;
@@ -64,6 +64,8 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             if (Disposed)
                 return false;
 
+            Correlator.Set(Id);
+
             try
             {
                 IPerformanceTracker tracker = perf.TrackTask(Name);
@@ -83,21 +85,13 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         protected virtual void OnTaskException(TaskExceptionEventArgs args)
         {
             //TODO: (jmd 2015-09-30) Consider wrapping in try catch. They can force the thread to close the app. 
-            EventHandler<TaskExceptionEventArgs> handler = TaskException;
-            if (handler != null)
-            {
-                handler(this, args);
-            }
+            TaskException?.Invoke(this, args);
         }
 
         protected virtual void OnTaskCompleted(TaskEventArgs args)
         {
             //TODO: (jmd 2015-09-30) Consider wrapping in try catch. They can force the thread to close the app. 
-            EventHandler<TaskEventArgs> handler = TaskCompleted;
-            if (handler != null)
-            {
-                handler(this, args);
-            }
+            TaskCompleted?.Invoke(this, args);
         }
 
         /// <summary>
@@ -107,6 +101,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+            executing.Unregister(null);
             Signal();
             OnTaskCompleted(new TaskEventArgs(this));
         }

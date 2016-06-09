@@ -64,9 +64,9 @@ namespace DotJEM.Web.Host.Providers.Services
                 .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, new PipelineContext()))
                 .ToArray(), result.TotalCount);
 
-            performance.LogSingleEvent("Search", (long)result.TotalTime.TotalMilliseconds, query, $"skip={skip}, take={take}, results={result.TotalCount}");
-            performance.LogSingleEvent("Search.Find", (long) result.SearchTime.TotalMilliseconds, query, $"skip={skip}, take={take}, results={result.TotalCount}");
-            performance.LogSingleEvent("Search.Load", (long) result.LoadTime.TotalMilliseconds, query, $"skip={skip}, take={take}, results={result.TotalCount}");
+            performance.LogSingleEvent("search", (long)result.TotalTime.TotalMilliseconds, "TOTAL", query, $"skip={skip}, take={take}, results={result.TotalCount}");
+            performance.LogSingleEvent("search", (long) result.SearchTime.TotalMilliseconds, "FIND", query, $"skip={skip}, take={take}, results={result.TotalCount}");
+            performance.LogSingleEvent("search", (long) result.LoadTime.TotalMilliseconds, "LOAD", query, $"skip={skip}, take={take}, results={result.TotalCount}");
 
             return searchResult;
         }

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.Remoting.Messaging;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Util;
@@ -27,8 +28,24 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         void LogSingleEvent(string type, long elapsed, params object[] args);
     }
 
+    public static class Correlator
+    {
+        private const string CORRELATION_KEY = "CORRELATION_KEY";
+
+        public static void Set(Guid id)
+        {
+            CallContext.LogicalSetData(CORRELATION_KEY, id);
+        }
+
+        public static Guid Get()
+        {
+            Guid? ctx = (Guid?)CallContext.LogicalGetData(CORRELATION_KEY);
+            return ctx ?? Guid.Empty;
+        }
+    }
     public class PerformanceLogger : IPerformanceLogger
     {
+        private const string CORRELATION_KEY = "CORRELATION_KEY";
         private readonly ILogWriter writer;
 
         public bool Enabled { get; }
@@ -46,7 +63,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             writer = factory.Create(config.Path, AdvConvert.ToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         }
 
-        public IPerformanceTracker TrackRequest(HttpRequestMessage request) => Track("request", request.Method.Method, request.RequestUri.ToString());
+        public IPerformanceTracker TrackRequest(HttpRequestMessage request)
+        {
+            CallContext.LogicalSetData(CORRELATION_KEY, request.GetCorrelationId());
+            return Track("request", request.Method.Method, request.RequestUri.ToString());
+        }
 
         public IPerformanceTracker TrackTask(string name) => Track("task", name);
 
@@ -54,7 +75,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         {
             return !Enabled 
                 ? NullPerformanceTracker.SharedInstance
-                : PerformanceTracker.Create(LogPerformanceEvent, type, args);
+                : PerformanceTracker.Create(LogPerformanceEvent, Correlator.Get(), type, args);
         }
 
         public void TrackAction(Action action, params object[] args) => TrackAction(action.Method.Name, action);
@@ -76,7 +97,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public void LogSingleEvent(string type, long elapsed, params object[] args)
         {
-            PerformanceEvent.Execute(LogPerformanceEvent, type, elapsed, args);
+            PerformanceEvent.Execute(LogPerformanceEvent, type, Correlator.Get(), elapsed, args);
         }
 
         private void LogPerformanceEvent(string message)
