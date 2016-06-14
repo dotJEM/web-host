@@ -27,7 +27,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
     public class PerformanceTracker : IPerformanceTracker
     {
         private readonly Action<string> completed;
-        private readonly Guid correlationId;
+        private readonly string correlationId;
 
         protected DateTime Time { get; }
         protected string Identity { get; }
@@ -42,10 +42,10 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         private long end = -1;
         private volatile bool comitted = false;
 
-        public static IPerformanceTracker Create(Action<string> completed, Guid correlationId, string type, params object[] arguments)
+        public static IPerformanceTracker Create(Action<string> completed, string correlationId, string type, params object[] arguments)
             => new PerformanceTracker(completed, correlationId, type, arguments);
 
-        public PerformanceTracker(Action<string> completed, Guid correlationId, string type, params object[] arguments)
+        public PerformanceTracker(Action<string> completed, string correlationId, string type, params object[] arguments)
         {
             start = Stopwatch.GetTimestamp();
 
@@ -75,7 +75,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         {
             args = arguments.Union(args).ToArray();
             string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
-            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, correlationId.ToString("D"), identity };
+            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, correlationId, identity };
             return string.Join("\t", prefix.Union(args));
         }
 
@@ -91,20 +91,20 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         private readonly string type;
         private readonly string[] arguments;
         private readonly Action<string> completed;
-        private readonly Guid correlationId;
+        private readonly string correlationId;
 
         private long ElapsedMilliseconds { get; }
         private DateTime Time { get; }
         private string Identity { get; }
         private volatile bool comitted = false;
 
-        public static IPerformanceEvent Create(Action<string> completed, string type, Guid correlationId, long elapsed, params object[] arguments)
+        public static IPerformanceEvent Create(Action<string> completed, string type, string correlationId, long elapsed, params object[] arguments)
             => new PerformanceEvent(completed, correlationId, type, elapsed, arguments);
 
-        public static void Execute(Action<string> completed, string type, Guid correlationId, long elapsed, params object[] arguments)
+        public static void Execute(Action<string> completed, string type, string correlationId, long elapsed, params object[] arguments)
             => new PerformanceEvent(completed, correlationId, type, elapsed, arguments).Dispose();
 
-        public PerformanceEvent(Action<string> completed, Guid correlationId, string type, long elapsed, params object[] arguments)
+        public PerformanceEvent(Action<string> completed, string correlationId, string type, long elapsed, params object[] arguments)
         {
             this.completed = completed;
             this.correlationId = correlationId;
@@ -119,7 +119,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         private string Format()
         {
             string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
-            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, correlationId.ToString("D"), identity };
+            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, correlationId, identity };
             return string.Join("\t", prefix.Union(arguments));
         }
 

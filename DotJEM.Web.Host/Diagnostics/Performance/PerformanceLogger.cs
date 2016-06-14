@@ -1,9 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.Remoting.Messaging;
+using System.Security.Cryptography;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Util;
@@ -28,19 +30,30 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         void LogSingleEvent(string type, long elapsed, params object[] args);
     }
 
+    //TODO: Injectable service.
     public static class Correlator
     {
         private const string CORRELATION_KEY = "CORRELATION_KEY";
+        private const string EMPTY = "00000000";
 
         public static void Set(Guid id)
         {
-            CallContext.LogicalSetData(CORRELATION_KEY, id);
+            CallContext.LogicalSetData(CORRELATION_KEY, Hash(id.ToByteArray(), 5));
         }
 
-        public static Guid Get()
+        public static string Get()
         {
-            Guid? ctx = (Guid?)CallContext.LogicalGetData(CORRELATION_KEY);
-            return ctx ?? Guid.Empty;
+            string ctx = (string)CallContext.LogicalGetData(CORRELATION_KEY);
+            return ctx ?? EMPTY;
+        }
+
+        private static string Hash(byte[] bytes, int size)
+        {
+            using (SHA1 hasher = SHA1.Create())
+            {
+                byte[] hash = hasher.ComputeHash(bytes);
+                return string.Join(string.Empty, hash.Take(size).Select(b => b.ToString("x2")));
+            }
         }
     }
     public class PerformanceLogger : IPerformanceLogger

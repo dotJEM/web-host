@@ -64,7 +64,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             if (Disposed)
                 return false;
 
-            Correlator.Set(Id);
+            Correlator.Set(Guid.NewGuid());
 
             try
             {
