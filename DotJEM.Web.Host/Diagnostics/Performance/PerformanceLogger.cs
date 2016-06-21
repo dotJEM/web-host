@@ -58,7 +58,6 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
     }
     public class PerformanceLogger : IPerformanceLogger
     {
-        private const string CORRELATION_KEY = "CORRELATION_KEY";
         private readonly ILogWriter writer;
 
         public bool Enabled { get; }
@@ -78,7 +77,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public IPerformanceTracker TrackRequest(HttpRequestMessage request)
         {
-            CallContext.LogicalSetData(CORRELATION_KEY, request.GetCorrelationId());
+            Correlator.Set(request.GetCorrelationId());
             return Track("request", request.Method.Method, request.RequestUri.ToString());
         }
 
