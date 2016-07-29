@@ -13,6 +13,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
     {
         void Commit(params object[] args);
         void Commit(Func<object[]> argsFactory);
+        void PushArgs(params object[] args);
     }
 
     public class NullPerformanceTracker : IPerformanceTracker
@@ -21,6 +22,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
 
         public void Commit(params object[] args) {}
         public void Commit(Func<object[]> argsFactory) {}
+        public void PushArgs(params object[] args) {}
+
         public void Dispose() { }
     }
 
@@ -36,7 +39,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         protected long ElapsedMilliseconds => (ElapsedTicks * 1000) / Stopwatch.Frequency;
 
         private readonly string type;
-        private readonly string[] arguments;
+        private string[] arguments;
 
         private readonly long start;
         private long end = -1;
@@ -66,6 +69,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
             comitted = true;
             end = Stopwatch.GetTimestamp();
             Task.Run(() => Complete(argsFactory())).ConfigureAwait(false);
+        }
+
+        public void PushArgs(params object[] args)
+        {
+            this.arguments = arguments.Union(Array.ConvertAll(arguments, obj => (obj ?? "N/A").ToString())).ToArray();
         }
 
         public void Commit(params object[] args) => Commit(()=>args);

@@ -14,5 +14,7 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         JObject AfterDelete(dynamic entity, string contentType, PipelineContext context);
         JObject BeforePut(dynamic entity, dynamic previous, string contentType, PipelineContext context);
         JObject AfterPut(dynamic entity, dynamic previous, string contentType, PipelineContext context);
+        JObject BeforeRevert(dynamic entity, dynamic current, string contentType, PipelineContext context);
+        JObject AfterRevert(dynamic entity, dynamic current, string contentType, PipelineContext context);
     }
 }

@@ -104,5 +104,25 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         {
             return entity;
         }
+
+        public virtual JObject BeforeRevert(dynamic entity, dynamic current, string contentType, PipelineContext context)
+        {
+            return BeforeRevert(entity, current, contentType);
+        }
+
+        public virtual JObject BeforeRevert(dynamic entity, dynamic current, string contentType)
+        {
+            return entity;
+        }
+
+        public virtual JObject AfterRevert(dynamic entity, dynamic current, string contentType, PipelineContext context)
+        {
+            return AfterRevert(entity, current, contentType);
+        }
+
+        public virtual JObject AfterRevert(dynamic entity, dynamic current, string contentType)
+        {
+            return entity;
+        }
     }
 }

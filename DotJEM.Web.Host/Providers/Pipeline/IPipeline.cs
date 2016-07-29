@@ -14,5 +14,7 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
         JObject ExecuteBeforeDelete(JObject json, string contentType, PipelineContext context);
         JObject ExecuteAfterDelete(JObject json, string contentType, PipelineContext context);
+        JObject ExecuteBeforeRevert(JObject json, JObject current, string contentType, PipelineContext context);
+        JObject ExecuteAfterRevert(JObject json, JObject current, string contentType, PipelineContext context);
     }
 }

@@ -78,7 +78,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         public IPerformanceTracker TrackRequest(HttpRequestMessage request)
         {
             Correlator.Set(request.GetCorrelationId());
-            return Track("request", request.Method.Method, request.RequestUri.ToString());
+            return Track("request", request.Method.Method, request.RequestUri.ToString(), request.Content.Headers.ContentLength);
         }
 
         public IPerformanceTracker TrackTask(string name) => Track("task", name);

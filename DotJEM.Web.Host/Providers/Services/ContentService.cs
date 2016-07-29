@@ -133,7 +133,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, version), $"ContentService.History({id}, {contentType}, {version})");
         }
-
+        
         public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
@@ -141,6 +141,27 @@ namespace DotJEM.Web.Host.Providers.Services
                 return Enumerable.Empty<JObject>();
 
             return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, from, to), $"ContentService.History({id}, {contentType}, {from}, {to})");
+        }
+
+        public JObject Revert(Guid id, string contentType, int version)
+        {
+            if (!area.HistoryEnabled)
+                throw new InvalidOperationException("Cannot revert document when history is not enabled.");
+
+            return performance.TrackFunction(TRACK_TYPE, () =>
+            {
+                using (PipelineContext context = new PipelineContext())
+                {
+                    JObject current = area.Get(id);
+                    JObject entity = area.History.Get(id, version);
+                    entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
+                    area.Update(id, entity);
+                    entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
+                    manager.QueueUpdate(entity);
+                    return entity;
+                }
+            }, $"ContentService.Revert({id}, {contentType}, {version})");
+
         }
 
         public JObject Post(string contentType, JObject entity)

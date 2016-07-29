@@ -67,6 +67,26 @@ namespace DotJEM.Web.Host.Providers.Pipeline
                 );
         }
 
+        public JObject ExecuteBeforeRevert(JObject json, JObject current, string contentType, PipelineContext context)
+        {
+            return handlers
+                .Where(step => step.Accept(contentType))
+                .Aggregate(json, (jo, step) => performance
+                    .TrackFunction("pipeline", () => step.BeforeRevert(jo, current, contentType, context),
+                    contentType, "AfterPut", step.GetType().FullName)
+                );
+        }
+
+        public JObject ExecuteAfterRevert(JObject json, JObject current, string contentType, PipelineContext context)
+        {
+            return handlers
+                .Where(step => step.Accept(contentType))
+                .Aggregate(json, (jo, step) => performance
+                    .TrackFunction("pipeline", () => step.AfterRevert(jo, current, contentType, context),
+                    contentType, "AfterPut", step.GetType().FullName)
+                );
+        }
+
         public JObject ExecuteBeforeDelete(JObject json, string contentType, PipelineContext context)
         {
             return handlers
