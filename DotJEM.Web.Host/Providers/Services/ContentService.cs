@@ -25,6 +25,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
         JObject History(Guid id, string contentType, int version);
+        JObject Revert(Guid id, string contentType, int version);
     }
 
     public interface IContentMergeService
