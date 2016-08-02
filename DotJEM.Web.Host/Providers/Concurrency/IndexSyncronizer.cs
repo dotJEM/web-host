@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Hosting;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
@@ -12,7 +9,6 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Configuration.Elements;
-using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
@@ -58,11 +54,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly IStorageIndex index;
         private readonly IWebScheduler scheduler;
         private readonly IInitializationTracker tracker;
-        private readonly object padlock = new object();
 
         private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly TimeSpan interval;
-        private readonly string cachePath;
 
         private IScheduledTask task;
 
@@ -72,6 +66,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             this.scheduler = scheduler;
             this.tracker = tracker;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
+
+            if(!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
+                buffer =(int)AdvConvert.ToByteCount(configuration.Index.Watch.RamBuffer)/(1024*1024);
+
             foreach (WatchElement watch in configuration.Index.Watch.Items){
                 logs[watch.Area] = storage.Area(watch.Area).Log;
             }
@@ -94,7 +92,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //TODO: (jmd 2015-09-24) Build spartial indexes and merge them in the end. 
             // http://lucene.apache.org/core/3_0_3/api/core/org/apache/lucene/index/IndexWriter.html#addIndexesNoOptimize%28org.apache.lucene.store.Directory...%29
             int total = 0;
-            using (ILuceneWriteContext writer = index.Writer.WriteContext())
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
                 while (true)
                 {
@@ -102,11 +100,14 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false)))
                         .ToList();
 
-                    var sum = tuples.Sum(t => t.Item2.Count.Total);
+                    int sum = tuples.Sum(t => t.Item2.Count.Total);
                     if (sum < 1)
                         break;
 
-                    var executed = tuples.Select(x=>WriteChanges(writer, x).Result).ToList();
+                    // ReSharper disable ReturnValueOfPureMethodIsNotUsed
+                    //  -> Calling ToArray to force execution of the enumerator.
+                    tuples.Select(x=>WriteChanges(writer, x).Result).ToArray();
+                    // ReSharper restore ReturnValueOfPureMethodIsNotUsed
                     //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                     //      if we do that we should either send a "initialized" even that instructs controllers
                     //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
@@ -114,12 +115,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
 
                     total += sum;
-                    var tokens = tuples.Sum(t => t.Item2.Token);
-                    this.tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
+                    long tokens = tuples.Sum(t => t.Item2.Token);
+                    tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
                 }
             }
-            
-            OptimizeIndex(total);
         }
 
         private async Task<long> WriteChanges(ILuceneWriteContext writer,Tuple<string, IStorageChanges> tuple)
@@ -140,8 +139,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
             if (tuples.Sum(t => t.Item2.Count.Total) < 1)
                 return;
-
-            var executed = tuples.Select(WriteChangesAndOptimize).ToList();
+            // ReSharper disable ReturnValueOfPureMethodIsNotUsed
+            //  -> Calling ToArray to force execution of the enumerator.
+            tuples.Select(WriteChangesAndOptimize).ToArray();
+            // ReSharper restore ReturnValueOfPureMethodIsNotUsed
             OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
             index.Flush();
         }
@@ -149,28 +150,17 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private long WriteChangesAndOptimize(Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
-            index
-                .WriteAll(changes.Created)
-                .WriteAll(changes.Updated)
-                .DeleteAll(changes.Deleted);
-            OptimizeIndex(changes.Count);
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            {
+                writer.WriteAll(changes.Created);
+                writer.WriteAll(changes.Updated);
+                writer.DeleteAll(changes.Deleted);
+            }
             return changes.Token;
         }
         
-        private const long CHANGE_OPTIMIZE_CAP = 1024 * 16; // ~16.000 updates before optimize.
-        private long changeCounter = CHANGE_OPTIMIZE_CAP;
-        private DateTime lastOptimize = DateTime.Now;
+        private readonly int buffer = 512;
 
-        private void OptimizeIndex(long changes)
-        {
-            changeCounter -= changes;
-            if (changeCounter >= 0 && (DateTime.Now - lastOptimize) <= TimeSpan.FromMinutes(60))
-                return;
-
-            index.Optimize();
-            changeCounter = CHANGE_OPTIMIZE_CAP;
-            lastOptimize = DateTime.Now;
-        }
 
         public void QueueUpdate(JObject entity)
         {

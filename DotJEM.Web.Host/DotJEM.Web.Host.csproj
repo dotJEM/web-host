@@ -41,9 +41,9 @@
     <Reference Include="Castle.Windsor">
       <HintPath>..\packages\Castle.Windsor.3.3.0\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index, Version=0.0.50.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="DotJEM.Json.Index, Version=0.0.55.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\DotJEM.Json.Index.0.0.50\lib\net45\DotJEM.Json.Index.dll</HintPath>
+      <HintPath>..\packages\DotJEM.Json.Index.0.0.55\lib\net45\DotJEM.Json.Index.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="DotJEM.Json.Storage, Version=0.0.39.0, Culture=neutral, processorArchitecture=MSIL">

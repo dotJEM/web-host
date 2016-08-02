@@ -27,5 +27,11 @@ namespace DotJEM.Web.Host.Configuration.Elements
         {
             get { return (long)this["interval"]; }
         }
+
+        [ConfigurationProperty("rambuffer", IsRequired = false, DefaultValue = "512mb")]
+        public string RamBuffer
+        {
+            get { return (string)this["rambuffer"]; }
+        }
     }
 }
