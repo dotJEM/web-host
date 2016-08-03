@@ -12,18 +12,23 @@ namespace DotJEM.Web.Host.Providers.Pipeline
     public interface IPipelineContext : IDisposable
     {
         object this[string key] { get; set; }
+        int Count { get; }
+        ICollection<string> Keys { get; }
 
         void Add(string key, object value);
+        bool TryGetValue(string key, out object value);
     }
 
     public class PipelineContext : DynamicObject, IPipelineContext
     {
         private readonly IDictionary<string, object> inner = new Dictionary<string, object>();
 
-        public void Add(string key, object value)
-        {
-            inner.Add(key, value);
-        }
+        public int Count => inner.Count;
+        public ICollection<string> Keys => inner.Keys;
+
+        public bool TryGetValue(string key, out object value) => inner.TryGetValue(key, out value);
+
+        public void Add(string key, object value) => inner.Add(key, value);
 
         public object this[string key]
         {
@@ -31,11 +36,11 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             set { inner[key] = value; }
         }
 
-        public ICollection<string> Keys => inner.Keys;
-
+        #region Dynamic Members
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            return inner.TryGetValue(binder.Name, out result);
+            inner.TryGetValue(binder.Name, out result);
+            return true;
         }
 
         public override bool TrySetMember(SetMemberBinder binder, object value)
@@ -43,17 +48,18 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             this[binder.Name] = value;
             return true;
         }
+        #endregion
 
         #region Dispose pattern
-        protected volatile bool Disposed;
+        private volatile bool disposed;
 
         protected virtual void Dispose(bool disposing)
         {
-            if (Disposed)
+            if (disposed)
             {
                 throw new ObjectDisposedException(GetType().Name);
             }
-            Disposed = true;
+            disposed = true;
         }
 
         ~PipelineContext()
