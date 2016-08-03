@@ -17,6 +17,7 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
         void Add(string key, object value);
         bool TryGetValue(string key, out object value);
+        bool ContainsKey(string key);
     }
 
     public class PipelineContext : DynamicObject, IPipelineContext
@@ -30,9 +31,17 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
         public void Add(string key, object value) => inner.Add(key, value);
 
+        public bool ContainsKey(string key) => inner.ContainsKey(key);
+
         public object this[string key]
         {
-            get { return inner[key]; }
+            get
+            {
+                object result;
+                if(inner.TryGetValue(key, out result))
+                    return result;
+                return null;
+            }
             set { inner[key] = value; }
         }
 
