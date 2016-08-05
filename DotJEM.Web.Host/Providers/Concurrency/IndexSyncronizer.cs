@@ -12,6 +12,7 @@ using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
+using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Linq;
 
@@ -60,17 +61,18 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private IScheduledTask task;
 
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration,IWebScheduler scheduler, IInitializationTracker tracker)
+        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler, IInitializationTracker tracker)
         {
             this.index = index;
             this.scheduler = scheduler;
             this.tracker = tracker;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
-            if(!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
-                buffer =(int)AdvConvert.ToByteCount(configuration.Index.Watch.RamBuffer)/(1024*1024);
+            if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
+                buffer = (int)AdvConvert.ToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
 
-            foreach (WatchElement watch in configuration.Index.Watch.Items){
+            foreach (WatchElement watch in configuration.Index.Watch.Items)
+            {
                 logs[watch.Area] = storage.Area(watch.Area).Log;
             }
         }
@@ -89,8 +91,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
-            //TODO: (jmd 2015-09-24) Build spartial indexes and merge them in the end. 
-            // http://lucene.apache.org/core/3_0_3/api/core/org/apache/lucene/index/IndexWriter.html#addIndexesNoOptimize%28org.apache.lucene.store.Directory...%29
             int total = 0;
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
@@ -104,14 +104,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     if (sum < 1)
                         break;
 
-                    // ReSharper disable ReturnValueOfPureMethodIsNotUsed
-                    //  -> Calling ToArray to force execution of the enumerator.
-                    tuples.Select(x=>WriteChanges(writer, x).Result).ToArray();
-                    // ReSharper restore ReturnValueOfPureMethodIsNotUsed
+                    //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
+                    Sync.Await(tuples.Select(tup => WriteChanges(writer, tup, false)));
+                    
                     //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                     //      if we do that we should either send a "initialized" even that instructs controllers
                     //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
-
                     OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
 
                     total += sum;
@@ -121,44 +119,34 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             }
         }
 
-        private async Task<long> WriteChanges(ILuceneWriteContext writer,Tuple<string, IStorageChanges> tuple)
-        {
-            IStorageChanges changes = tuple.Item2;
-            //TODO: We would like to use "CreateAll" here instead as that would probably be faster, but this can cause
-            //      duplicates in the index due to changes happening while we index.
-            await writer.WriteAll(changes.Created);
-            await writer.WriteAll(changes.Updated);
-            return changes.Token;
-        }
-
         public void UpdateIndex()
         {
-            IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            {
+                IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
                 .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
                 .ToList();
 
-            if (tuples.Sum(t => t.Item2.Count.Total) < 1)
-                return;
-            // ReSharper disable ReturnValueOfPureMethodIsNotUsed
-            //  -> Calling ToArray to force execution of the enumerator.
-            tuples.Select(WriteChangesAndOptimize).ToArray();
-            // ReSharper restore ReturnValueOfPureMethodIsNotUsed
-            OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
-            index.Flush();
-        }
-
-        private long WriteChangesAndOptimize(Tuple<string, IStorageChanges> tuple)
-        {
-            IStorageChanges changes = tuple.Item2;
-            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
-            {
-                writer.WriteAll(changes.Created);
-                writer.WriteAll(changes.Updated);
-                writer.DeleteAll(changes.Deleted);
+                if (tuples.Sum(t => t.Item2.Count.Total) < 1)
+                    return;
+                
+                //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
+                Sync.Await(tuples.Select(tup => WriteChanges(writer, tup)));
+                OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+                index.Flush();
             }
-            return changes.Token;
         }
         
+        private async Task<long> WriteChanges(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple, bool writeDeletes = true)
+        {
+            IStorageChanges changes = tuple.Item2;
+            await writer.WriteAll(changes.Created);
+            await writer.WriteAll(changes.Updated);
+            if (writeDeletes)
+                await writer.DeleteAll(changes.Deleted);
+            return changes.Token;
+        }
+
         private readonly int buffer = 512;
 
 
