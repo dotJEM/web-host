@@ -215,7 +215,7 @@
     <Compile Include="Providers\Services\DiffMerge\JsonMergeContext.cs" />
     <Compile Include="Providers\Services\DiffMerge\JsonMergeVisitor.cs" />
     <Compile Include="Providers\Services\DiffMerge\MergeResult.cs" />
-    <Compile Include="Tasks\Syncronious.cs" />
+    <Compile Include="Tasks\Sync.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
     <Compile Include="Providers\Concurrency\Disposeable.cs" />
