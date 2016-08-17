@@ -28,6 +28,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     public interface IStorageIndexManager
     {
+        event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         event EventHandler<IndexChangesEventArgs> IndexChanged;
 
         void Start();
@@ -36,6 +37,14 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         void QueueUpdate(JObject entity);
         void QueueDelete(JObject entity);
+    }
+
+    public class IndexInitializedEventArgs : EventArgs
+    {
+
+        public IndexInitializedEventArgs()
+        {
+        }
     }
 
     public class IndexChangesEventArgs : EventArgs
@@ -50,6 +59,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     public class StorageIndexManager : IStorageIndexManager
     {
+        public event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
 
         private readonly IStorageIndex index;
@@ -105,47 +115,58 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         break;
 
                     //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
-                    Sync.Await(tuples.Select(tup => WriteChanges(writer, tup, false)));
-                    
+                    Sync.Await(tuples.Select(tup => WriteChangesAsync(writer, tup)));
+
                     //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                     //      if we do that we should either send a "initialized" even that instructs controllers
                     //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
-                    OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+                    //OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
 
                     total += sum;
                     long tokens = tuples.Sum(t => t.Item2.Token);
                     tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
                 }
             }
+            OnIndexInitialized(new IndexInitializedEventArgs());
         }
 
-        public void UpdateIndex()
-        {
-            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
-            {
-                IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
-                .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
-                .ToList();
-
-                if (tuples.Sum(t => t.Item2.Count.Total) < 1)
-                    return;
-                
-                //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
-                Sync.Await(tuples.Select(tup => WriteChanges(writer, tup)));
-                OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
-                index.Flush();
-            }
-        }
-        
-        private async Task<long> WriteChanges(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple, bool writeDeletes = true)
+        private async Task<long> WriteChangesAsync(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
             await writer.WriteAll(changes.Created);
             await writer.WriteAll(changes.Updated);
-            if (writeDeletes)
-                await writer.DeleteAll(changes.Deleted);
+            await writer.DeleteAll(changes.Deleted);
             return changes.Token;
         }
+
+        public void UpdateIndex()
+        {
+
+            IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
+            .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
+            .ToList();
+
+            if (tuples.Sum(t => t.Item2.Count.Total) < 1)
+                return;
+
+            // ReSharper disable ReturnValueOfPureMethodIsNotUsed
+            //  - TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, 
+            //          but this requires a bigger refactoring.
+            tuples.Select(WriteChanges).ToArray();
+            // ReSharper restore ReturnValueOfPureMethodIsNotUsed
+            OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+            index.Flush();
+
+        }
+
+        private long WriteChanges(Tuple<string, IStorageChanges> tuple)
+        {
+            IStorageChanges changes = tuple.Item2;
+            index.WriteAll(changes.Created);
+            index.WriteAll(changes.Updated);
+            return changes.Token;
+        }
+
 
         private readonly int buffer = 512;
 
@@ -169,6 +190,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         protected virtual void OnIndexChanged(IndexChangesEventArgs args)
         {
             IndexChanged?.Invoke(this, args);
+        }
+
+        protected virtual void OnIndexInitialized(IndexInitializedEventArgs e)
+        {
+            IndexInitialized?.Invoke(this, e);
         }
     }
 }
