@@ -64,21 +64,22 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             if (Disposed)
                 return false;
 
-            Correlator.Set(Guid.NewGuid());
-
-            try
+            using (perf.StartCorrelationScope())
             {
-                IPerformanceTracker tracker = perf.TrackTask(Name);
-                callback(!timedout);
-                tracker.Commit();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                bool seenBefore = exception != null && exception.GetType() == ex.GetType();
-                exception = ex;
-                OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
-                return false;
+                try
+                {
+                    IPerformanceTracker tracker = perf.TrackTask(Name);
+                    callback(!timedout);
+                    tracker.Commit();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    bool seenBefore = exception != null && exception.GetType() == ex.GetType();
+                    exception = ex;
+                    OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
+                    return false;
+                }
             }
         }
 

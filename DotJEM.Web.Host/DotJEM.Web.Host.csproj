@@ -200,6 +200,7 @@
     <Compile Include="Diagnostics\ExceptionLoggers\DiagnosticsExceptionLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
+    <Compile Include="Diagnostics\Performance\Correlations\Cor.cs" />
     <Compile Include="Diagnostics\Performance\LogWriterFactory.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLogger.cs" />
     <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />

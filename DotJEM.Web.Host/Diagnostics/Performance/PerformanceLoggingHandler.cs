@@ -28,10 +28,13 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             if (!logger.Enabled)
                 return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-            IPerformanceTracker tracker = logger.TrackRequest(request);
-            HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-            tracker.Commit(response.StatusCode);
-            return response;
+            using (logger.StartCorrelationScope(request.GetCorrelationId()))
+            {
+                IPerformanceTracker tracker = logger.TrackRequest(request);
+                HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+                tracker.Commit(response.StatusCode);
+                return response;
+            }
         }
     }
 

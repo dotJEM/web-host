@@ -21,6 +21,7 @@ using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Diagnostics.Performance.Correlations;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
@@ -114,10 +115,9 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IStorageContext>().Instance(Storage))
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
-
             
-
             IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
+            ICorrelationScope scope = perf.StartCorrelationScope();
             IPerformanceTracker startup = perf.TrackTask("Start");
 
             DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
@@ -133,7 +133,7 @@ namespace DotJEM.Web.Host
             ResolveComponents();
 
             Initialization.SetProgress("Bootstrapping.");
-            Task.Factory.StartNew(() =>
+            Task.Run(() =>
             {
                 perf.TrackAction(BeforeInitialize);
                 Initialization.SetProgress("Initializing storage.");
@@ -163,17 +163,16 @@ namespace DotJEM.Web.Host
                 {
                     if (result.Exception != null)
                     {
-                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new {ticketId = ticket});
                         dump.Dump(ticket, result.Exception.ToString());
                     }
                     else
                     {
-                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new {ticketId = ticket});
                         dump.Dump(ticket, "Server startup failed. Unknown Error.");
                     }
                     Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
-
-
+                    scope.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -183,6 +182,7 @@ namespace DotJEM.Web.Host
                         result.Exception?.ToString();
                     Initialization.SetProgress(dumpMessage);
                     dump.Dump(ticket, dumpMessage);
+                    scope.Dispose();
                 }
             });
             return this;
