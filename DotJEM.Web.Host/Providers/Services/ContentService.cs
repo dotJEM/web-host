@@ -16,11 +16,11 @@ namespace DotJEM.Web.Host.Providers.Services
         IStorageArea StorageArea { get; }
         //TODO: Use a Content Result
         IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20);
-        JObject Get(Guid id, string contentType);
 
+        JObject Get(Guid id, string contentType);
         JObject Post(string contentType, JObject entity);
         JObject Put(Guid id, string contentType, JObject entity);
-
+        JObject Patch(Guid id, string contentType, JObject entity);
         JObject Delete(Guid id, string contentType);
 
         IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
@@ -156,15 +156,16 @@ namespace DotJEM.Web.Host.Providers.Services
                     JObject current = area.Get(id);
                     JObject entity = area.History.Get(id, version);
                     entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
-                    area.Update(id, entity);
+
+                    JObject closure = entity;
+                    entity = performance.TrackFunction(TRACK_TYPE, () => area.Update(id, closure), $"ContentService.Revert({id},{contentType}, $ENTITY)");
                     entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
                     manager.QueueUpdate(entity);
                     return entity;
                 }
             }, $"ContentService.Revert({id}, {contentType}, {version})");
-
         }
-
+        
         public JObject Post(string contentType, JObject entity)
         {
             using (PipelineContext context = new PipelineContext())
@@ -185,13 +186,31 @@ namespace DotJEM.Web.Host.Providers.Services
                 JObject prev = area.Get(id);
 
                 entity = merger.EnsureMerge(id, entity, prev);
-
                 entity = pipeline.ExecuteBeforePut(entity, prev, contentType, context);
                 JObject closure = entity;
                 entity = performance.TrackFunction(TRACK_TYPE, () => area.Update(id, closure), $"ContentService.Put({id},{contentType}, $ENTITY)");
                 entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
+            }
+        }
+
+        public JObject Patch(Guid id, string contentType, JObject patch)
+        {
+            using (PipelineContext context = new PipelineContext())
+            {
+                JObject prev = area.Get(id);
+
+                JObject patched = (JObject) prev.DeepClone();
+                patched.Merge(patch);
+                patched = merger.EnsureMerge(id, patched, prev);
+                patched = pipeline.ExecuteBeforePatch(patched, patch, prev, contentType, context);
+
+                JObject closure = patched;
+                patched = performance.TrackFunction(TRACK_TYPE, () => area.Update(id, closure), $"ContentService.Patch({id},{contentType}, $ENTITY)");
+                patched = pipeline.ExecuteAfterPatch(patched, patch, prev, contentType, context);
+                manager.QueueUpdate(patched);
+                return patched;
             }
         }
 

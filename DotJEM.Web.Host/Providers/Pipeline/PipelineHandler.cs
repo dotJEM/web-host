@@ -20,109 +20,30 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             });
         }
 
-        public virtual bool Accept(string contentType)
-        {
-            return accepts.Value(contentType);
-        }
-
-        public virtual JObject BeforeGet(dynamic entity, string contentType, PipelineContext context)
-        {
-            return BeforeGet(entity, contentType);
-        }
-
-        public virtual JObject BeforeGet(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject AfterGet(dynamic entity, string contentType, PipelineContext context)
-        {
-            return AfterGet(entity, contentType);
-        }
-
-        public virtual JObject AfterGet(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject BeforePost(dynamic entity, string contentType, PipelineContext context)
-        {
-            return BeforePost(entity, contentType);
-        }
-
-        public virtual JObject BeforePost(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject AfterPost(dynamic entity, string contentType, PipelineContext context)
-        {
-            return AfterPost(entity, contentType);
-        }
-
-        public virtual JObject AfterPost(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-        
-        public virtual JObject BeforeDelete(dynamic entity, string contentType, PipelineContext context)
-        {
-            return BeforeDelete(entity, contentType);
-        }
-
-        public virtual JObject BeforeDelete(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject AfterDelete(dynamic entity, string contentType, PipelineContext context)
-        {
-            return AfterDelete(entity, contentType);
-        }
-
-        public virtual JObject AfterDelete(dynamic entity, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject BeforePut(dynamic entity, dynamic previous, string contentType, PipelineContext context)
-        {
-            return BeforePut(entity, previous, contentType);
-        }
-
-        public virtual JObject BeforePut(dynamic entity, dynamic previous, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject AfterPut(dynamic entity, dynamic previous, string contentType, PipelineContext context)
-        {
-            return AfterPut(entity, previous, contentType);
-        }
-
-        public virtual JObject AfterPut(dynamic entity, dynamic previous, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject BeforeRevert(dynamic entity, dynamic current, string contentType, PipelineContext context)
-        {
-            return BeforeRevert(entity, current, contentType);
-        }
-
-        public virtual JObject BeforeRevert(dynamic entity, dynamic current, string contentType)
-        {
-            return entity;
-        }
-
-        public virtual JObject AfterRevert(dynamic entity, dynamic current, string contentType, PipelineContext context)
-        {
-            return AfterRevert(entity, current, contentType);
-        }
-
-        public virtual JObject AfterRevert(dynamic entity, dynamic current, string contentType)
-        {
-            return entity;
-        }
+        public virtual bool Accept(string contentType) => accepts.Value(contentType);
+        public virtual JObject BeforeGet(dynamic entity, string contentType, PipelineContext context) => BeforeGet(entity, contentType);
+        public virtual JObject BeforeGet(dynamic entity, string contentType) => entity;
+        public virtual JObject AfterGet(dynamic entity, string contentType, PipelineContext context) => AfterGet(entity, contentType);
+        public virtual JObject AfterGet(dynamic entity, string contentType) => entity;
+        public virtual JObject BeforePost(dynamic entity, string contentType, PipelineContext context) => BeforePost(entity, contentType);
+        public virtual JObject BeforePost(dynamic entity, string contentType) => entity;
+        public virtual JObject AfterPost(dynamic entity, string contentType, PipelineContext context) => AfterPost(entity, contentType);
+        public virtual JObject AfterPost(dynamic entity, string contentType) => entity;
+        public virtual JObject BeforeDelete(dynamic entity, string contentType, PipelineContext context) => BeforeDelete(entity, contentType);
+        public virtual JObject BeforeDelete(dynamic entity, string contentType) => entity;
+        public virtual JObject AfterDelete(dynamic entity, string contentType, PipelineContext context) => AfterDelete(entity, contentType);
+        public virtual JObject AfterDelete(dynamic entity, string contentType) => entity;
+        public virtual JObject BeforePut(dynamic entity, dynamic previous, string contentType, PipelineContext context) => BeforePut(entity, previous, contentType);
+        public virtual JObject BeforePut(dynamic entity, dynamic previous, string contentType) => entity;
+        public virtual JObject AfterPut(dynamic entity, dynamic previous, string contentType, PipelineContext context) => AfterPut(entity, previous, contentType);
+        public virtual JObject AfterPut(dynamic entity, dynamic previous, string contentType) => entity;
+        public virtual JObject BeforePatch(dynamic patch, dynamic patched, dynamic previous, string contentType, PipelineContext context) => BeforePatch(patch, patched, previous, contentType);
+        public virtual JObject BeforePatch(dynamic patch, dynamic patched, dynamic previous, string contentType) => patched;
+        public virtual JObject AfterPatch(dynamic patch, dynamic patched, dynamic previous, string contentType, PipelineContext context) => AfterPatch(patch, patched, previous, contentType);
+        public virtual JObject AfterPatch(dynamic patch, dynamic patched, dynamic previous, string contentType) => patched;
+        public virtual JObject BeforeRevert(dynamic entity, dynamic current, string contentType, PipelineContext context) => BeforeRevert(entity, current, contentType);
+        public virtual JObject BeforeRevert(dynamic entity, dynamic current, string contentType) => entity;
+        public virtual JObject AfterRevert(dynamic entity, dynamic current, string contentType, PipelineContext context) => AfterRevert(entity, current, contentType);
+        public virtual JObject AfterRevert(dynamic entity, dynamic current, string contentType) => entity;
     }
 }
