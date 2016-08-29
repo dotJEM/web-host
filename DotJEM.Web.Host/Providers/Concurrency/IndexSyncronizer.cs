@@ -115,7 +115,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         break;
 
                     //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
-                    Sync.Await(tuples.Select(tup => WriteChangesAsync(writer, tup)));
+                    Sync.Await(tuples.Select(tup => InitializeChangesAsync(writer, tup)));
 
                     //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                     //      if we do that we should either send a "initialized" even that instructs controllers
@@ -130,12 +130,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 
-        private async Task<long> WriteChangesAsync(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple)
+        private async Task<long> InitializeChangesAsync(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple)
         {
             IStorageChanges changes = tuple.Item2;
             await writer.WriteAll(changes.Created);
             await writer.WriteAll(changes.Updated);
-            await writer.DeleteAll(changes.Deleted);
             return changes.Token;
         }
 
@@ -164,6 +163,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IStorageChanges changes = tuple.Item2;
             index.WriteAll(changes.Created);
             index.WriteAll(changes.Updated);
+            index.WriteAll(changes.Deleted);
             return changes.Token;
         }
 
