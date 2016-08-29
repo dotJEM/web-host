@@ -135,7 +135,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IStorageChanges changes = tuple.Item2;
             await writer.WriteAll(changes.Created);
             await writer.WriteAll(changes.Updated);
-            await writer.DeleteAll(changes.Deleted);
             return changes.Token;
         }
 
@@ -164,6 +163,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IStorageChanges changes = tuple.Item2;
             index.WriteAll(changes.Created);
             index.WriteAll(changes.Updated);
+            index.WriteAll(changes.Deleted);
             return changes.Token;
         }
 
