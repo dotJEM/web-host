@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using DotJEM.Web.Host.Diagnostics;
+using DotJEM.Web.Host.Diagnostics.Ext;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 

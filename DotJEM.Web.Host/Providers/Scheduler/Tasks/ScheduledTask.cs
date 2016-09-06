@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Diagnostics.Performance.Ext;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using Newtonsoft.Json.Linq;

@@ -83,7 +83,6 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
                     path = MorphPath(path, count++);
                 }
-                
             }
         }
 

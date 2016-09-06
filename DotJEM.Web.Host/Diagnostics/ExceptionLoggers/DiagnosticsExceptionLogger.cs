@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http.ExceptionHandling;
+using DotJEM.Web.Host.Diagnostics.Ext;
 using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Linq;
 
