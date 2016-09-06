@@ -121,14 +121,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         private StreamWriter NextWriter()
         {
-            file.Refresh();
-            if (file.Length <= maxSize) return current;
+            if (current.BaseStream.Length <= maxSize)
+                return current;
 
-            if (current != null)
-                current.Close();
-
+            current?.Close();
             Archive();
-
             return current = SafeOpen(path);
         }
 
