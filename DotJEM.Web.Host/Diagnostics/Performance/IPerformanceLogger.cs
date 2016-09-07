@@ -7,7 +7,6 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
     public interface IPerformanceLogger
     {
         bool Enabled { get; }
-        IDiagnosticsLogger Diagnostic { get; }
         IPerformanceTracker Track(string type, params object[] args);
 
         void LogSingleEvent(string type, long elapsed, params object[] args);

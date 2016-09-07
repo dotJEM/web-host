@@ -17,11 +17,9 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         private readonly ILogWriter writer;
 
         public bool Enabled { get; }
-        public IDiagnosticsLogger Diagnostic { get; }
 
-        public PerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration, IDiagnosticsLogger diagnostics)
+        public PerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration)
         {
-            Diagnostic = diagnostics;
             if (configuration.Diagnostics?.Performance == null)
                 return;
 
@@ -51,8 +49,13 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             writer.Write(message);
         }
 
+        private void ScopeCompleted()
+        {
+            
+        }
+
         public ICorrelationScope StartCorrelationScope() => StartCorrelationScope(Guid.NewGuid());
 
-        public ICorrelationScope StartCorrelationScope(Guid scopeid) => new CorrelationScope(scopeid);
+        public ICorrelationScope StartCorrelationScope(Guid scopeid) => new CorrelationScope(scopeid, ScopeCompleted);
     }
 }

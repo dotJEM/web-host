@@ -5,6 +5,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Castle.Components.DictionaryAdapter;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
 {
@@ -16,11 +17,12 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         ICorrelationBranch Branch();
     }
 
+    /// <summary>
+    /// This is a proxy object, it's meant to remove Dispose from the interface returned by CorrelationScope.Current
+    /// </summary>
     public class Correlation : ICorrelation
     {
         private readonly ICorrelationScope scope;
-        private ICorrelationBranch branch;
-        private readonly Stack<ICorrelationBranch> branches = new Stack<ICorrelationBranch>();
 
         public Guid Uid => scope.Uid;
         public string Hash => scope.Hash;
@@ -31,35 +33,34 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
             this.scope = scope;
         }
 
-        public ICorrelationBranch Branch()
-        {
-            return branch = new CorrelationBranch(this, branch);
-        }
-
-        public void Up(ICorrelationBranch parent)
-        {
-            branch = parent;
-        }
+        public ICorrelationBranch Branch() => scope.Branch();
     }
 
     public interface ICorrelationBranch 
     {
         string Hash { get; }
+        ICorrelationBranch Root { get; }
+
         void Close();
         void Capture(DateTime time, long elapsed, string type, string identity, string[] args);
     }
 
     public class CorrelationBranch : ICorrelationBranch
     {
-        private readonly Correlation correlation;
+        private readonly CorrelationScope scope;
         private readonly ICorrelationBranch parent;
 
-        public string Hash => correlation.Hash;
+        public Guid Uid { get; } = Guid.NewGuid();
 
-        public CorrelationBranch(Correlation correlation, ICorrelationBranch parent)
+        public string Hash => scope.Hash;
+        public ICorrelationBranch Root => parent ?? this;
+
+        public CorrelationBranch(CorrelationScope correlation, ICorrelationBranch parent)
         {
-            this.correlation = correlation;
+            this.scope = correlation;
             this.parent = parent;
+
+
         }
 
         public void Capture(DateTime time, long elapsed, string type, string identity, string[] args)
@@ -67,9 +68,10 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
             throw new NotImplementedException();
         }
 
+
         public void Close()
         {
-            correlation.Up(parent);
+            scope.Up(parent);
         }
     }
 
@@ -78,6 +80,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         Guid Uid { get; }
         string Hash { get; }
         string FullHash { get; }
+        ICorrelationBranch Branch();
     }
 
     public sealed class CorrelationScope : ICorrelationScope
@@ -86,12 +89,19 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
 
         public static ICorrelation Current => new Correlation(CallContext.LogicalGetData(KEY) as ICorrelationScope);
 
+        private ICorrelationBranch currentBranch;
+        private readonly List<ICorrelationBranch> branches = new List<ICorrelationBranch>();
+        private readonly object padlock = new object();
+
         public Guid Uid { get; }
         public string Hash { get; }
         public string FullHash { get; }
 
-        internal CorrelationScope(Guid id)
+        private readonly Action<PerformanceTrack> completed;
+
+        internal CorrelationScope(Guid id, Action<PerformanceTrack> completed)
         {
+            this.completed = completed;
             Uid = id;
             FullHash = ComputeHash(id.ToByteArray());
             Hash = FullHash.Substring(0, 7);
@@ -99,9 +109,28 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
             CallContext.LogicalSetData(KEY, this);
         }
 
+        public ICorrelationBranch Branch()
+        {
+            lock (padlock)
+            {
+                currentBranch = new CorrelationBranch(this, currentBranch);
+                branches.Add(currentBranch);
+                return currentBranch;
+            }
+        }
+
+        public void Up(ICorrelationBranch parent)
+        {
+            lock (padlock)
+            {
+                currentBranch = parent;
+            }
+        }
+
         public void Dispose()
         {
-            //TODO: 
+            completed(new PerformanceTrack(Uid, FullHash, branches));
+
 
             CallContext.LogicalSetData(KEY, null);
         }
@@ -116,4 +145,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         }
     }
 
+    public class PerformanceTrack
+    {
+    }
 }
