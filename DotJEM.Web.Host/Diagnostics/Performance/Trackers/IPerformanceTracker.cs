@@ -31,7 +31,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
     public class PerformanceTracker : IPerformanceTracker
     {
         private readonly Action<string> completed;
-        private readonly ICorrelationBranch correlation;
+        private readonly ICorrelationFlow flow;
 
         protected DateTime Time { get; }
         protected string Identity { get; }
@@ -46,12 +46,12 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         private long end = -1;
         private volatile bool comitted = false;
 
-        public static IPerformanceTracker Create(Action<string> completed, ICorrelationBranch correlation, string type, params object[] arguments)
-            => new PerformanceTracker(completed, correlation, type, arguments);
+        public static IPerformanceTracker Create(Action<string> completed, ICorrelationFlow flow, string type, params object[] arguments)
+            => new PerformanceTracker(completed, flow, type, arguments);
 
-        public PerformanceTracker(Action<string> completed, ICorrelationBranch correlation, string type, params object[] arguments)
+        public PerformanceTracker(Action<string> completed, ICorrelationFlow flow, string type, params object[] arguments)
         {
-            this.correlation = correlation;
+            this.flow = flow;
             start = Stopwatch.GetTimestamp();
 
             this.completed = completed;
@@ -69,7 +69,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
 
             comitted = true;
             end = Stopwatch.GetTimestamp();
-            correlation.Close();
+            flow.Dispose();
             Task.Run(() => Complete(argsFactory())).ConfigureAwait(false);
         }
 
@@ -86,9 +86,9 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
 
             args = arguments.Union(args).ToArray();
             string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
-            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, correlation.Hash, identity };
+            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, flow.Hash, identity };
 
-            correlation.Capture(Time, ElapsedMilliseconds, type, identity, Array.ConvertAll(arguments, obj => (obj ?? "N/A").ToString()));
+            flow.Capture(Time, ElapsedMilliseconds, type, identity, Array.ConvertAll(arguments, obj => (obj ?? "N/A").ToString()));
 
             return string.Join("\t", prefix.Union(args));
         }
@@ -105,23 +105,23 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         private readonly string type;
         private readonly string[] arguments;
         private readonly Action<string> completed;
-        private readonly ICorrelationBranch correlation;
+        private readonly ICorrelationFlow flow;
 
         private long ElapsedMilliseconds { get; }
         private DateTime Time { get; }
         private string Identity { get; }
         private volatile bool comitted = false;
 
-        public static IPerformanceEvent Create(Action<string> completed, string type, ICorrelationBranch correlation, long elapsed, params object[] arguments)
-            => new PerformanceEvent(completed, correlation, type, elapsed, arguments);
+        public static IPerformanceEvent Create(Action<string> completed, string type, ICorrelationFlow flow, long elapsed, params object[] arguments)
+            => new PerformanceEvent(completed, flow, type, elapsed, arguments);
 
-        public static void Execute(Action<string> completed, string type, ICorrelationBranch correlation, long elapsed, params object[] arguments)
-            => new PerformanceEvent(completed, correlation, type, elapsed, arguments).Dispose();
+        public static void Execute(Action<string> completed, string type, ICorrelationFlow flow, long elapsed, params object[] arguments)
+            => new PerformanceEvent(completed, flow, type, elapsed, arguments).Dispose();
 
-        public PerformanceEvent(Action<string> completed, ICorrelationBranch correlation, string type, long elapsed, params object[] arguments)
+        public PerformanceEvent(Action<string> completed, ICorrelationFlow flow, string type, long elapsed, params object[] arguments)
         {
             this.completed = completed;
-            this.correlation = correlation;
+            this.flow = flow;
             this.type = type;
             this.arguments = Array.ConvertAll(arguments, obj => (obj ?? "N/A").ToString());
 
@@ -133,9 +133,9 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
         private string Format()
         {
             string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
-            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, correlation.Hash, identity };
+            string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, flow.Hash, identity };
 
-            correlation.Capture(Time, ElapsedMilliseconds, type, identity, arguments);
+            flow.Capture(Time, ElapsedMilliseconds, type, identity, arguments);
 
             return string.Join("\t", prefix.Union(arguments));
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Remoting.Messaging;
@@ -14,7 +15,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         Guid Uid { get; }
         string Hash { get; }
         string FullHash { get; }
-        ICorrelationBranch Branch();
+        // ICorrelationBranch Branch();
+        ICorrelation Flow(ICorrelationFlow correlationFlow);
     }
 
     /// <summary>
@@ -33,54 +35,61 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
             this.scope = scope;
         }
 
-        public ICorrelationBranch Branch() => scope.Branch();
-    }
+        //public ICorrelationBranch Branch() => scope.Branch();
 
-    public interface ICorrelationBranch 
-    {
-        string Hash { get; }
-        ICorrelationBranch Root { get; }
-
-        void Close();
-        void Capture(DateTime time, long elapsed, string type, string identity, string[] args);
-    }
-
-    public class CorrelationBranch : ICorrelationBranch
-    {
-        private readonly CorrelationScope scope;
-        private readonly ICorrelationBranch parent;
-
-        public Guid Uid { get; } = Guid.NewGuid();
-
-        public string Hash => scope.Hash;
-        public ICorrelationBranch Root => parent ?? this;
-
-        public CorrelationBranch(CorrelationScope correlation, ICorrelationBranch parent)
+        public ICorrelation Flow(ICorrelationFlow correlationFlow)
         {
-            this.scope = correlation;
-            this.parent = parent;
-
-
-        }
-
-        public void Capture(DateTime time, long elapsed, string type, string identity, string[] args)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        public void Close()
-        {
-            scope.Up(parent);
+            scope.Flow(correlationFlow);
+            return this;
         }
     }
+
+    //public interface ICorrelationBranch 
+    //{
+    //    string Hash { get; }
+    //    ICorrelationBranch Root { get; }
+
+    //    void Close();
+    //    void Capture(DateTime time, long elapsed, string type, string identity, string[] args);
+    //}
+
+    //public class CorrelationBranch : ICorrelationBranch
+    //{
+    //    private readonly CorrelationScope scope;
+    //    private readonly ICorrelationBranch parent;
+
+    //    public Guid Uid { get; } = Guid.NewGuid();
+
+    //    public string Hash => scope.Hash;
+    //    public ICorrelationBranch Root => parent ?? this;
+
+    //    public CorrelationBranch(CorrelationScope correlation, ICorrelationBranch parent)
+    //    {
+    //        this.scope = correlation;
+    //        this.parent = parent;
+
+
+    //    }
+
+    //    public void Capture(DateTime time, long elapsed, string type, string identity, string[] args)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+
+
+    //    public void Close()
+    //    {
+    //        scope.Up(parent);
+    //    }
+    //}
 
     public interface ICorrelationScope : IDisposable
     {
         Guid Uid { get; }
         string Hash { get; }
         string FullHash { get; }
-        ICorrelationBranch Branch();
+       // ICorrelationBranch Branch();
+        void Flow(ICorrelationFlow correlationFlow);
     }
 
     public sealed class CorrelationScope : ICorrelationScope
@@ -89,53 +98,40 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
 
         public static ICorrelation Current => new Correlation(CallContext.LogicalGetData(KEY) as ICorrelationScope);
 
-        private ICorrelationBranch currentBranch;
-        private readonly List<ICorrelationBranch> branches = new List<ICorrelationBranch>();
-        private readonly object padlock = new object();
+        private readonly ConcurrentQueue<ICorrelationFlow> flows = new ConcurrentQueue<ICorrelationFlow>();
 
         public Guid Uid { get; }
         public string Hash { get; }
         public string FullHash { get; }
 
-        private readonly Action<PerformanceTrack> completed;
+        private readonly Action<CapturedScope> completed;
 
-        internal CorrelationScope(Guid id, Action<PerformanceTrack> completed)
+        internal CorrelationScope(Guid id, Action<CapturedScope> completed)
         {
             this.completed = completed;
             Uid = id;
-            FullHash = ComputeHash(id.ToByteArray());
+            FullHash = Hashing.Compute(id.ToByteArray());
             Hash = FullHash.Substring(0, 7);
 
             CallContext.LogicalSetData(KEY, this);
         }
 
-        public ICorrelationBranch Branch()
+        public void Flow(ICorrelationFlow correlationFlow)
         {
-            lock (padlock)
-            {
-                currentBranch = new CorrelationBranch(this, currentBranch);
-                branches.Add(currentBranch);
-                return currentBranch;
-            }
-        }
-
-        public void Up(ICorrelationBranch parent)
-        {
-            lock (padlock)
-            {
-                currentBranch = parent;
-            }
+            flows.Enqueue(correlationFlow);
         }
 
         public void Dispose()
         {
-            completed(new PerformanceTrack(Uid, FullHash, branches));
-
-
+            completed(new CapturedScope(Uid, FullHash, flows.ToArray()));
+            
             CallContext.LogicalSetData(KEY, null);
         }
+    }
 
-        private static string ComputeHash(byte[] bytes)
+    public static class Hashing
+    {
+        public static string Compute(byte[] bytes)
         {
             using (SHA1 hasher = SHA1.Create())
             {
@@ -145,7 +141,39 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         }
     }
 
-    public class PerformanceTrack
+    public class CapturedFlow
     {
+        public Guid Id { get; }
+        public DateTime Time { get; }
+        public long Elapsed { get; }
+        public string Type { get; }
+        public string Identity { get; }
+
+        public string[] Arguments { get; }
+
+        public CapturedFlow(Guid id, DateTime time, long elapsed, string type, string identity, string[] arguments)
+        {
+            Id = id;
+            Time = time;
+            Elapsed = elapsed;
+            Type = type;
+            Identity = identity;
+            Arguments = arguments;
+        }
+    }
+
+    public class CapturedScope
+    {
+        public Guid Id { get; }
+        public string Hash { get; }
+        public DateTime Time { get; }
+
+
+        public CapturedScope(Guid uid, string hash, ICorrelationFlow[] flows)
+        {
+            Id = uid;
+            Hash = hash;
+            
+        }
     }
 }

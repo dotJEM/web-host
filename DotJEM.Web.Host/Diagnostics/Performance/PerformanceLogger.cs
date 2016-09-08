@@ -33,12 +33,12 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             if (!Enabled)
                 return NullPerformanceTracker.SharedInstance;
 
-            return PerformanceTracker.Create(LogPerformanceEvent, CorrelationScope.Current.Branch(), type, args);
+            return PerformanceTracker.Create(LogPerformanceEvent, new CorrelationFlow(), type, args);
         }
 
         public void LogSingleEvent(string type, long elapsed, params object[] args)
         {
-            PerformanceEvent.Execute(LogPerformanceEvent, type, CorrelationScope.Current.Branch(), elapsed, args);
+            PerformanceEvent.Execute(LogPerformanceEvent, type, new CorrelationFlow(), elapsed, args);
         }
 
         private void LogPerformanceEvent(string message)
@@ -48,14 +48,60 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
             writer.Write(message);
         }
-
-        private void ScopeCompleted()
+        private void ScopeCompleted(CapturedScope obj)
         {
-            
+
         }
 
         public ICorrelationScope StartCorrelationScope() => StartCorrelationScope(Guid.NewGuid());
 
         public ICorrelationScope StartCorrelationScope(Guid scopeid) => new CorrelationScope(scopeid, ScopeCompleted);
+
+    }
+
+    public interface ICorrelationFlow : IDisposable
+    {
+        ICorrelationFlow Parent { get; }
+        string Hash { get; }
+        Guid Uid { get; }
+        ICorrelationFlow Capture(DateTime time, long elapsed, string type, string identity, string[] arguments);
+    }
+
+    public class CorrelationFlow : ICorrelationFlow
+    {
+        private const string KEY = "FLOW_CONTEXT_KEY_D5A5BDE3"; 
+
+        public static ICorrelationFlow Current => (ICorrelationFlow)CallContext.LogicalGetData(KEY);
+
+        private readonly ICorrelation scope;
+        private bool disposed;
+
+        public ICorrelationFlow Parent { get; }
+
+        public string Hash => scope.Hash;
+        public Guid Uid { get; } = Guid.NewGuid();
+
+        public CorrelationFlow()
+        {
+            Parent = Current;
+            CallContext.LogicalSetData(KEY, this);
+            scope = CorrelationScope.Current.Flow(this);
+        }
+
+        public ICorrelationFlow Capture(DateTime time, long elapsed, string type, string identity, string[] args)
+        {
+            new CapturedFlow(Uid, time, elapsed, type, identity, args);
+            throw new NotImplementedException();
+            //return this;
+        }
+
+        public void Dispose()
+        {
+            if(disposed)
+                return;
+            
+            disposed = true;
+            CallContext.LogicalSetData(KEY, Parent);
+        }
     }
 }
