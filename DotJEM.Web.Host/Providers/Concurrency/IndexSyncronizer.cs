@@ -163,7 +163,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IStorageChanges changes = tuple.Item2;
             index.WriteAll(changes.Created);
             index.WriteAll(changes.Updated);
-            index.WriteAll(changes.Deleted);
+            index.DeleteAll(changes.Deleted);
             return changes.Token;
         }
 
