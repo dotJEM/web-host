@@ -5,9 +5,9 @@ namespace DotJEM.Web.Host.Configuration.Elements
     public class WatchElement : ConfigurationElement
     {
         [ConfigurationProperty("area", IsRequired = true)]
-        public string Area
-        {
-            get { return this["area"] as string; }
-        }
+        public string Area => this["area"] as string;
+
+        [ConfigurationProperty("index", IsRequired = true)]
+        public string Index => this["index"] as string;
     }
 }

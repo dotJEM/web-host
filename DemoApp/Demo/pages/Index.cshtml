@@ -1,0 +1,75 @@
+﻿@inherits System.Web.Mvc.WebViewPage
+
+<!DOCTYPE html>
+<html ng-app="dotjem.demo">
+<head>
+    <title>Demo Application</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+
+    <base href="@($"{Request.Url.Scheme}://{Request.Url.Authority}{Url.Content("~/")}")" />
+
+
+</head>
+<body ng-controller="ApplicationController as app">
+
+    <h1>TODO Application</h1>
+
+    <input type="text" ng-model="app.new.title"/>
+    <select ng-model="app.new.type">
+        <option value="task">Task</option>
+        <option value="reminder">Reminder</option>
+        <option value="plan">Plan</option>
+    </select>
+    <select ng-model="app.new.priority">
+        <option value="4">Urgent</option>
+        <option value="3">High</option>
+        <option value="2">Medium</option>
+        <option value="1">Low</option>
+    </select>
+    <button ng-click="app.createTodo();">ADD TODO</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><input type="text" ng-model="app.filter.title" ng-change="app.applyFilter()" /></td>
+                <td>
+                    <select ng-model="app.filter.type" ng-change="app.applyFilter()" >
+                        <option value="task">Task</option>
+                        <option value="reminder">Reminder</option>
+                        <option value="plan">Plan</option>
+                    </select>
+                </td>
+                <td>
+                    <select ng-model="app.filter.priority" ng-change="app.applyFilter()" >
+                        <option value="4">Urgent</option>
+                        <option value="3">High</option>
+                        <option value="2">Medium</option>
+                        <option value="1">Low</option>
+                    </select>
+                </td>
+            </tr>
+            <tr ng-repeat="todo in app.model.results">
+                <td>{{ todo.title }}</td>
+                <td>{{ todo.type }}</td>
+                <td>{{ todo.priority }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script src="~/assets/lib/angular.min.js"></script>
+    <script src="~/assets/app.js"></script>
+
+</body>
+</html>
+

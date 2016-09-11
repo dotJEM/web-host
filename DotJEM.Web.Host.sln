@@ -19,6 +19,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		appveyor.yml = appveyor.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DemoApp", "DemoApp", "{0FDFB75E-429D-4A69-B490-A6737DCEE149}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "DemoApp\Demo\Demo.csproj", "{305ECB8E-9D79-4A30-9E4E-0044D185A760}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.Server", "DemoApp\Demo.Server\Demo.Server.csproj", "{BDF82C33-34E6-4D38-9FE9-FF9062D287D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,8 +39,20 @@ Global
 		{974BDF74-F005-46A6-9900-28FC32B01399}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{974BDF74-F005-46A6-9900-28FC32B01399}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{974BDF74-F005-46A6-9900-28FC32B01399}.Release|Any CPU.Build.0 = Release|Any CPU
+		{305ECB8E-9D79-4A30-9E4E-0044D185A760}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{305ECB8E-9D79-4A30-9E4E-0044D185A760}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{305ECB8E-9D79-4A30-9E4E-0044D185A760}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{305ECB8E-9D79-4A30-9E4E-0044D185A760}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDF82C33-34E6-4D38-9FE9-FF9062D287D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDF82C33-34E6-4D38-9FE9-FF9062D287D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDF82C33-34E6-4D38-9FE9-FF9062D287D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDF82C33-34E6-4D38-9FE9-FF9062D287D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{305ECB8E-9D79-4A30-9E4E-0044D185A760} = {0FDFB75E-429D-4A69-B490-A6737DCEE149}
+		{BDF82C33-34E6-4D38-9FE9-FF9062D287D1} = {0FDFB75E-429D-4A69-B490-A6737DCEE149}
 	EndGlobalSection
 EndGlobal
