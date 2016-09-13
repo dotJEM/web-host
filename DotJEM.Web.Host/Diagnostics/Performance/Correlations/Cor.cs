@@ -124,7 +124,6 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         public void Dispose()
         {
             completed(new CapturedScope(Uid, FullHash, flows.ToArray()));
-            
             CallContext.LogicalSetData(KEY, null);
         }
     }
@@ -144,16 +143,20 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
     public class CapturedFlow
     {
         public Guid Id { get; }
+        public Guid ParentId { get; set; }
         public DateTime Time { get; }
         public long Elapsed { get; }
+        public string Hash { get; set; }
         public string Type { get; }
         public string Identity { get; }
 
         public string[] Arguments { get; }
 
-        public CapturedFlow(Guid id, DateTime time, long elapsed, string type, string identity, string[] arguments)
+        public CapturedFlow(Guid parentId, Guid id, string hash, DateTime time, long elapsed, string type, string identity, string[] arguments)
         {
+            ParentId = parentId;
             Id = id;
+            Hash = hash;
             Time = time;
             Elapsed = elapsed;
             Type = type;
@@ -166,14 +169,19 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
     {
         public Guid Id { get; }
         public string Hash { get; }
-        public DateTime Time { get; }
+        public CapturedFlow[] Flows => flows.SelectMany(f => f.Flows).ToArray();
+        public DateTime Time { get; } = DateTime.UtcNow;
 
+        private readonly ICorrelationFlow[] flows;
 
         public CapturedScope(Guid uid, string hash, ICorrelationFlow[] flows)
         {
             Id = uid;
             Hash = hash;
-            
+
+            this.flows = flows;
         }
+
+
     }
 }

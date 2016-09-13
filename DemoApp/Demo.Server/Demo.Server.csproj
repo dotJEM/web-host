@@ -174,7 +174,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="DemoHost.cs" />
+    <Compile Include="DemoContentController.cs" />
+    <Compile Include="DemoContentHub.cs" />
+    <Compile Include="DemoSearchController.cs" />
+    <Compile Include="Installer.cs" />
+    <Compile Include="LeoSearchResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

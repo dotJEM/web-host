@@ -69,7 +69,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
 
             comitted = true;
             end = Stopwatch.GetTimestamp();
-            flow.Dispose();
+            flow.Collect();
             Task.Run(() => Complete(argsFactory())).ConfigureAwait(false);
         }
 
@@ -78,12 +78,15 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Trackers
             this.arguments = arguments.Union(Array.ConvertAll(arguments, obj => (obj ?? "N/A").ToString())).ToArray();
         }
 
-        public void Commit(params object[] args) => Commit(()=>args);
+        public void Commit(params object[] args)
+        {
+            Commit(() => args);
+        }
+
         private void Complete(params object[] args) => completed(Format(args));
 
         private string Format(object[] args)
         {
-
             args = arguments.Union(args).ToArray();
             string identity = string.IsNullOrEmpty(Identity) ? "NO IDENTITY" : Identity;
             string[] prefix = { Time.ToString("s"), ElapsedMilliseconds.ToString(), type, flow.Hash, identity };
