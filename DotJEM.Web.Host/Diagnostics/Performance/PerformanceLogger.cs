@@ -73,12 +73,15 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
     public interface ICorrelationFlow : IDisposable
     {
+        event EventHandler<EventArgs> Completed;
+
         ICorrelationFlow Parent { get; }
         string Hash { get; }
         Guid Uid { get; }
+        bool IsCompleted { get; }
         IEnumerable<CapturedFlow> Flows { get; }
-        ICorrelationFlow Capture(DateTime time, long elapsed, string type, string identity, string[] arguments);
 
+        ICorrelationFlow Capture(DateTime time, long elapsed, string type, string identity, string[] arguments);
         void Collect();
     }
 
@@ -88,9 +91,11 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public static ICorrelationFlow Current => (ICorrelationFlow)CallContext.LogicalGetData(KEY);
 
+        public event EventHandler<EventArgs> Completed;
+
         private readonly ICorrelation scope;
         private bool collected;
-        private bool completed;
+        public bool IsCompleted { get; private set; }
 
         public ICorrelationFlow Parent { get; }
 
@@ -123,7 +128,17 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             CallContext.LogicalSetData(KEY, Parent);
         }
 
-        public void Complete() => completed = true;
+        public void Complete()
+        {
+            IsCompleted = true;
+            OnCompleted();
+        }
+
         public void Dispose() => Complete();
+
+        protected virtual void OnCompleted()
+        {
+            Completed?.Invoke(this, EventArgs.Empty);
+        }
     }
 }
