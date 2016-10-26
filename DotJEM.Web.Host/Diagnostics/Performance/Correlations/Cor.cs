@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Castle.Components.DictionaryAdapter;
+using Newtonsoft.Json;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
 {
@@ -89,7 +90,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
         string Hash { get; }
         string FullHash { get; }
        // ICorrelationBranch Branch();
-        void Flow(ICorrelationFlow correlationFlow);
+        void Flow(ICorrelationFlow flow);
     }
 
     public sealed class CorrelationScope : ICorrelationScope
@@ -98,7 +99,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
 
         public static ICorrelation Current => new Correlation(CallContext.LogicalGetData(KEY) as ICorrelationScope);
 
-        private readonly ConcurrentQueue<ICorrelationFlow> flows = new ConcurrentQueue<ICorrelationFlow>();
+        private readonly ConcurrentQueue<ICorrelationFlow> completedFlows = new ConcurrentQueue<ICorrelationFlow>();
+        private readonly ConcurrentDictionary<Guid,ICorrelationFlow> flows = new ConcurrentDictionary<Guid, ICorrelationFlow>();
 
         public Guid Uid { get; }
         public string Hash { get; }
@@ -116,15 +118,32 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
             CallContext.LogicalSetData(KEY, this);
         }
 
-        public void Flow(ICorrelationFlow correlationFlow)
+        public void Flow(ICorrelationFlow flow)
         {
-            flows.Enqueue(correlationFlow);
+            if(flows.TryAdd(flow.Uid, flow))
+                flow.Completed += FlowCompleted;
+        }
+
+        private void FlowCompleted(object sender, EventArgs e)
+        {
+            ICorrelationFlow flow = sender as ICorrelationFlow;
+            if (flow != null)
+            {
+                flow.Completed -= FlowCompleted;
+                ICorrelationFlow value = null;
+                flows.TryRemove(flow.Uid, out value);
+
+                completedFlows.Enqueue(flow);
+                if (flows.IsEmpty)
+                {
+                    completed(new CapturedScope(Uid, FullHash, completedFlows.ToArray()));
+                }
+            }
         }
 
         public void Dispose()
         {
-            completed(new CapturedScope(Uid, FullHash, flows.ToArray()));
-            
+            completed(new CapturedScope(Uid, FullHash, flows.Values.ToArray()));
             CallContext.LogicalSetData(KEY, null);
         }
     }
@@ -144,16 +163,20 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
     public class CapturedFlow
     {
         public Guid Id { get; }
+        public Guid ParentId { get; set; }
         public DateTime Time { get; }
         public long Elapsed { get; }
+        public string Hash { get; set; }
         public string Type { get; }
         public string Identity { get; }
 
         public string[] Arguments { get; }
 
-        public CapturedFlow(Guid id, DateTime time, long elapsed, string type, string identity, string[] arguments)
+        public CapturedFlow(Guid parentId, Guid id, string hash, DateTime time, long elapsed, string type, string identity, string[] arguments)
         {
+            ParentId = parentId;
             Id = id;
+            Hash = hash;
             Time = time;
             Elapsed = elapsed;
             Type = type;
@@ -166,14 +189,17 @@ namespace DotJEM.Web.Host.Diagnostics.Performance.Correlations
     {
         public Guid Id { get; }
         public string Hash { get; }
-        public DateTime Time { get; }
+        public CapturedFlow[] Flows { get; }
+        public DateTime Time { get; } = DateTime.UtcNow;
 
 
         public CapturedScope(Guid uid, string hash, ICorrelationFlow[] flows)
         {
             Id = uid;
             Hash = hash;
-            
+            Flows = flows.SelectMany(f => f.Flows).ToArray();
         }
+
+
     }
 }

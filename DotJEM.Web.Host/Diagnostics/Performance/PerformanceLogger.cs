@@ -1,14 +1,18 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography;
+using Castle.Components.DictionaryAdapter;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics.Performance.Correlations;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Util;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance
 {
@@ -48,9 +52,17 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
             writer.Write(message);
         }
+
         private void ScopeCompleted(CapturedScope obj)
         {
+            //obj.Await
+            //TODO await completion
 
+            JObject json = JObject.FromObject(obj);
+
+            string str = json.ToString(Formatting.Indented);
+
+            Debug.WriteLine(str);
         }
 
         public ICorrelationScope StartCorrelationScope() => StartCorrelationScope(Guid.NewGuid());
@@ -61,10 +73,16 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
     public interface ICorrelationFlow : IDisposable
     {
+        event EventHandler<EventArgs> Completed;
+
         ICorrelationFlow Parent { get; }
         string Hash { get; }
         Guid Uid { get; }
+        bool IsCompleted { get; }
+        IEnumerable<CapturedFlow> Flows { get; }
+
         ICorrelationFlow Capture(DateTime time, long elapsed, string type, string identity, string[] arguments);
+        void Collect();
     }
 
     public class CorrelationFlow : ICorrelationFlow
@@ -73,13 +91,20 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public static ICorrelationFlow Current => (ICorrelationFlow)CallContext.LogicalGetData(KEY);
 
+        public event EventHandler<EventArgs> Completed;
+
         private readonly ICorrelation scope;
-        private bool disposed;
+        private bool collected;
+        public bool IsCompleted { get; private set; }
 
         public ICorrelationFlow Parent { get; }
 
         public string Hash => scope.Hash;
         public Guid Uid { get; } = Guid.NewGuid();
+
+        private readonly List<CapturedFlow> flows = new List<CapturedFlow>();
+
+        public IEnumerable<CapturedFlow> Flows => flows;
 
         public CorrelationFlow()
         {
@@ -90,18 +115,30 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public ICorrelationFlow Capture(DateTime time, long elapsed, string type, string identity, string[] args)
         {
-            new CapturedFlow(Uid, time, elapsed, type, identity, args);
-            throw new NotImplementedException();
-            //return this;
+            flows.Add(new CapturedFlow(Parent?.Uid ?? Guid.Empty, Uid, Hash, time, elapsed, type, identity, args));
+            return this;
         }
 
-        public void Dispose()
+        public void Collect()
         {
-            if(disposed)
+            if (collected)
                 return;
-            
-            disposed = true;
+
+            collected = true;
             CallContext.LogicalSetData(KEY, Parent);
+        }
+
+        public void Complete()
+        {
+            IsCompleted = true;
+            OnCompleted();
+        }
+
+        public void Dispose() => Complete();
+
+        protected virtual void OnCompleted()
+        {
+            Completed?.Invoke(this, EventArgs.Empty);
         }
     }
 }
