@@ -57,7 +57,7 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionLoggers
         {
             try
             {
-                string content = context.Request.Content.ReadAsStringAsync().Result;
+                string content = context.Request.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 return content;
             }
             catch (Exception) {
