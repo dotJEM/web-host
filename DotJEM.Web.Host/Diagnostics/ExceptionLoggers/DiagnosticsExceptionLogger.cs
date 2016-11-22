@@ -2,9 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http.ExceptionHandling;
+using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
 using Newtonsoft.Json.Linq;
 
@@ -56,8 +58,8 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionLoggers
         {
             try
             {
-                string content = context.Request.Content.ReadAsStringAsync().Result;
-                return content;
+                //TODO: use regular await.
+                return Sync.Await(context.Request.Content.ReadAsStringAsync());
             }
             catch (Exception) {
                 return null;
