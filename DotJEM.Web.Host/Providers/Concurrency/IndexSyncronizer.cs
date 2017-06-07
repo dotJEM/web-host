@@ -14,6 +14,7 @@ using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
+using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -76,11 +77,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             this.index = index;
             this.scheduler = scheduler;
             this.tracker = tracker;
+            batchsize = configuration.Index.Watch.BatchSize;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
                 buffer = (int)AdvConvert.ToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
-
             foreach (WatchElement watch in configuration.Index.Watch.Items)
             {
                 logs[watch.Area] = storage.Area(watch.Area).Log;
@@ -101,33 +102,59 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
-            int total = 0;
+            IndexWriter w = index.Storage.GetWriter(index.Analyzer);
+
+            long processedTokens = 0, loadedObjects = 0, processedObjects = 0;
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
                 while (true)
                 {
                     IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
-                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false)))
+                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false, batchsize)))
                         .ToList();
 
                     int sum = tuples.Sum(t => t.Item2.Count.Total);
                     if (sum < 1)
                         break;
 
+                    loadedObjects += sum;
+                    long loadedTokens =tuples.Sum(t => t.Item2.Token);
+                    tracker.SetProgress($"{loadedTokens} changes loaded, {loadedObjects} objects loaded." +
+                                        $"\n{processedTokens} changes processed, {processedObjects} objects indexed." +
+                                        $"\n{GetMemmoryStatistics(w)}");
+
                     //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
-                    Sync.Await(tuples.Select(tup => WriteChangesAsync(writer, tup)));
+                    var writerClosure = writer;
+                    Sync.Await(tuples.AsParallel().Select(tup => WriteChangesAsync(writerClosure, tup)));
 
                     //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
                     //      if we do that we should either send a "initialized" even that instructs controllers
                     //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
                     //OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
-
-                    total += sum;
-                    long tokens = tuples.Sum(t => t.Item2.Token);
-                    tracker.SetProgress($"{tokens} changes processed, {total} objects indexed.");
+                    processedTokens = loadedTokens;
+                    processedObjects = loadedObjects;
+                    tracker.SetProgress($"{loadedTokens} changes loaded, {loadedObjects} objects loaded." +
+                                        $"\n{processedTokens} changes processed, {processedObjects} objects indexed." +
+                                        $"\n{GetMemmoryStatistics(w)}");
+                    GC.Collect(0);
                 }
             }
             OnIndexInitialized(new IndexInitializedEventArgs());
+        }
+
+        private string GetMemmoryStatistics(IndexWriter w)
+        {
+            return $"Working set: {BytesToString(Environment.WorkingSet)}, GC: {BytesToString(GC.GetTotalMemory(false))}, Lucene: {BytesToString(w.RamSizeInBytes())}";
+        }
+        private string BytesToString(long byteCount)
+        {
+            string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" }; //Longs run out around EB
+            if (byteCount == 0)
+                return "0" + suf[0];
+            long bytes = Math.Abs(byteCount);
+            int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
+            double num = Math.Round(bytes / Math.Pow(1024, place), 1);
+            return (Math.Sign(byteCount) * num) + suf[place];
         }
 
         private async Task<long> WriteChangesAsync(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple)
@@ -169,6 +196,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
 
         private readonly int buffer = 512;
+        private int batchsize;
 
 
         public void QueueUpdate(JObject entity)
