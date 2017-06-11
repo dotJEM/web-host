@@ -8,6 +8,7 @@ using Castle.Windsor;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Json.Storage.Adapter.Materialize.Log;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Scheduler;
@@ -26,6 +27,43 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             container.Register(Component.For<IStorageIndexManager>().ImplementedBy<StorageIndexManager>().LifestyleSingleton());
         }
     }
+
+    public interface IStorageIndexChangeLogWatcher
+    {
+        void Initialize(ILuceneWriteContext writer);
+    }
+
+    public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
+    {
+        private string area;
+        private readonly int batch;
+        private readonly IStorageAreaLog log;
+        private readonly IStorageIndex index;
+
+        public StorageChangeLogWatcher(IStorageIndex index, string area, IStorageAreaLog log, int batch)
+        {
+            this.index = index;
+            this.area = area;
+            this.log = log;
+            this.batch = batch;
+        }
+
+        public void Initialize(ILuceneWriteContext writer)
+        {
+                while (true)
+                {
+                    IStorageChangeCollection changes = log.Get(false, batch);
+                    if(changes.Count < 1)
+                        return;
+
+                    //TODO: Check what this implementation does, if it "tolists" it and then writes it then it won't do us any good.
+                    writer.CreateAll(changes.Partitioned.Select(change => change.CreateEntity()));
+                }
+
+            
+        }
+    }
+
 
     public interface IStorageIndexManager
     {
@@ -50,9 +88,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     public class IndexChangesEventArgs : EventArgs
     {
-        public IDictionary<string, IStorageChanges> Changes { get; private set; }
+        public IDictionary<string, IStorageChangeCollection> Changes { get; private set; }
 
-        public IndexChangesEventArgs(IDictionary<string, IStorageChanges> changes)
+        public IndexChangesEventArgs(IDictionary<string, IStorageChangeCollection> changes)
         {
             Changes = changes;
         }
@@ -68,6 +106,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly IInitializationTracker tracker;
 
         private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
+        private readonly Dictionary<string, IStorageIndexChangeLogWatcher> watchers = new Dictionary<string, IStorageIndexChangeLogWatcher>();
         private readonly TimeSpan interval;
 
         private IScheduledTask task;
@@ -85,6 +124,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             foreach (WatchElement watch in configuration.Index.Watch.Items)
             {
                 logs[watch.Area] = storage.Area(watch.Area).Log;
+                watchers[watch.Area] = new StorageChangeLogWatcher(index, watch.Area, storage.Area(watch.Area).Log, watch.BatchSize);
             }
         }
 
@@ -104,13 +144,20 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             IndexWriter w = index.Storage.GetWriter(index.Analyzer);
 
+
+
             long processedTokens = 0, loadedObjects = 0, processedObjects = 0;
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
+                foreach (IStorageIndexChangeLogWatcher watcher in watchers.Values)
+                {
+                    watcher.Initialize(writer);
+                }
+
                 while (true)
                 {
-                    IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
-                        .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get(false, batchsize)))
+                    IEnumerable<Tuple<string, IStorageChangeCollection>> tuples = logs
+                        .Select(log => new Tuple<string, IStorageChangeCollection>(log.Key, log.Value.Get(false, batchsize)))
                         .ToList();
 
                     int sum = tuples.Sum(t => t.Item2.Count.Total);
@@ -157,19 +204,19 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             return (Math.Sign(byteCount) * num) + suf[place];
         }
 
-        private async Task<long> WriteChangesAsync(ILuceneWriteContext writer, Tuple<string, IStorageChanges> tuple)
+        private async Task<long> WriteChangesAsync(ILuceneWriteContext writer, Tuple<string, IStorageChangeCollection> tuple)
         {
-            IStorageChanges changes = tuple.Item2;
-            await writer.WriteAll(changes.Created);
-            await writer.WriteAll(changes.Updated);
+            IStorageChangeCollection changes = tuple.Item2;
+            await writer.WriteAll(changes.Created.Select(c => c.CreateEntity()));
+            await writer.WriteAll(changes.Updated.Select(c => c.CreateEntity()));
             return changes.Token;
         }
 
         public void UpdateIndex()
         {
 
-            IEnumerable<Tuple<string, IStorageChanges>> tuples = logs
-            .Select(log => new Tuple<string, IStorageChanges>(log.Key, log.Value.Get()))
+            IEnumerable<Tuple<string, IStorageChangeCollection>> tuples = logs
+            .Select(log => new Tuple<string, IStorageChangeCollection>(log.Key, log.Value.Get()))
             .ToList();
 
             if (tuples.Sum(t => t.Item2.Count.Total) < 1)
@@ -185,12 +232,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         }
 
-        private long WriteChanges(Tuple<string, IStorageChanges> tuple)
+        private long WriteChanges(Tuple<string, IStorageChangeCollection> tuple)
         {
-            IStorageChanges changes = tuple.Item2;
-            index.WriteAll(changes.Created);
-            index.WriteAll(changes.Updated);
-            index.DeleteAll(changes.Deleted);
+            IStorageChangeCollection changes = tuple.Item2;
+            index.WriteAll(changes.Created.Select(c => c.CreateEntity()));
+            index.WriteAll(changes.Updated.Select(c => c.CreateEntity()));
+            index.DeleteAll(changes.Deleted.Select(c => c.CreateEntity()));
             return changes.Token;
         }
 
