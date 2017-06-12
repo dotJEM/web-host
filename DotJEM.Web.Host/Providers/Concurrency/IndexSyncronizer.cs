@@ -58,7 +58,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly string area;
         private readonly int batch;
         private readonly IStorageAreaLog log;
-        private readonly IStorageIndex index;
+        //private readonly IStorageIndex index;
         public StorageChangeLogWatcher(string area, IStorageAreaLog log, int batch)
         {
             this.area = area;
@@ -104,7 +104,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 return changes;
             });
         }
-
     }
 
 
@@ -155,14 +154,14 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             this.scheduler = scheduler;
             this.tracker = tracker;
             //TODO: This should act as a default batch size.
-            //batchsize = configuration.Index.Watch.BatchSize;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
                 buffer = (int)AdvConvert.ToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
 
+            int batchsize = configuration.Index.Watch.BatchSize;
             watchers = configuration.Index.Watch.Items
-                .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher)new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize));
+                .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher)new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? batchsize : we.BatchSize));
         }
 
         public void Start()
@@ -250,8 +249,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
             index.Flush();
         }
-
-
 
         public void QueueUpdate(JObject entity)
         {

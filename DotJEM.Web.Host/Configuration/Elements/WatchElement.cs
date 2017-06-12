@@ -7,7 +7,7 @@ namespace DotJEM.Web.Host.Configuration.Elements
         [ConfigurationProperty("area", IsRequired = true)]
         public string Area => this["area"] as string;
 
-        [ConfigurationProperty("batch-size", IsRequired = false, DefaultValue = 5000)]
+        [ConfigurationProperty("batch-size", IsRequired = false, DefaultValue = -1)]
         public int BatchSize => (int)this["batch-size"];
     }
 }
