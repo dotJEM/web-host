@@ -79,9 +79,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, true));
                         return;
                     }
-
-                    //TODO: Check what this implementation does, if it "tolists" it and then writes it then it won't do us any good.
-                    await writer.CreateAll(changes.Partitioned.Select(change => change.CreateEntity()));
+                    await writer.WriteAll(changes.Partitioned.Select(change => change.CreateEntity()));
 
                     progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, false));
 
@@ -98,7 +96,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             {
                 IStorageChangeCollection changes = log.Get(count: batch);
                 if (changes.Count > 0)
-                    writer.WriteAll(changes.Partitioned.Select(change => change.CreateEntity()));
+                {
+                    writer.WriteAll(changes.Created.Select(change => change.CreateEntity()));
+                    writer.WriteAll(changes.Updated.Select(change => change.CreateEntity()));
+                    writer.DeleteAll(changes.Deleted.Select(change => change.CreateEntity()));
+                }
                 return changes;
             });
         }
