@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime;
 using System.Threading.Tasks;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
@@ -28,40 +30,62 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         }
     }
 
+    public class StorageIndexChangeLogWatcherInitializationProgress
+    {
+        public bool Done { get; }
+        public string Area { get; }
+        public ChangeCount Count { get; }
+        public long Token { get; }
+
+        public StorageIndexChangeLogWatcherInitializationProgress(string area, ChangeCount count, long token, bool done)
+        {
+            Done = done;
+            Area = area;
+            Count = count;
+            Token = token;
+        }
+    }
+
     public interface IStorageIndexChangeLogWatcher
     {
-        void Initialize(ILuceneWriteContext writer);
+        Task Initialize(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
     }
 
     public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
     {
-        private string area;
+        private readonly string area;
         private readonly int batch;
         private readonly IStorageAreaLog log;
         private readonly IStorageIndex index;
-
-        public StorageChangeLogWatcher(IStorageIndex index, string area, IStorageAreaLog log, int batch)
+        public StorageChangeLogWatcher(string area, IStorageAreaLog log, int batch)
         {
-            this.index = index;
             this.area = area;
             this.log = log;
             this.batch = batch;
         }
 
-        public void Initialize(ILuceneWriteContext writer)
+        public Task Initialize(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
         {
-                while (true)
+            progress = progress ?? new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
+            return Task.Run(async () =>
+            {
+                IStorageChangeCollection changes = log.Get(false, batch);
+                if (changes.Count < 1)
                 {
-                    IStorageChangeCollection changes = log.Get(false, batch);
-                    if(changes.Count < 1)
-                        return;
-
-                    //TODO: Check what this implementation does, if it "tolists" it and then writes it then it won't do us any good.
-                    writer.CreateAll(changes.Partitioned.Select(change => change.CreateEntity()));
+                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, true));
+                    return;
                 }
 
-            
+                //TODO: Check what this implementation does, if it "tolists" it and then writes it then it won't do us any good.
+                await writer.CreateAll(changes.Partitioned.Select(change => change.CreateEntity()));
+                
+                progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, false));
+
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(2);
+            });
         }
+
     }
 
 
@@ -78,17 +102,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         void QueueDelete(JObject entity);
     }
 
-    public class IndexInitializedEventArgs : EventArgs
-    {
-
-        public IndexInitializedEventArgs()
-        {
-        }
-    }
+    public class IndexInitializedEventArgs : EventArgs { }
 
     public class IndexChangesEventArgs : EventArgs
     {
-        public IDictionary<string, IStorageChangeCollection> Changes { get; private set; }
+        public IDictionary<string, IStorageChangeCollection> Changes { get; }
 
         public IndexChangesEventArgs(IDictionary<string, IStorageChangeCollection> changes)
         {
@@ -124,7 +142,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             foreach (WatchElement watch in configuration.Index.Watch.Items)
             {
                 logs[watch.Area] = storage.Area(watch.Area).Log;
-                watchers[watch.Area] = new StorageChangeLogWatcher(index, watch.Area, storage.Area(watch.Area).Log, watch.BatchSize);
+                watchers[watch.Area] = new StorageChangeLogWatcher(watch.Area, storage.Area(watch.Area).Log, watch.BatchSize);
             }
         }
 
@@ -140,51 +158,94 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             task.Dispose();
         }
 
+        public class StorageIndexManagerInitializationProgressTracker
+        {
+            private readonly ConcurrentDictionary<string, InitializationState> states;
+
+            public StorageIndexManagerInitializationProgressTracker(IEnumerable<string> areas)
+            {
+                states = new ConcurrentDictionary<string, InitializationState>(areas.ToDictionary(v => v, v => new InitializationState(v)));
+            }
+
+            public string Capture(StorageIndexChangeLogWatcherInitializationProgress progress)
+            {
+                states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Count, progress.Done));
+
+                return string.Join(Environment.NewLine, states.Values);
+            }
+
+            private class InitializationState
+            {
+                private readonly string area;
+                private ChangeCount count;
+                private long token;
+                private string done;
+
+                public InitializationState(string area)
+                {
+                    this.area = area;
+                }
+
+                public InitializationState Add(long token, ChangeCount count, bool done)
+                {
+                    this.done = done ? "Completed" : "Indexing";
+                    this.count += count;
+                    this.token = token;
+                    return this;
+                }
+
+                public override string ToString() => $" -> {area}: {token} changes processed, {count.Total} objects indexed. {done}";
+            }
+        }
+
         private void InitializeIndex()
         {
             IndexWriter w = index.Storage.GetWriter(index.Analyzer);
-
-
+            StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
 
             long processedTokens = 0, loadedObjects = 0, processedObjects = 0;
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
-                foreach (IStorageIndexChangeLogWatcher watcher in watchers.Values)
-                {
-                    watcher.Initialize(writer);
-                }
+                Sync.Await(
+                    watchers.Values.Select(watcher => watcher.Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
+                        progress => tracker.SetProgress($"{GetMemmoryStatistics(w)}\n{initTracker.Capture(progress)}")))));
 
-                while (true)
-                {
-                    IEnumerable<Tuple<string, IStorageChangeCollection>> tuples = logs
-                        .Select(log => new Tuple<string, IStorageChangeCollection>(log.Key, log.Value.Get(false, batchsize)))
-                        .ToList();
+                //foreach (IStorageIndexChangeLogWatcher watcher in watchers.Values)
+                //{
+                //    Sync.Await(watcher.Initialize(writer, new Progress<object>()));
+                //}
 
-                    int sum = tuples.Sum(t => t.Item2.Count.Total);
-                    if (sum < 1)
-                        break;
+                //while (true)
+                //{
+                //    IEnumerable<Tuple<string, IStorageChangeCollection>> tuples = logs
+                //        .Select(log => new Tuple<string, IStorageChangeCollection>(log.Key, log.Value.Get(false, batchsize)))
+                //        .ToList();
 
-                    loadedObjects += sum;
-                    long loadedTokens =tuples.Sum(t => t.Item2.Token);
-                    tracker.SetProgress($"{loadedTokens} changes loaded, {loadedObjects} objects loaded." +
-                                        $"\n{processedTokens} changes processed, {processedObjects} objects indexed." +
-                                        $"\n{GetMemmoryStatistics(w)}");
+                //    int sum = tuples.Sum(t => t.Item2.Count.Total);
+                //    if (sum < 1)
+                //        break;
 
-                    //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
-                    var writerClosure = writer;
-                    Sync.Await(tuples.AsParallel().Select(tup => WriteChangesAsync(writerClosure, tup)));
+                //    loadedObjects += sum;
+                //    long loadedTokens = tuples.Sum(t => t.Item2.Token);
+                //    tracker.SetProgress($"{loadedTokens} changes loaded, {loadedObjects} objects loaded." +
+                //                        $"\n{processedTokens} changes processed, {processedObjects} objects indexed." +
+                //                        $"\n{GetMemmoryStatistics(w)}");
 
-                    //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
-                    //      if we do that we should either send a "initialized" even that instructs controllers
-                    //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
-                    //OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
-                    processedTokens = loadedTokens;
-                    processedObjects = loadedObjects;
-                    tracker.SetProgress($"{loadedTokens} changes loaded, {loadedObjects} objects loaded." +
-                                        $"\n{processedTokens} changes processed, {processedObjects} objects indexed." +
-                                        $"\n{GetMemmoryStatistics(w)}");
-                    GC.Collect(0);
-                }
+                //    //TODO: Using SYNC here is a hack, ideally we would wan't to use a prober Async pattern, but this requires a bigger refactoring.
+                //    var writerClosure = writer;
+                //    Sync.Await(tuples.AsParallel().Select(tup => WriteChangesAsync(writerClosure, tup)));
+
+                //    //TODO: This is a bit heavy on the load, we would like to wait untill the end instead, but
+                //    //      if we do that we should either send a "initialized" even that instructs controllers
+                //    //      and services that the index is now fully ready. Or we neen to collect all data, the later not being possible as it would
+                //    //OnIndexChanged(new IndexChangesEventArgs(tuples.ToDictionary(tup => tup.Item1, tup => tup.Item2)));
+                //    processedTokens = loadedTokens;
+                //    processedObjects = loadedObjects;
+                //    tracker.SetProgress($"{loadedTokens} changes loaded, {loadedObjects} objects loaded." +
+                //                        $"\n{processedTokens} changes processed, {processedObjects} objects indexed." +
+                //                        $"\n{GetMemmoryStatistics(w)}");
+                //    GC.Collect(0);
+                //}
             }
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
