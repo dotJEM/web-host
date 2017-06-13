@@ -1,6 +1,6 @@
 using System;
 
-namespace DotJEM.Web.Host.Providers.Concurrency
+namespace DotJEM.Web.Host.Common
 {
     public abstract class Disposeable : IDisposable
     {

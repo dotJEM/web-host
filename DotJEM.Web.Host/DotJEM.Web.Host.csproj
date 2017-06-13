@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DotJEM.Web.Host</RootNamespace>
     <AssemblyName>DotJEM.Web.Host</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -46,9 +46,8 @@
       <HintPath>..\packages\DotJEM.Json.Index.0.0.55\lib\net45\DotJEM.Json.Index.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="DotJEM.Json.Storage, Version=0.0.58.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Storage.0.0.58\lib\net45\DotJEM.Json.Storage.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="DotJEM.Json.Storage, Version=0.1.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Storage.0.1.3\lib\net45\DotJEM.Json.Storage.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
@@ -104,10 +103,11 @@
       <HintPath>..\packages\ncrontab.3.1.0\lib\net45\NCrontab.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json.Bson, Version=1.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.Bson.1.0.1\lib\net45\Newtonsoft.Json.Bson.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -205,6 +205,12 @@
     <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
     <Compile Include="IDiagnosticsDumpService.cs" />
     <Compile Include="Initialization\Initialization.cs" />
+    <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
+    <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
+    <Compile Include="Providers\Concurrency\Installer.cs" />
+    <Compile Include="Providers\Concurrency\IStorageIndexChangeLogWatcher.cs" />
+    <Compile Include="Providers\Concurrency\IStorageIndexManager.cs" />
+    <Compile Include="Providers\Concurrency\StorageIndexChangeLogWatcherInitializationProgress.cs" />
     <Compile Include="Providers\Pipeline\PipelineContext.cs" />
     <Compile Include="Providers\Scheduler\Tasks\CronScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
@@ -217,7 +223,7 @@
     <Compile Include="Tasks\Sync.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
-    <Compile Include="Providers\Concurrency\Disposeable.cs" />
+    <Compile Include="Common\Disposeable.cs" />
     <Compile Include="Providers\Scheduler\IScheduler.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
     <Compile Include="Providers\Scheduler\TaskEventArgs.cs" />
