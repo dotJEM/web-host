@@ -205,6 +205,12 @@
     <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
     <Compile Include="IDiagnosticsDumpService.cs" />
     <Compile Include="Initialization\Initialization.cs" />
+    <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
+    <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
+    <Compile Include="Providers\Concurrency\Installer.cs" />
+    <Compile Include="Providers\Concurrency\IStorageIndexChangeLogWatcher.cs" />
+    <Compile Include="Providers\Concurrency\IStorageIndexManager.cs" />
+    <Compile Include="Providers\Concurrency\StorageIndexChangeLogWatcherInitializationProgress.cs" />
     <Compile Include="Providers\Pipeline\PipelineContext.cs" />
     <Compile Include="Providers\Scheduler\Tasks\CronScheduledTask.cs" />
     <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
@@ -217,7 +223,7 @@
     <Compile Include="Tasks\Sync.cs" />
     <Compile Include="Util\AdvConvert.cs" />
     <Compile Include="Diagnostics\Performance\PerformanceLoggingHandler.cs" />
-    <Compile Include="Providers\Concurrency\Disposeable.cs" />
+    <Compile Include="Common\Disposeable.cs" />
     <Compile Include="Providers\Scheduler\IScheduler.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
     <Compile Include="Providers\Scheduler\TaskEventArgs.cs" />
