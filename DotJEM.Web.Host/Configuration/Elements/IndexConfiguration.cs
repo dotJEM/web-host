@@ -4,6 +4,12 @@ namespace DotJEM.Web.Host.Configuration.Elements
 {
     public class IndexConfiguration : ConfigurationElement
     {
+        [ConfigurationProperty("debug", IsRequired = false, DefaultValue = false)]
+        public bool Debugging
+        {
+            get { return (bool)this["debug"]; }
+        }
+
         [ConfigurationProperty("storage", IsRequired = false)]
         public IndexStorageConfiguration Storage
         {

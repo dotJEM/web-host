@@ -7,6 +7,8 @@ using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
 using DotJEM.Json.Storage.Adapter.Materialize.Log;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Diagnostics;
+using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
@@ -37,20 +39,28 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly IStorageIndex index;
         private readonly IWebScheduler scheduler;
         private readonly IInitializationTracker tracker;
+        private readonly IDiagnosticsLogger logger;
 
         //private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly Dictionary<string, IStorageIndexChangeLogWatcher> watchers;
         private readonly TimeSpan interval;
         private readonly int buffer = 512;
 
-        private IScheduledTask task;
+        public IDictionary<string, long> Generations => watchers.ToDictionary(k => k.Key, k => k.Value.Generation);
 
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler, IInitializationTracker tracker)
+        private IScheduledTask task;
+        private bool debugging;
+
+        //TODO: To many dependencies, refactor!
+        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler, IInitializationTracker tracker, IDiagnosticsLogger logger)
         {
             this.index = index;
+            this.debugging = configuration.Index.Debugging;
+            if (this.debugging)
+                this.index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
             this.scheduler = scheduler;
             this.tracker = tracker;
-            //TODO: This should act as a default batch size.
+            this.logger = logger;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
@@ -58,7 +68,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
             int batchsize = configuration.Index.Watch.BatchSize;
             watchers = configuration.Index.Watch.Items
-                .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher)new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? batchsize : we.BatchSize));
+                .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
+                new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? batchsize : we.BatchSize, logger));
         }
 
         public void Start()
@@ -77,6 +88,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
+                if(debugging)
+                    writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new {args});
+
                 Sync.Await(watchers.Values.Select(watcher => watcher.Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
@@ -85,7 +99,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public void UpdateIndex()
         {
-            IStorageChangeCollection[] changes = Sync.Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
+            IStorageChangeCollection[] changes = watchers.Values.Select(watcher => Sync.Await(watcher.Update(index.Writer))).ToArray();
             OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
             index.Flush();
         }

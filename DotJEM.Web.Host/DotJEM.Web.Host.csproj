@@ -41,13 +41,11 @@
     <Reference Include="Castle.Windsor">
       <HintPath>..\packages\Castle.Windsor.3.3.0\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index, Version=0.0.55.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\DotJEM.Json.Index.0.0.55\lib\net45\DotJEM.Json.Index.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="DotJEM.Json.Index, Version=0.0.58.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index.0.0.58\lib\net45\DotJEM.Json.Index.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Storage, Version=0.1.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Storage.0.1.3\lib\net45\DotJEM.Json.Storage.dll</HintPath>
+    <Reference Include="DotJEM.Json.Storage, Version=0.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Storage.0.1.5\lib\net45\DotJEM.Json.Storage.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
@@ -242,7 +240,6 @@
     <Compile Include="Providers\Pipeline\PipelineHandler.cs" />
     <Compile Include="Providers\Pipeline\PipelineHandlerSet.cs" />
     <Compile Include="Util\JsonConverter.cs" />
-    <Compile Include="Providers\Concurrency\IndexSyncronizer.cs" />
     <Compile Include="Validation\Constraints\CompositeFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\ExactLengthFieldConstraint.cs" />
     <Compile Include="Validation\Constraints\FieldConstraint.cs" />
