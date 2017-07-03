@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime;
+using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
+using DotJEM.Json.Storage.Adapter.Materialize.Log;
 using DotJEM.Web.Host.Diagnostics;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -58,13 +60,17 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public async Task Reset(ILuceneWriteContext writer, long generation, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
         {
-            
+            //TODO: This method is almost identical to the one above except for a few things that could be parameterized.
             progress = progress ?? new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
+
+            log.Get(generation, true, 0); //NOTE: Reset to the generation but don't fetch any changes yet.
+            progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(0, 0, 0), generation, false));
+
             await Task.Run(async () =>
             {
                 while (true)
                 {
-                    IStorageChangeCollection changes = generation > 0 ? log.Get(generation, true, batch) : log.Get(true, batch); 
+                    IStorageChangeCollection changes = log.Get(true, batch);
                     if (changes.Count < 1)
                     {
                         progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, true));

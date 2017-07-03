@@ -104,6 +104,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public async Task Generation(string area, long gen, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
         {
+            if(!watchers.ContainsKey(area))
+                return;
+            
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
                 if (debugging)
