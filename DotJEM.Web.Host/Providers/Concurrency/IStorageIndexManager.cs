@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
@@ -21,6 +22,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 {
     public interface IStorageIndexManager
     {
+        IDictionary<string, long> Generations { get; }
+
+        Task Generation(string area, long gen, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
+
         event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         event EventHandler<IndexChangesEventArgs> IndexChanged;
 
@@ -49,7 +54,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public IDictionary<string, long> Generations => watchers.ToDictionary(k => k.Key, k => k.Value.Generation);
 
         private IScheduledTask task;
-        private bool debugging;
+        private readonly bool debugging;
 
         //TODO: To many dependencies, refactor!
         public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler, IInitializationTracker tracker, IDiagnosticsLogger logger)
@@ -84,7 +89,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         }
         private void InitializeIndex()
         {
-            IndexWriter w = index.Storage.GetWriter(index.Analyzer);
+            //IndexWriter w = index.Storage.GetWriter(index.Analyzer);
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
@@ -95,6 +100,17 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
             OnIndexInitialized(new IndexInitializedEventArgs());
+        }
+
+        public async Task Generation(string area, long gen, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
+        {
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            {
+                if (debugging)
+                    writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
+
+                await watchers[area].Reset(writer, gen, progress);
+            }
         }
 
         public void UpdateIndex()

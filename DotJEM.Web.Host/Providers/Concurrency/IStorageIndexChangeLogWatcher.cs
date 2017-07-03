@@ -15,6 +15,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         long Generation { get; }
         Task Initialize(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
         Task<IStorageChangeCollection> Update(ILuceneWriter writer);
+        Task Reset(ILuceneWriteContext writer, long generation, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
     }
 
     public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
@@ -49,6 +50,30 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         return;
                     }
                     await writer.WriteAll(changes.Partitioned.Select(change => change.CreateEntity()));
+
+                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, false));
+                }
+            });
+        }
+
+        public async Task Reset(ILuceneWriteContext writer, long generation, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
+        {
+            
+            progress = progress ?? new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
+            await Task.Run(async () =>
+            {
+                while (true)
+                {
+                    IStorageChangeCollection changes = generation > 0 ? log.Get(generation, true, batch) : log.Get(true, batch); 
+                    if (changes.Count < 1)
+                    {
+                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, true));
+                        return;
+                    }
+
+                    await writer.WriteAll(changes.Created.Select(change => change.CreateEntity()));
+                    await writer.WriteAll(changes.Updated.Select(change => change.CreateEntity()));
+                    await writer.DeleteAll(changes.Deleted.Select(change => change.CreateEntity()));
 
                     progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, false));
                 }
