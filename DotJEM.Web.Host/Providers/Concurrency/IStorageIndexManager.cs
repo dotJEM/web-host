@@ -24,6 +24,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     public interface IStorageIndexManager
     {
         IDictionary<string, long> Generations { get; }
+        IStorageIndexManagerInfoStream InfoStream { get; }
 
         Task Generation(string area, long gen, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
 
@@ -63,26 +64,21 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public JObject ToJObject()
         {
-            dynamic json = new JObject();
-            json.creates = 0L;
-            json.updates = 0L;
-            json.deletes = 0L;
-            json.faults = 0L;
+            JObject json = new JObject();
+            long creates = 0, updates = 0, deletes = 0, faults = 0;
             foreach (AreaInfo area in areas.Values)
             {
-                json.creates += area.Creates;
-                json.updates += area.Updates;
-                json.deletes += area.Deletes;
-                json.faults += area.Faults;
+                creates += area.Creates;
+                updates += area.Updates;
+                deletes += area.Deletes;
+                faults += area.Faults;
 
-                json[area] = new JObject();
-                json[area].name = area.Area;
-                json[area].creates = area.Creates;
-                json[area].updates = area.Updates;
-                json[area].deletes = area.Deletes;
-                json[area].faults = area.Faults;
-                json[area].faultyChanges = JArray.FromObject(area.FaultyChanges);
+                json[area.Area] = area.ToJObject();
             }
+            json["creates"] = creates;
+            json["updates"] = updates;
+            json["deletes"] = deletes;
+            json["faults"] = faults;
             return json;
         }
 
@@ -115,6 +111,18 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             public void Record(IList<FaultyChange> faults)
             {
                 faults.ForEach(faultyChanges.Add);
+            }
+
+            public JObject ToJObject()
+            {
+                JObject json = new JObject();
+                json["creates"] = creates;
+                json["updates"] = updates;
+                json["deletes"] = deletes;
+                json["faults"] = faults;
+                if (faultyChanges.Any())
+                    json["faultyChanges"] = JArray.FromObject(FaultyChanges.Select(c => c.CreateEntity()));
+                return json;
             }
         }
     }
