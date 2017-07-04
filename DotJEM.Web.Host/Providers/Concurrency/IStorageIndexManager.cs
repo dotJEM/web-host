@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
@@ -36,6 +37,89 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         void QueueUpdate(JObject entity);
         void QueueDelete(JObject entity);
     }
+
+    public interface IStorageIndexManagerInfoStream
+    {
+        void Track(string area, int creates, int updates, int deletes, int faults);
+        void Record(string area, IList<FaultyChange> faults);
+    }
+
+    //TODO: Not really a stream, but we need some info for now, then we can make it into a true info stream later.
+    public class StorageIndexManagerInfoStream : IStorageIndexManagerInfoStream
+    {
+        private readonly ConcurrentDictionary<string, AreaInfo> areas = new ConcurrentDictionary<string, AreaInfo>();
+
+        public void Track(string area, int creates, int updates, int deletes, int faults)
+        {
+            AreaInfo info = areas.GetOrAdd(area, s => new AreaInfo(s));
+            info.Track(creates, updates, deletes, faults);
+        }
+
+        public void Record(string area, IList<FaultyChange> faults)
+        {
+            AreaInfo info = areas.GetOrAdd(area, s => new AreaInfo(s));
+            info.Record(faults);
+        }
+
+        public JObject ToJObject()
+        {
+            dynamic json = new JObject();
+            json.creates = 0L;
+            json.updates = 0L;
+            json.deletes = 0L;
+            json.faults = 0L;
+            foreach (AreaInfo area in areas.Values)
+            {
+                json.creates += area.Creates;
+                json.updates += area.Updates;
+                json.deletes += area.Deletes;
+                json.faults += area.Faults;
+
+                json[area] = new JObject();
+                json[area].name = area.Area;
+                json[area].creates = area.Creates;
+                json[area].updates = area.Updates;
+                json[area].deletes = area.Deletes;
+                json[area].faults = area.Faults;
+                json[area].faultyChanges = JArray.FromObject(area.FaultyChanges);
+            }
+            return json;
+        }
+
+        private class AreaInfo
+        {
+            private long creates = 0, updates = 0, deletes = 0, faults = 0;
+            private readonly ConcurrentBag<FaultyChange> faultyChanges = new ConcurrentBag<FaultyChange>();
+
+            public string Area { get; }
+
+            public long Creates => creates;
+            public long Updates => updates;
+            public long Deletes => deletes;
+            public long Faults => faults;
+            public FaultyChange[] FaultyChanges => faultyChanges.ToArray();
+
+            public AreaInfo(string area)
+            {
+                Area = area;
+            }
+
+            public void Track(int creates, int updates, int deletes, int faults)
+            {
+                Interlocked.Add(ref this.creates, creates);
+                Interlocked.Add(ref this.updates, updates);
+                Interlocked.Add(ref this.deletes, deletes);
+                Interlocked.Add(ref this.faults, faults);
+            }
+
+            public void Record(IList<FaultyChange> faults)
+            {
+                faults.ForEach(faultyChanges.Add);
+            }
+        }
+    }
+
+
     public class StorageIndexManager : IStorageIndexManager
     {
         public event EventHandler<IndexInitializedEventArgs> IndexInitialized;
@@ -52,6 +136,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly int buffer = 512;
 
         public IDictionary<string, long> Generations => watchers.ToDictionary(k => k.Key, k => k.Value.Generation);
+        public IStorageIndexManagerInfoStream InfoStream { get; } = new StorageIndexManagerInfoStream();
 
         private IScheduledTask task;
         private readonly bool debugging;
@@ -74,7 +159,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             int batchsize = configuration.Index.Watch.BatchSize;
             watchers = configuration.Index.Watch.Items
                 .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
-                new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? batchsize : we.BatchSize, logger));
+                new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? batchsize : we.BatchSize, logger, InfoStream));
         }
 
         public void Start()

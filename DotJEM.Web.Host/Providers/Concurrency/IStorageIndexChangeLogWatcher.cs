@@ -26,16 +26,18 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly int batch;
         private readonly IStorageAreaLog log;
         private readonly IDiagnosticsLogger logger;
+        private readonly IStorageIndexManagerInfoStream info;
 
         public long Generation => log.Generation;
 
         //private readonly IStorageIndex index;
-        public StorageChangeLogWatcher(string area, IStorageAreaLog log, int batch, IDiagnosticsLogger logger)
+        public StorageChangeLogWatcher(string area, IStorageAreaLog log, int batch, IDiagnosticsLogger logger, IStorageIndexManagerInfoStream infoStream)
         {
             this.area = area;
             this.log = log;
             this.batch = batch;
             this.logger = logger;
+            this.info = infoStream;
         }
 
         public async Task Initialize(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
@@ -98,9 +100,16 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 writer.WriteAll(changes.Updated.Select(change => change.CreateEntity()));
                 writer.DeleteAll(changes.Deleted.Select(change => change.CreateEntity()));
 
-                List<Change> faults = changes.Where(c => c is FaultyChange).ToList();
+
+                List<FaultyChange> faults = changes.OfType<FaultyChange>().ToList();
                 if (faults.Any())
+                {
+                    info.Record(area, faults);
                     logger.LogFailure(Severity.Critical, "Faulty objects discovered in the database: ", new { faults } );
+                }
+
+                info.Track(area, changes.Count.Created, changes.Count.Updated, changes.Count.Deleted, faults.Count);
+
                 return changes;
             });
         }
