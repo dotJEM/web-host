@@ -28,7 +28,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly IDiagnosticsLogger logger;
         private readonly IStorageIndexManagerInfoStream info;
 
-        public long Generation => log.Generation;
+        public long Generation => log.CurrentGeneration;
 
         //private readonly IStorageIndex index;
         public StorageChangeLogWatcher(string area, IStorageAreaLog log, int batch, IDiagnosticsLogger logger, IStorageIndexManagerInfoStream infoStream)
@@ -50,12 +50,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     IStorageChangeCollection changes = log.Get(false, batch);
                     if (changes.Count < 1)
                     {
-                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, true));
+                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, true));
                         return;
                     }
                     await writer.WriteAll(changes.Partitioned.Select(change => change.CreateEntity()));
 
-                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, false));
+                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, false));
                 }
             });
         }
@@ -75,7 +75,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     IStorageChangeCollection changes = log.Get(true, batch);
                     if (changes.Count < 1)
                     {
-                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, true));
+                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, true));
                         return;
                     }
 
@@ -83,7 +83,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     await writer.WriteAll(changes.Updated.Select(change => change.CreateEntity()));
                     await writer.DeleteAll(changes.Deleted.Select(change => change.CreateEntity()));
 
-                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Token, false));
+                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, false));
                 }
             });
         }
