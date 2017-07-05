@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation
 {
+    [Obsolete]
     public class ValidationContext : IValidationContext
     {
         public ValidationContext(JObject entityBeingValidated, JObject previousObject, PipelineContext context, HttpVerbs requestType)

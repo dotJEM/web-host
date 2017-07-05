@@ -100,6 +100,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 writer.WriteAll(changes.Updated.Select(change => change.CreateEntity()));
                 writer.DeleteAll(changes.Deleted.Select(change => change.CreateEntity()));
 
+                info.Publish(changes);
 
                 List<FaultyChange> faults = changes.OfType<FaultyChange>().ToList();
                 if (faults.Any())
@@ -108,7 +109,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     logger.LogFailure(Severity.Critical, "Faulty objects discovered in the database: ", new { faults } );
                 }
 
-                info.Track(area, changes.Count.Created, changes.Count.Updated, changes.Count.Deleted, faults.Count);
+                info.Track(area,changes.Count.Created, changes.Count.Updated, changes.Count.Deleted, faults.Count);
 
                 return changes;
             });

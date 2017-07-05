@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation
 {
+    [Obsolete]
     public interface IValidationContext
     {
 

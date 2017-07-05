@@ -10,6 +10,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
 {
 
     //Todo: Make generic to also match e.g. int and float
+    [Obsolete]
     public class OneOfFieldConstraint : FieldConstraint
     {
         private readonly HashSet<string> strings;

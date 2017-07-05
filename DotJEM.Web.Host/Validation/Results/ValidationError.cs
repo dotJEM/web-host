@@ -1,7 +1,9 @@
+using System;
 using DotJEM.Json.Index.Schema;
 
 namespace DotJEM.Web.Host.Validation.Results
 {
+    [Obsolete]
     public class ValidationError
     {
         private readonly string format;

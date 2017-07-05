@@ -1,8 +1,10 @@
+using System;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation.Constraints
 {
+    [Obsolete]
     public class CompositeFieldConstraint : IFieldConstraint
     {
         private readonly IFieldConstraint left;

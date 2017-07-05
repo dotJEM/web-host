@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace DotJEM.Web.Host.Validation.Results
 {
+    [Obsolete]
     public class ValidationCollector : IValidationCollector
     {
         private readonly List<ValidationError> errors = new List<ValidationError>();

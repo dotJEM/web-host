@@ -43,6 +43,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     {
         void Track(string area, int creates, int updates, int deletes, int faults);
         void Record(string area, IList<FaultyChange> faults);
+        void Publish(IStorageChangeCollection changes);
     }
 
     //TODO: Not really a stream, but we need some info for now, then we can make it into a true info stream later.
@@ -62,10 +63,19 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             info.Record(faults);
         }
 
+        public virtual void Publish(IStorageChangeCollection changes)
+        {
+        }
+
         public JObject ToJObject()
         {
             JObject json = new JObject();
             long creates = 0, updates = 0, deletes = 0, faults = 0;
+            //NOTE: This places them at top which is nice for human readability, machines don't care.
+            json["creates"] = creates;
+            json["updates"] = updates;
+            json["deletes"] = deletes;
+            json["faults"] = faults;
             foreach (AreaInfo area in areas.Values)
             {
                 creates += area.Creates;
@@ -211,7 +221,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public void UpdateIndex()
         {
-            IStorageChangeCollection[] changes = watchers.Values.Select(watcher => Sync.Await(watcher.Update(index.Writer))).ToArray();
+            IStorageChangeCollection[] changes = Sync.Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
             OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
             index.Flush();
         }

@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation.Constraints
 {
+    [Obsolete]
     public class MatchFieldConstraint : FieldConstraint
     {
         private readonly Regex expression;
@@ -29,6 +30,7 @@ namespace DotJEM.Web.Host.Validation.Constraints
         }
     }
 
+    [Obsolete]
     public class StringEqualToFieldConstraint : FieldConstraint
     {
         private readonly string value;

@@ -1,8 +1,10 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using ValidationResult = DotJEM.Web.Host.Validation.Results.ValidationResult;
 
 namespace DotJEM.Web.Host.Validation
 {
+    [Obsolete]
     public class JsonEntityValidationException : ValidationException
     {
         public ValidationResult Result { get; private set; }

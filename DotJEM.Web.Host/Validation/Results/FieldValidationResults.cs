@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Text;
 using DotJEM.Json.Index.Schema;
@@ -5,6 +6,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation.Results
 {
+    [Obsolete]
     public class FieldValidationResults
     {
         private readonly JPath field;

@@ -1,8 +1,10 @@
+using System;
 using DotJEM.Web.Host.Validation.Results;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation.Constraints
 {
+    [Obsolete]
     public abstract class FieldConstraint : IFieldConstraint
     {
         public void Validate(IValidationContext context, JToken token, IValidationCollector collector)

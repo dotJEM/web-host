@@ -8,11 +8,13 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Validation
 {
+    [Obsolete]
     public interface IFieldGuardValidatorBuilder
     {
         void Field(JPath field, IFieldValidatorBuilder builder);
     }
 
+    [Obsolete]
     public class FieldGuardValidatorBuilder : IFieldGuardValidatorBuilder
     {
         private readonly Action<string, IFieldValidator> callback;
@@ -30,11 +32,13 @@ namespace DotJEM.Web.Host.Validation
         }
     }
 
+    [Obsolete]
     public interface IFieldGuard
     {
         bool Matches(JObject entity);
     }
 
+    [Obsolete]
     public class FieldGuard : IFieldGuard
     {
         private readonly IFieldConstraint constraint;
@@ -52,6 +56,7 @@ namespace DotJEM.Web.Host.Validation
         }
     }
 
+    [Obsolete]
     public class GuardedFieldValidator : IFieldValidator
     {
         private readonly IFieldGuard guard;
@@ -71,6 +76,7 @@ namespace DotJEM.Web.Host.Validation
         }
     }
 
+    [Obsolete]
     public abstract class Validator : IValidator
     {
         private readonly Lazy<string> contentType;

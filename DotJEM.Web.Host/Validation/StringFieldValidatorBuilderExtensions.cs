@@ -4,6 +4,7 @@ using DotJEM.Web.Host.Validation.Constraints;
 
 namespace DotJEM.Web.Host.Validation
 {
+    [Obsolete]
     public static class StringFieldValidatorBuilderExtensions
     {
         public static IFieldValidatorBuilder HaveExactLength(this IFieldValidatorBuilder self, int exact)
