@@ -115,8 +115,6 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
-            
-
             IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
             IPerformanceTracker startup = perf.TrackTask("Start");
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Diagnostics.Performance;
@@ -103,7 +104,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 //Note: Execute the pipeline for each element found
                 .Select(json =>
                 {
-                    using (PipelineContext context = new PipelineContext())
+                    using (PipelineContext context = pipeline.CreateContext(contentType, (JObject)json))
                     {
                         return pipeline.ExecuteAfterGet(json, contentType, context);
                     }
@@ -118,10 +119,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Get(Guid id, string contentType)
         {
-            using (PipelineContext context = new PipelineContext())
+            JObject entity = performance.TrackFunction(TRACK_TYPE, () => area.Get(id), $"ContentService.Get({id}, {contentType})");
+            using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
                 //TODO: Throw exception if not found?
-                JObject entity = performance.TrackFunction(TRACK_TYPE, () => area.Get(id), $"ContentService.Get({id}, {contentType})");
                 return pipeline.ExecuteAfterGet(entity, contentType, context);
             }
         }
@@ -151,9 +152,9 @@ namespace DotJEM.Web.Host.Providers.Services
 
             return performance.TrackFunction(TRACK_TYPE, () =>
             {
-                using (PipelineContext context = new PipelineContext())
+                JObject current = area.Get(id);
+                using (PipelineContext context = pipeline.CreateContext(contentType, current))
                 {
-                    JObject current = area.Get(id);
                     JObject entity = area.History.Get(id, version);
                     entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
                     area.Update(id, entity);
@@ -167,7 +168,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Post(string contentType, JObject entity)
         {
-            using (PipelineContext context = new PipelineContext())
+            using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
                 entity = pipeline.ExecuteBeforePost(entity, contentType, context);
                 JObject closure = entity;
@@ -180,7 +181,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Put(Guid id, string contentType, JObject entity)
         {
-            using (PipelineContext context = new PipelineContext())
+            using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
                 JObject prev = area.Get(id);
 
@@ -197,9 +198,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Delete(Guid id, string contentType)
         {
-            using (PipelineContext context = new PipelineContext())
+            JObject entity = area.Get(id);
+            using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
-                pipeline.ExecuteBeforeDelete(area.Get(id), contentType, context);
+                pipeline.ExecuteBeforeDelete(entity, contentType, context);
                 JObject deleted = performance.TrackFunction(TRACK_TYPE, () => area.Delete(id), $"ContentService.Delete({id},{contentType})");
                 //TODO: Throw exception if not found?
                 if (deleted == null)
@@ -208,6 +210,15 @@ namespace DotJEM.Web.Host.Providers.Services
                 manager.QueueDelete(deleted);
                 return pipeline.ExecuteAfterDelete(deleted, contentType, context);
             }
+        }
+
+    }
+
+    public static class PipelineExt
+    {
+        public static PipelineContext CreateContext(this IPipeline self, string contentType, JObject json, [CallerMemberName] string caller = "")
+        {
+            return self.ContextFactory.Create(caller, contentType, json);
         }
     }
 }

@@ -2,8 +2,15 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Pipeline
 {
+    public interface IPipelineContextFactory
+    {
+        PipelineContext Create(string caller, string contentType, JObject json);
+    }
+
     public interface IPipeline
     {
+        IPipelineContextFactory ContextFactory { get; }
+
         JObject ExecuteAfterGet(JObject json, string contentType, PipelineContext context);
 
         JObject ExecuteBeforePost(JObject json, string contentType, PipelineContext context);

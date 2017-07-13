@@ -5,13 +5,30 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Pipeline
 {
+    public class PipelineContextFactory : IPipelineContextFactory
+    {
+        public PipelineContext Create(string caller, string contentType, JObject json)
+        {
+            //Note: Default pipeline doesn't require any initialization.
+            return new PipelineContext();
+        }
+    }
+
     public class Pipeline : IPipeline
     {
+        public IPipelineContextFactory ContextFactory { get; }
+
         private readonly IEnumerable<IPipelineHandler> handlers;
         private readonly IPerformanceLogger performance;
 
         public Pipeline(IPipelineHandlerSet handlers, IPerformanceLogger performance)
+            : this(handlers, performance, new PipelineContextFactory())
         {
+        }
+
+        public Pipeline(IPipelineHandlerSet handlers, IPerformanceLogger performance, IPipelineContextFactory contextFactory)
+        {
+            ContextFactory = contextFactory;
             this.handlers = handlers;
             this.performance = performance;
         }

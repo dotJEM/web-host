@@ -61,7 +61,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             //TODO: extract contenttype based on configuration.
             SearchResult searchResult = new SearchResult(result
-                .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, new PipelineContext()))
+                .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
                 .ToArray(), result.TotalCount);
 
             performance.LogSingleEvent("search", (long)result.TotalTime.TotalMilliseconds, "TOTAL", query, $"skip={skip}, take={take}, results={result.TotalCount}");
