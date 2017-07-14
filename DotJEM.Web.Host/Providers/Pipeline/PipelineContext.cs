@@ -25,13 +25,24 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         private readonly IDictionary<string, object> inner = new Dictionary<string, object>();
 
         public int Count => inner.Count;
+
         public ICollection<string> Keys => inner.Keys;
+        public ICollection<object> Values => inner.Values;
 
         public bool TryGetValue(string key, out object value) => inner.TryGetValue(key, out value);
-
         public void Add(string key, object value) => inner.Add(key, value);
-
         public bool ContainsKey(string key) => inner.ContainsKey(key);
+
+        public object GetOrAdd(string key, Func<string, object> factory)
+        {
+            object result;
+            if (inner.TryGetValue(key, out result))
+                return result;
+
+            result = factory(key);
+            inner.Add(key, result);
+            return result;
+        }
 
         public object this[string key]
         {
