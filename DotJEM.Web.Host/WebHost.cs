@@ -29,6 +29,7 @@ using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Util;
+using Lucene.Net.Analysis;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -199,7 +200,7 @@ namespace DotJEM.Web.Host
         }
 
 
-        protected virtual IStorageIndex CreateIndex()
+        protected virtual IStorageIndex CreateIndex(Analyzer analyzer = null)
         {
             IndexStorageConfiguration storage = Configuration.Index.Storage;
             if (storage == null)
@@ -208,13 +209,13 @@ namespace DotJEM.Web.Host
             switch (storage.Type)
             {
                 case IndexStorageType.File:
-                    return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)));
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
                 case IndexStorageType.CachedMemmory:
-                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)));
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
                 case IndexStorageType.Memmory:
-                    return new LuceneStorageIndex();
+                    return new LuceneStorageIndex(analyzer: analyzer);
                 default:
-                    return new LuceneStorageIndex();
+                    return new LuceneStorageIndex(analyzer: analyzer);
             }
         }
 
@@ -248,7 +249,6 @@ namespace DotJEM.Web.Host
                     }
                 }
             }
-
 
             //TODO: (jmd 2015-10-08) Temporary workaround to ensure indexes are build from scratch.
             //                       untill we have a way to track the index generation again. 
