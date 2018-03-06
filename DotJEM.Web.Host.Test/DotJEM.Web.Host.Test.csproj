@@ -40,8 +40,8 @@
     <Reference Include="DotJEM.Json.Index, Version=0.0.59.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Index.0.0.59\lib\net45\DotJEM.Json.Index.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Storage, Version=0.2.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Storage.0.2.2\lib\net45\DotJEM.Json.Storage.dll</HintPath>
+    <Reference Include="DotJEM.Json.Storage, Version=0.2.8.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Storage.0.2.8\lib\net45\DotJEM.Json.Storage.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.NUnit.Json, Version=0.0.8.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

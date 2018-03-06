@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DotJEM.Web.Host</RootNamespace>
     <AssemblyName>DotJEM.Web.Host</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -44,8 +44,8 @@
     <Reference Include="DotJEM.Json.Index, Version=0.0.59.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Index.0.0.59\lib\net45\DotJEM.Json.Index.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Storage, Version=0.2.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Storage.0.2.2\lib\net45\DotJEM.Json.Storage.dll</HintPath>
+    <Reference Include="DotJEM.Json.Storage, Version=0.2.8.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Storage.0.2.8\lib\net45\DotJEM.Json.Storage.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>

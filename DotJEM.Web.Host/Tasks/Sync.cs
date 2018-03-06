@@ -108,6 +108,5 @@ namespace DotJEM.Web.Host.Tasks
             public void Dispose() =>
                 SynchronizationContext.SetSynchronizationContext(context);
         }
-
     }
 }

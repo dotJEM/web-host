@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Web.Host", "DotJEM.Web.Host\DotJEM.Web.Host.csproj", "{D7393445-A4C4-4BB4-BB9F-89A6B631E970}"
 EndProject
@@ -16,6 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Web.Host.Test", "Dot
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7D397F59-11F9-4AC3-A55F-B86225F01E7A}"
 	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
 		appveyor.yml = appveyor.yml
 	EndProjectSection
 EndProject
@@ -36,5 +37,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DB90354C-C652-4EA2-B07F-FFDA078F9CF8}
 	EndGlobalSection
 EndGlobal
