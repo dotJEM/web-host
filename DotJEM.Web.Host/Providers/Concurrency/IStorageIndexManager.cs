@@ -30,6 +30,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         event EventHandler<IndexChangesEventArgs> IndexChanged;
+        event EventHandler<IndexResetEventArgs> IndexReset;
 
         void Start();
         void Stop();
@@ -37,6 +38,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         void QueueUpdate(JObject entity);
         void QueueDelete(JObject entity);
+
+        Task ResetIndex();
     }
 
     public interface IStorageIndexManagerInfoStream
@@ -140,6 +143,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     public class StorageIndexManager : IStorageIndexManager
     {
+        public event EventHandler<IndexResetEventArgs> IndexReset;
         public event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
 
@@ -180,16 +184,32 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? batchsize : we.BatchSize, logger, InfoStream));
         }
 
+        public async Task ResetIndex()
+        {
+            Stop();
+            index.Storage.Purge();
+
+            StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            {
+                if (debugging)
+                    writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
+
+                await Task.WhenAll(watchers.Values.Select(watcher => watcher.Reset(writer,0, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
+                    progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
+            }
+            OnIndexReset(new IndexResetEventArgs());
+            task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
+        }
+
         public void Start()
         {
             InitializeIndex();
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
         }
 
-        public void Stop()
-        {
-            task.Dispose();
-        }
+        public void Stop() => task.Dispose();
+
         private void InitializeIndex()
         {
             //IndexWriter w = index.Storage.GetWriter(index.Analyzer);
@@ -250,6 +270,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         protected virtual void OnIndexInitialized(IndexInitializedEventArgs e)
         {
             IndexInitialized?.Invoke(this, e);
+        }
+
+        protected virtual void OnIndexReset(IndexResetEventArgs e)
+        {
+            IndexReset?.Invoke(this, e);
         }
 
         public class StorageIndexManagerInitializationProgressTracker
