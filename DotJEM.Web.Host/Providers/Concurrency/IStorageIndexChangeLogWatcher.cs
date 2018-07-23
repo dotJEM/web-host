@@ -45,17 +45,18 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             progress = progress ?? new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
             await Task.Run(async () =>
             {
+                long latest = log.LatestGeneration;
                 while (true)
                 {
                     IStorageChangeCollection changes = log.Get(false, batch);
                     if (changes.Count < 1)
                     {
-                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, true));
+                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
                         return;
                     }
                     await writer.WriteAll(changes.Partitioned.Select(change => change.CreateEntity()));
 
-                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, false));
+                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
                 }
             });
         }
@@ -66,7 +67,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             progress = progress ?? new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
 
             log.Get(generation, true, 0); //NOTE: Reset to the generation but don't fetch any changes yet.
-            progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(0, 0, 0), generation, false));
+                long latest = log.LatestGeneration;
+            progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(0, 0, 0), generation, latest, false));
 
             await Task.Run(async () =>
             {
@@ -75,7 +77,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     IStorageChangeCollection changes = log.Get(true, batch);
                     if (changes.Count < 1)
                     {
-                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, true));
+                        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
                         return;
                     }
 
@@ -83,7 +85,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     await writer.WriteAll(changes.Updated.Select(change => change.CreateEntity()));
                     await writer.DeleteAll(changes.Deleted.Select(change => change.CreateEntity()));
 
-                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, false));
+                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
                 }
             });
         }
