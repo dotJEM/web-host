@@ -288,7 +288,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
             public string Capture(StorageIndexChangeLogWatcherInitializationProgress progress)
             {
-                states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Count, progress.Done));
+                states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Latest, progress.Count,  progress.Done));
 
                 return string.Join(Environment.NewLine, states.Values);
             }
@@ -298,6 +298,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 private readonly string area;
                 private ChangeCount count;
                 private long token;
+                private long latest;
                 private string done;
 
                 public InitializationState(string area)
@@ -305,15 +306,16 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     this.area = area;
                 }
 
-                public InitializationState Add(long token, ChangeCount count, bool done)
+                public InitializationState Add(long token, long latest, ChangeCount count, bool done)
                 {
                     this.done = done ? "Completed" : "Indexing";
                     this.count += count;
                     this.token = token;
+                    this.latest = latest;
                     return this;
                 }
 
-                public override string ToString() => $" -> {area}: {token} changes processed, {count.Total} objects indexed. {done}";
+                public override string ToString() => $" -> {area}: {token} / {latest} changes processed, {count.Total} objects indexed. {done}";
             }
         }
 
