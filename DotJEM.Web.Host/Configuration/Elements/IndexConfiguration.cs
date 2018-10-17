@@ -5,22 +5,13 @@ namespace DotJEM.Web.Host.Configuration.Elements
     public class IndexConfiguration : ConfigurationElement
     {
         [ConfigurationProperty("debug", IsRequired = false, DefaultValue = false)]
-        public bool Debugging
-        {
-            get { return (bool)this["debug"]; }
-        }
+        public bool Debugging => (bool)this["debug"];
 
         [ConfigurationProperty("storage", IsRequired = false)]
-        public IndexStorageConfiguration Storage
-        {
-            get { return this["storage"] as IndexStorageConfiguration; }
-        }
+        public IndexStorageConfiguration Storage => this["storage"] as IndexStorageConfiguration;
 
         [ConfigurationProperty("watch", IsRequired = true)]
-        public WatchElementCollection Watch
-        {
-            get { return this["watch"] as WatchElementCollection; }
-        }
+        public WatchElementCollection Watch => this["watch"] as WatchElementCollection;
     }
 
     public class IndexStorageConfiguration : ConfigurationElement
@@ -32,5 +23,5 @@ namespace DotJEM.Web.Host.Configuration.Elements
         public IndexStorageType Type => (IndexStorageType)this["type"];
     }
 
-    public enum IndexStorageType { Memmory, File, CachedMemmory }
+    public enum IndexStorageType { Memory, File, CachedMemory }
 }

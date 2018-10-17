@@ -7,10 +7,7 @@ namespace DotJEM.Web.Host.Configuration.Elements
     [ConfigurationCollection(typeof(WatchElement))]
     public class WatchElementCollection : ConfigurationElementCollection
     {
-        public IEnumerable<WatchElement> Items
-        {
-            get { return this.OfType<WatchElement>(); }
-        }
+        public IEnumerable<WatchElement> Items => this.OfType<WatchElement>();
 
         protected override ConfigurationElement CreateNewElement()
         {
@@ -23,22 +20,12 @@ namespace DotJEM.Web.Host.Configuration.Elements
         }
 
         [ConfigurationProperty("interval", IsRequired = true)]
-        public long Interval
-        {
-            get { return (long)this["interval"]; }
-        }
+        public long Interval => (long)this["interval"];
 
         [ConfigurationProperty("rambuffer", IsRequired = false, DefaultValue = "512mb")]
-        public string RamBuffer
-        {
-            get { return (string)this["rambuffer"]; }
-        }
+        public string RamBuffer => (string)this["rambuffer"];
 
         [ConfigurationProperty("batch-size", IsRequired = false, DefaultValue = 5000)]
-        public int BatchSize
-        {
-            get { return (int)this["batch-size"]; }
-        }
-
+        public int BatchSize => (int)this["batch-size"];
     }
 }

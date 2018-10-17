@@ -1,13 +1,28 @@
+using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 
 namespace DotJEM.Web.Host.Configuration.Elements
 {
-    public class StorageConfiguration : ConfigurationElement
+    [ConfigurationCollection(typeof(StorageAreaElement), AddItemName = "area")]
+    public class StorageConfiguration : ConfigurationElementCollection
     {
         [ConfigurationProperty("connectionString", IsRequired = true)]
-        public string ConnectionString
-        {
-            get { return this["connectionString"] as string; }
-        }
+        public string ConnectionString => this["connectionString"] as string;
+
+        public IEnumerable<StorageAreaElement> Items => this.OfType<StorageAreaElement>();
+
+        protected override ConfigurationElement CreateNewElement() => new WatchElement();
+
+        protected override object GetElementKey(ConfigurationElement element) => ((WatchElement)element).Area;
+    }
+
+    public class StorageAreaElement : ConfigurationElement
+    {
+        [ConfigurationProperty("name", IsRequired = true)]
+        public string Name => this["name"] as string;
+
+        [ConfigurationProperty("history", IsRequired = false, DefaultValue = false)]
+        public bool History => (bool)this["history"];
     }
 }

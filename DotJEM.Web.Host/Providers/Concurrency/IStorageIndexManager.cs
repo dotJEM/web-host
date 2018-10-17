@@ -6,8 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
 using DotJEM.Json.Storage.Adapter.Materialize.Log;
+using DotJEM.Json.Storage.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
@@ -136,6 +138,22 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 if (faultyChanges.Any())
                     json["faultyChanges"] = JArray.FromObject(FaultyChanges.Select(c => c.CreateEntity()));
                 return json;
+            }
+        }
+    }
+    public interface IStorageManager
+    {
+    }
+
+    public class StorageManager : IStorageManager
+    {
+        public StorageManager(IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler)
+        {
+            foreach (StorageAreaElement areaConfig in configuration.Storage.Items)
+            {
+                IStorageAreaConfigurator areaConfigurator = storage.Configure.Area(areaConfig.Name);
+                if (areaConfig.History)
+                    areaConfigurator.EnableHistory();
             }
         }
     }
