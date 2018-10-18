@@ -210,9 +210,9 @@ namespace DotJEM.Web.Host
             {
                 case IndexStorageType.File:
                     return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
-                case IndexStorageType.CachedMemmory:
+                case IndexStorageType.CachedMemory:
                     return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
-                case IndexStorageType.Memmory:
+                case IndexStorageType.Memory:
                     return new LuceneStorageIndex(analyzer: analyzer);
                 default:
                     return new LuceneStorageIndex(analyzer: analyzer);
