@@ -12,21 +12,12 @@ namespace DotJEM.Web.Host.Configuration.Elements
     public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
     {
         [ConfigurationProperty("storageConfiguration", IsRequired = true)]
-        public StorageConfiguration Storage
-        {
-            get { return this["storageConfiguration"] as StorageConfiguration; }
-        }
+        public StorageConfiguration Storage => this["storageConfiguration"] as StorageConfiguration;
 
         [ConfigurationProperty("indexConfiguration", IsRequired = true)]
-        public IndexConfiguration Index
-        {
-            get { return this["indexConfiguration"] as IndexConfiguration; }
-        }
+        public IndexConfiguration Index => this["indexConfiguration"] as IndexConfiguration;
 
         [ConfigurationProperty("diagnostics", IsRequired = false)]
-        public DiagnosticsConfiguration Diagnostics
-        {
-            get { return this["diagnostics"] as DiagnosticsConfiguration; }
-        }
+        public DiagnosticsConfiguration Diagnostics => this["diagnostics"] as DiagnosticsConfiguration;
     }
 }

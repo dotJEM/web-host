@@ -50,6 +50,7 @@ namespace DotJEM.Web.Host
         private readonly IWindsorContainer container;
         private readonly HttpConfiguration configuration;
         private IStorageIndexManager indexManager;
+        private IStorageManager storageManager;
 
         protected IStorageIndex Index { get; set; }
         protected IStorageContext Storage { get; set; }
@@ -142,8 +143,10 @@ namespace DotJEM.Web.Host
 
                 perf.TrackAction(AfterInitialize);
 
+                storageManager = container.Resolve<IStorageManager>();
                 indexManager = container.Resolve<IStorageIndexManager>();
                 Initialization.SetProgress("Loading index.");
+                perf.TrackAction(storageManager.Start);
                 perf.TrackAction(indexManager.Start);
                 perf.TrackAction(AfterStart);
 
@@ -210,9 +213,9 @@ namespace DotJEM.Web.Host
             {
                 case IndexStorageType.File:
                     return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
-                case IndexStorageType.CachedMemmory:
+                case IndexStorageType.CachedMemory:
                     return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
-                case IndexStorageType.Memmory:
+                case IndexStorageType.Memory:
                     return new LuceneStorageIndex(analyzer: analyzer);
                 default:
                     return new LuceneStorageIndex(analyzer: analyzer);

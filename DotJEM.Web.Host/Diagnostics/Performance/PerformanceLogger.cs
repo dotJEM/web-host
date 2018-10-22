@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography;
+using DotJEM.Json.Index.Util;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Util;
@@ -72,7 +73,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             Enabled = true;
             PerformanceConfiguration config = configuration.Diagnostics.Performance;
 
-            writer = factory.Create(config.Path, AdvConvert.ToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
+            writer = factory.Create(config.Path, AdvConvert.ConvertToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         }
 
         public IPerformanceTracker TrackRequest(HttpRequestMessage request)

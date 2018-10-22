@@ -9,6 +9,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
             container.Register(Component.For<IStorageIndexManager>().ImplementedBy<StorageIndexManager>().LifestyleSingleton());
+            container.Register(Component.For<IStorageManager>().ImplementedBy<StorageManager>().LifestyleSingleton());
         }
     }
 }
