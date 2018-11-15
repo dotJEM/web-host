@@ -15,9 +15,9 @@ namespace DotJEM.Web.Host.Configuration.Elements
 
         public IEnumerable<StorageAreaElement> Items => this.OfType<StorageAreaElement>();
 
-        protected override ConfigurationElement CreateNewElement() => new WatchElement();
+        protected override ConfigurationElement CreateNewElement() => new StorageAreaElement();
 
-        protected override object GetElementKey(ConfigurationElement element) => ((WatchElement)element).Area;
+        protected override object GetElementKey(ConfigurationElement element) => ((StorageAreaElement)element).Name;
     }
 
     public class StorageAreaElement : ConfigurationElement
