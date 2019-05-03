@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
@@ -20,10 +21,10 @@ namespace DotJEM.Web.Host.Providers.Scheduler
     {
         private readonly ConcurrentDictionary<Guid, IScheduledTask> tasks = new ConcurrentDictionary<Guid, IScheduledTask>();
 
-        private readonly IPerformanceLogger perf;
+        private readonly ILogger perf;
         private readonly IDiagnosticsLogger logger;
 
-        public WebScheduler(IDiagnosticsLogger logger, IPerformanceLogger perf)
+        public WebScheduler(IDiagnosticsLogger logger, ILogger perf)
         {
             this.logger = logger;
             this.perf = perf;

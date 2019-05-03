@@ -1,4 +1,5 @@
 using System;
+using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
 
 namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
@@ -12,7 +13,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             return RegisterWait(delay);
         }
 
-        public SingleFireScheduledTask(string name, Action<bool> callback, TimeSpan? delay, IPerformanceLogger perf)
+        public SingleFireScheduledTask(string name, Action<bool> callback, TimeSpan? delay, ILogger perf)
             : base(name, callback, perf)
         {
             this.delay = delay ?? TimeSpan.Zero;

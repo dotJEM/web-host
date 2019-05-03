@@ -1,7 +1,8 @@
 ﻿ using System;
 using System.Collections.Generic;
 using System.Linq;
-using DotJEM.Json.Index;
+ using DotJEM.Diagnostic;
+ using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
  using DotJEM.Web.Host.Diagnostics.Performance;
  using DotJEM.Web.Host.Providers.Pipeline;
@@ -39,9 +40,9 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         private readonly IStorageIndex index;
         private readonly IPipeline pipeline;
-        private readonly IPerformanceLogger performance;
+        private readonly ILogger performance;
 
-        public SearchService(IStorageIndex index, IPipeline pipeline, IPerformanceLogger performance)
+        public SearchService(IStorageIndex index, IPipeline pipeline, ILogger performance)
         {
             this.index = index;
             this.pipeline = pipeline;
@@ -64,10 +65,14 @@ namespace DotJEM.Web.Host.Providers.Services
                 .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
                 .ToArray(), result.TotalCount);
 
-            performance.LogSingleEvent("search", (long)result.TotalTime.TotalMilliseconds, "TOTAL", query, $"skip={skip}, take={take}, results={result.TotalCount}");
-            performance.LogSingleEvent("search", (long) result.SearchTime.TotalMilliseconds, "FIND", query, $"skip={skip}, take={take}, results={result.TotalCount}");
-            performance.LogSingleEvent("search", (long) result.LoadTime.TotalMilliseconds, "LOAD", query, $"skip={skip}, take={take}, results={result.TotalCount}");
-
+            performance.LogAsync("search", new
+            {
+                totalTime = (long)result.TotalTime.TotalMilliseconds,
+                searchTime = (long)result.SearchTime.TotalMilliseconds,
+                loadTime = (long)result.LoadTime.TotalMilliseconds,
+                query, skip, take,
+                results = result.TotalCount
+            });
             return searchResult;
         }
 

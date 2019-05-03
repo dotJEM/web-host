@@ -1,4 +1,5 @@
-﻿using DotJEM.Json.Index;
+﻿using DotJEM.Diagnostic;
+using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -12,7 +13,7 @@ namespace DotJEM.Web.Host.Providers
     {
         private readonly IStorageContext context;
 
-        public ContentServiceProvider(IStorageIndex index, IStorageContext context, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, IPerformanceLogger performance)
+        public ContentServiceProvider(IStorageIndex index, IStorageContext context, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
             : base(name => new ContentService(index, context.Area(name), manager, pipeline, merger, performance))
         {
             this.context = context;

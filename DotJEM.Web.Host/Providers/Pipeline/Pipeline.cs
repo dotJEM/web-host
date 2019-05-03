@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using Newtonsoft.Json.Linq;
 
@@ -16,17 +17,18 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
     public class Pipeline : IPipeline
     {
+        private const string PIPELINE = "pipeline";
         public IPipelineContextFactory ContextFactory { get; }
 
         private readonly IEnumerable<IPipelineHandler> handlers;
-        private readonly IPerformanceLogger performance;
+        private readonly ILogger performance;
 
-        public Pipeline(IPipelineHandlerSet handlers, IPerformanceLogger performance)
+        public Pipeline(IPipelineHandlerSet handlers, ILogger performance)
             : this(handlers, performance, new PipelineContextFactory())
         {
         }
 
-        public Pipeline(IPipelineHandlerSet handlers, IPerformanceLogger performance, IPipelineContextFactory contextFactory)
+        public Pipeline(IPipelineHandlerSet handlers, ILogger performance, IPipelineContextFactory contextFactory)
         {
             ContextFactory = contextFactory;
             this.handlers = handlers;
@@ -38,9 +40,9 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.AfterGet(jo, contentType, context), 
-                    contentType, "AfterGet", step.GetType().FullName)
-                );
+                    .TrackFunction(() => step.AfterGet(jo, contentType, context), PIPELINE, new {
+                        contentType, method = "AfterGet", step = step.GetType().FullName
+                    }));
         }
 
         public JObject ExecuteBeforePost(JObject json, string contentType, PipelineContext context)
@@ -48,8 +50,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.BeforePost(jo, contentType, context),
-                    contentType, "BeforePost", step.GetType().FullName)
+                    .TrackFunction(() => step.BeforePost(jo, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "BeforePost",
+                        step = step.GetType().FullName
+                    })
                 );
 
         }
@@ -59,8 +65,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.AfterPost(jo, contentType, context),
-                    contentType, "AfterPost", step.GetType().FullName)
+                    .TrackFunction(() => step.AfterPost(jo, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "AfterPost",
+                        step = step.GetType().FullName
+                    })
                 );
         }
 
@@ -69,8 +79,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.BeforePut(jo, prev, contentType, context),
-                    contentType, "BeforePut", step.GetType().FullName)
+                    .TrackFunction(() => step.BeforePut(jo, prev, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "BeforePut",
+                        step = step.GetType().FullName
+                    })
                 );
         }
 
@@ -79,8 +93,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.AfterPut(jo, prev, contentType, context),
-                    contentType, "AfterPut", step.GetType().FullName)
+                    .TrackFunction(() => step.AfterPut(jo, prev, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "AfterPut",
+                        step = step.GetType().FullName
+                    })
                 );
         }
 
@@ -89,8 +107,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.BeforeRevert(jo, current, contentType, context),
-                    contentType, "AfterPut", step.GetType().FullName)
+                    .TrackFunction(() => step.BeforeRevert(jo, current, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "AfterPut",
+                        step = step.GetType().FullName
+                    })
                 );
         }
 
@@ -99,8 +121,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.AfterRevert(jo, current, contentType, context),
-                    contentType, "AfterPut", step.GetType().FullName)
+                    .TrackFunction(() => step.AfterRevert(jo, current, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "AfterPut",
+                        step = step.GetType().FullName
+                    })
                 );
         }
 
@@ -109,8 +135,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.BeforeDelete(jo, contentType, context),
-                    contentType, "BeforeDelete", step.GetType().FullName)
+                    .TrackFunction(() => step.BeforeDelete(jo, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "BeforeDelete",
+                        step = step.GetType().FullName
+                    })
                 );
         }
 
@@ -119,8 +149,12 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return handlers
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
-                    .TrackFunction("pipeline", () => step.AfterDelete(jo, contentType, context),
-                    contentType, "AfterDelete", step.GetType().FullName)
+                    .TrackFunction(() => step.AfterDelete(jo, contentType, context), PIPELINE, new
+                    {
+                        contentType,
+                        method = "AfterDelete",
+                        step = step.GetType().FullName
+                    })
                 );
         }
     }

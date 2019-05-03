@@ -4,20 +4,59 @@ using System.Net.Http;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
-using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
+using DotJEM.Diagnostic;
+using DotJEM.Diagnostic.Collectors;
+using DotJEM.Diagnostic.Correlation;
+using DotJEM.Diagnostic.Writers;
+using DotJEM.Json.Index.Util;
+using DotJEM.Web.Host.Configuration.Elements;
+using Newtonsoft.Json.Linq;
+using IPerformanceTracker = DotJEM.Web.Host.Diagnostics.Performance.Trackers.IPerformanceTracker;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance
 {
+    public interface ILoggerFactory
+    {
+        ILogger Create();
+    }
+
+    public class LoggerFactory : ILoggerFactory
+    {
+        private IPathResolver resolver;
+        private IWebHostConfiguration configuration;
+
+        public LoggerFactory(IWebHostConfiguration configuration, IPathResolver resolver)
+        {
+            this.configuration = configuration;
+            this.resolver = resolver;
+        }
+
+        public ILogger Create()
+        {
+            if (configuration.Diagnostics?.Performance == null)
+                return new NullLogger();
+
+            PerformanceConfiguration config = configuration.Diagnostics.Performance;
+            var writer = new QueuingTraceWriter(resolver.MapPath(config.Path), AdvConvert.ConvertToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
+            return new HighPrecisionLogger(new TraceEventCollector(writer));
+        }
+    }
+    public class NullLogger : ILogger
+    {
+        public Task LogAsync(string type, object customData) => Task.CompletedTask;
+        public Task LogAsync(string type, JToken customData = null) => Task.CompletedTask;
+    }
+
+
     public class PerformanceLoggingHandler : DelegatingHandler
     {
-        private readonly IPerformanceLogger logger;
-
-        public PerformanceLoggingHandler(IPerformanceLogger logger)
+        private readonly ILogger logger;
+        public PerformanceLoggingHandler(ILogger logger)
         {
             this.logger = logger;
         }
 
-        public PerformanceLoggingHandler(IPerformanceLogger logger, HttpMessageHandler innerHandler)
+        public PerformanceLoggingHandler(ILogger logger, HttpMessageHandler innerHandler)
             : base(innerHandler)
         {
             this.logger = logger;
@@ -25,14 +64,41 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (!logger.Enabled)
+            if (logger is NullLogger)
                 return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-            IPerformanceTracker tracker = logger.TrackRequest(request);
-            HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-            tracker.Commit(response.StatusCode);
-            return response;
+            using (new CorrelationScope(request.GetCorrelationId()))
+            {
+                using (Diagnostic.IPerformanceTracker tracker = logger.TrackRequest(request))
+                {
+                    HttpResponseMessage response = await base.SendAsync(request, cancellationToken).ConfigureAwait(true);
+                    tracker.Commit(new { statusCode = response.StatusCode });
+                    return response;
+                }
+            }
+
+            //IPerformanceTracker tracker = logger.TrackRequest(request);
+            //HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+            //tracker.Commit(response.StatusCode);
+            //return response;
         }
     }
 
+    public static class HttpRequestLoggerExt
+    {
+        public static Diagnostic.IPerformanceTracker TrackRequest(this ILogger self, HttpRequestMessage request)
+        {
+            return self.Track("request", new
+            {
+                method = request.Method.Method,
+                uri = request.RequestUri.ToString(),
+                contentType = request.Content.Headers.ContentType,
+                contentLength = request.Content.Headers.ContentLength
+            });
+        }
+        public static Diagnostic.IPerformanceTracker TrackTask(this ILogger self, string name)
+        {
+            return self.Track("task", new { name });
+        }
+    }
 }

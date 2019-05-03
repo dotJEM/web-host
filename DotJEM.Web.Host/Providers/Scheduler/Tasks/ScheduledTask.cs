@@ -1,10 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using DotJEM.Diagnostic;
+using DotJEM.Diagnostic.Correlation;
 using DotJEM.Web.Host.Common;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Providers.Concurrency;
 using Newtonsoft.Json.Linq;
 
@@ -25,14 +26,14 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
         public string Name { get; }
 
         private readonly IThreadPool pool;
-        private readonly IPerformanceLogger perf;
+        private readonly ILogger perf;
 
-        protected ScheduledTask(string name, Action<bool> callback, IPerformanceLogger perf)
+        protected ScheduledTask(string name, Action<bool> callback, ILogger perf)
             : this(name, callback, new ThreadPoolProxy(), perf)
         {
         }
 
-        protected ScheduledTask(string name, Action<bool> callback, IThreadPool pool, IPerformanceLogger perf)
+        protected ScheduledTask(string name, Action<bool> callback, IThreadPool pool, ILogger perf)
         {
             Id = Guid.NewGuid();
             this.Name = name;
@@ -65,21 +66,23 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
             if (Disposed)
                 return false;
 
-            Correlator.Set(Guid.NewGuid());
-
-            try
+            using (new CorrelationScope())
             {
-                IPerformanceTracker tracker = perf.TrackTask(Name);
-                callback(!timedout);
-                tracker.Commit();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                bool seenBefore = exception != null && exception.GetType() == ex.GetType();
-                exception = ex;
-                OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
-                return false;
+                try
+                {
+                    using (IPerformanceTracker tracker = perf.TrackTask(Name))
+                    {
+                        callback(!timedout);
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    bool seenBefore = exception != null && exception.GetType() == ex.GetType();
+                    exception = ex;
+                    OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
+                    return false;
+                }
             }
         }
 

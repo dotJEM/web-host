@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using DotJEM.Diagnostic;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Diagnostics.Performance;
@@ -81,12 +82,12 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
         private readonly IPipeline pipeline;
-        private readonly IPerformanceLogger performance;
+        private readonly ILogger performance;
         private readonly IContentMergeService merger;
 
         public IStorageArea StorageArea => area;
 
-        public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, IPerformanceLogger performance)
+        public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
         {
             this.index = index;
             this.area = area;
@@ -119,7 +120,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Get(Guid id, string contentType)
         {
-            JObject entity = performance.TrackFunction(TRACK_TYPE, () => area.Get(id), $"ContentService.Get({id}, {contentType})");
+            JObject entity = performance.TrackFunction(() => area.Get(id), TRACK_TYPE, new { fn = $"ContentService.Get({id}, {contentType})" } );
             using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
                 //TODO: Throw exception if not found?
@@ -133,7 +134,7 @@ namespace DotJEM.Web.Host.Providers.Services
             {
                 entity = pipeline.ExecuteBeforePost(entity, contentType, context);
                 JObject closure = entity;
-                entity = performance.TrackFunction(TRACK_TYPE, () => area.Insert(contentType, closure), $"ContentService.Post({contentType}, $ENTITY)");
+                entity = performance.TrackFunction(() => area.Insert(contentType, closure), TRACK_TYPE, new { fn = $"ContentService.Post({contentType}, $ENTITY)" } );
                 entity = pipeline.ExecuteAfterPost(entity, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
@@ -150,7 +151,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
                 entity = pipeline.ExecuteBeforePut(entity, prev, contentType, context);
                 JObject closure = entity;
-                entity = performance.TrackFunction(TRACK_TYPE, () => area.Update(id, closure), $"ContentService.Put({id},{contentType}, $ENTITY)");
+                entity = performance.TrackFunction(() => area.Update(id, closure), TRACK_TYPE, new { fn = $"ContentService.Put({contentType}, $ENTITY)" } );
                 entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
                 manager.QueueUpdate(entity);
                 return entity;
@@ -163,7 +164,7 @@ namespace DotJEM.Web.Host.Providers.Services
             using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
                 pipeline.ExecuteBeforeDelete(entity, contentType, context);
-                JObject deleted = performance.TrackFunction(TRACK_TYPE, () => area.Delete(id), $"ContentService.Delete({id},{contentType})");
+                JObject deleted = performance.TrackFunction(() => area.Delete(id), TRACK_TYPE, new { fn = $"ContentService.Delete({id}, {contentType})" } );
                 //TODO: Throw exception if not found?
                 if (deleted == null)
                     return null;
@@ -179,7 +180,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return null;
 
-            return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, version), $"ContentService.History({id}, {contentType}, {version})");
+            return performance.TrackFunction(() => area.History.Get(id, version), TRACK_TYPE, new { fn = $"ContentService.History({id}, {contentType}, {version})" });
         }
 
         public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
@@ -188,7 +189,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return Enumerable.Empty<JObject>();
 
-            return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, from, to), $"ContentService.History({id}, {contentType}, {from}, {to})");
+            return performance.TrackFunction(() => area.History.Get(id, from, to), TRACK_TYPE, new { fn = $"ContentService.History({id}, {contentType}, {from}, {to})" });
         }
 
         public IEnumerable<JObject> Deleted(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
@@ -197,7 +198,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return Enumerable.Empty<JObject>();
 
-            return performance.TrackFunction(TRACK_TYPE, () => area.History.Get(id, from, to), $"ContentService.History({id}, {contentType}, {from}, {to})");
+            return performance.TrackFunction(() => area.History.Get(id, from, to), TRACK_TYPE, new { fn = $"ContentService.History({id}, {contentType}, {from}, {to})"});
         }
 
         public JObject Revert(Guid id, string contentType, int version)
@@ -205,7 +206,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 throw new InvalidOperationException("Cannot revert document when history is not enabled.");
 
-            return performance.TrackFunction(TRACK_TYPE, () =>
+            return performance.TrackFunction(() =>
             {
                 JObject current = area.Get(id);
                 using (PipelineContext context = pipeline.CreateContext(contentType, current))
@@ -217,7 +218,7 @@ namespace DotJEM.Web.Host.Providers.Services
                     manager.QueueUpdate(entity);
                     return entity;
                 }
-            }, $"ContentService.Revert({id}, {contentType}, {version})");
+            }, TRACK_TYPE, new { fn =$"ContentService.Revert({id}, {contentType}, {version})"});
 
         }
 

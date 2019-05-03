@@ -1,4 +1,5 @@
 using System;
+using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using NCrontab;
 
@@ -8,7 +9,7 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
     {
         private readonly CrontabSchedule trigger;
 
-        public CronScheduledTask(string name, Action<bool> callback, string trigger, IPerformanceLogger perf)
+        public CronScheduledTask(string name, Action<bool> callback, string trigger, ILogger perf)
             : base(name, callback, perf)
         {
             this.trigger = CrontabSchedule.Parse(trigger);

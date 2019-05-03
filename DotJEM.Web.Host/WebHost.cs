@@ -13,6 +13,7 @@ using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
+using DotJEM.Diagnostic;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Migration;
@@ -21,7 +22,6 @@ using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Diagnostics.Performance.Trackers;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -117,17 +117,17 @@ namespace DotJEM.Web.Host
                 .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
                 .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
-            IPerformanceLogger perf = container.Resolve<IPerformanceLogger>();
+            ILogger perf = container.Resolve<ILogger>();
             IPerformanceTracker startup = perf.TrackTask("Start");
 
             DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
 
             perf.TrackAction(BeforeConfigure);
-            perf.TrackAction("Configure Pipeline", () => Configure(container.Resolve<IPipeline>()));
-            perf.TrackAction("Configure Container", () => Configure(container));
-            perf.TrackAction("Configure Storage", () => Configure(Storage));
-            perf.TrackAction("Configure Index", () => Configure(Index));
-            perf.TrackAction("Configure Routes", () => Configure(new HttpRouterConfigurator(configuration.Routes)));
+            perf.TrackAction(() => Configure(container.Resolve<IPipeline>()), "Configure Pipeline");
+            perf.TrackAction(() => Configure(container), "Configure Container");
+            perf.TrackAction(() => Configure(Storage), "Configure Storage");
+            perf.TrackAction(() => Configure(Index), "Configure Index");
+            perf.TrackAction(() => Configure(new HttpRouterConfigurator(configuration.Routes)), "Configure Routes");
             perf.TrackAction(AfterConfigure);
 
             ResolveComponents();
@@ -137,9 +137,9 @@ namespace DotJEM.Web.Host
             {
                 perf.TrackAction(BeforeInitialize);
                 Initialization.SetProgress("Initializing storage.");
-                perf.TrackAction("Initialize Storage", () => Initialize(Storage));
+                perf.TrackAction(() => Initialize(Storage), "Initialize Storage");
                 Initialization.SetProgress("Initializing index.");
-                perf.TrackAction("Initialize Index", () => Initialize(Index));
+                perf.TrackAction(() => Initialize(Index), "Initialize Index");
 
                 perf.TrackAction(AfterInitialize);
 
@@ -196,7 +196,7 @@ namespace DotJEM.Web.Host
                 .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
             configuration.Services.Replace(typeof(IExceptionHandler), container.Resolve<IExceptionHandler>());
 
-            configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<IPerformanceLogger>()));
+            configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<ILogger>()));
             container
                 .ResolveAll<IDataMigrator>()
                 .ForEach(migrator => Storage.MigrationManager.Add(migrator));

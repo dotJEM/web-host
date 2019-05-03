@@ -52,7 +52,7 @@ namespace DotJEM.Web.Host.Providers.Pipeline
 
         public static ContentTypeAttribute[] GetAttributes(Type type)
         {
-            return type.GetAttributes<ContentTypeAttribute>();
+            return type.GetAttributes<ContentTypeAttribute>().ToArray();
         }
     }
 }

@@ -13,7 +13,7 @@ using DotJEM.Web.Host.Util;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance
 {
-    public interface IPerformanceLogger
+    public interface IxPerformanceLogger
     {
         bool Enabled { get; }
         IDiagnosticsLogger Diag { get; }
@@ -57,14 +57,14 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             }
         }
     }
-    public class PerformanceLogger : IPerformanceLogger
+    public class PxerformanceLogger : IxPerformanceLogger
     {
         private readonly ILogWriter writer;
 
         public bool Enabled { get; }
         public IDiagnosticsLogger Diag { get; }
 
-        public PerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration, IDiagnosticsLogger diagnostics)
+        public PxerformanceLogger(ILogWriterFactory factory, IWebHostConfiguration configuration, IDiagnosticsLogger diagnostics)
         {
             Diag = diagnostics;
             if (configuration.Diagnostics?.Performance == null)
