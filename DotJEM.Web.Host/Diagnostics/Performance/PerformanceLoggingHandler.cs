@@ -64,7 +64,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (logger is NullLogger)
+            if (!logger.IsEnabled())
                 return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
             using (new CorrelationScope(request.GetCorrelationId()))
@@ -84,6 +84,10 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         }
     }
 
+    public static class LoggerExtensions
+    {
+        public static bool IsEnabled(this ILogger self) => !(self is NullLogger);
+    }
     public static class HttpRequestLoggerExt
     {
         public static Diagnostic.IPerformanceTracker TrackRequest(this ILogger self, HttpRequestMessage request)
