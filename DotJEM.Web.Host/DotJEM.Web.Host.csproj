@@ -269,7 +269,6 @@
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\Performance\LogWriterFactory.cs" />
-    <Compile Include="Diagnostics\Performance\PerformanceLogger.cs" />
     <Compile Include="Diagnostics\Performance\QueueingLogWriter.cs" />
     <Compile Include="Diagnostics\Performance\Trackers\IPerformanceTracker.cs" />
     <Compile Include="IDiagnosticsDumpService.cs" />
