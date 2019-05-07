@@ -44,6 +44,9 @@
     <Reference Include="DotJEM.AdvParsers, Version=1.1.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.AdvParsers.1.1.1\lib\netstandard1.3\DotJEM.AdvParsers.dll</HintPath>
     </Reference>
+    <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Diagnostic.1.0.11\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
+    </Reference>
     <Reference Include="DotJEM.Json.Index, Version=0.0.95.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Index.0.0.95\lib\net45\DotJEM.Json.Index.dll</HintPath>
     </Reference>
@@ -190,8 +193,6 @@
     </Reference>
     <Reference Include="System.Net.Http, Version=4.1.1.3, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Net.Http.4.3.4\lib\net46\System.Net.Http.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System.Net.Http.Formatting, Version=5.2.7.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.7\lib\net45\System.Net.Http.Formatting.dll</HintPath>
@@ -208,8 +209,6 @@
     </Reference>
     <Reference Include="System.Runtime.Extensions, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.Extensions.4.3.1\lib\net462\System.Runtime.Extensions.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System.Runtime.InteropServices, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.InteropServices.4.3.0\lib\net462\System.Runtime.InteropServices.dll</HintPath>
