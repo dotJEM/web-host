@@ -149,6 +149,7 @@ namespace DotJEM.Web.Host
                 storageManager = container.Resolve<IStorageManager>();
                 indexManager = container.Resolve<IStorageIndexManager>();
                 Initialization.SetProgress("Loading index.");
+
                 perf.TrackAction(storageManager.Start);
                 perf.TrackAction(indexManager.Start);
                 perf.TrackAction(AfterStart);

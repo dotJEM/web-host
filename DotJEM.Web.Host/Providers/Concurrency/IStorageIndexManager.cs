@@ -180,7 +180,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         }
         public void Start()
         {
-            task = scheduler.ScheduleTask("ChangeLogWatcher", b => CleanHistory(), interval);
+            task = scheduler.ScheduleTask("StorageManager.CleanHistory", b => CleanHistory(), interval);
         }
 
         private void CleanHistory()
