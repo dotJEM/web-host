@@ -19,6 +19,7 @@ namespace DotJEM.Web.Host.Diagnostics
             container.Register(Component.For<IExceptionHandler>().ImplementedBy<WebHostExceptionHandler>().LifestyleTransient());
             container.Register(Component.For<ILoggerFactory>().ImplementedBy<LoggerFactory>());
             container.Register(Component.For<ILogger>().UsingFactoryMethod(kernel => kernel.Resolve<ILoggerFactory>().Create()).LifestyleSingleton());
+            container.Register(Component.For<IPerformanceLoggingCustomDataProviderManager>().ImplementedBy<PerformanceLoggingCustomDataProviderManager>());
         }
     }
 }

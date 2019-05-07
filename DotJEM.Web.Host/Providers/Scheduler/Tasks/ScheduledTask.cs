@@ -68,20 +68,22 @@ namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
 
             using (new CorrelationScope())
             {
-                try
+                using (IPerformanceTracker tracker = perf.TrackTask(Name))
                 {
-                    using (IPerformanceTracker tracker = perf.TrackTask(Name))
+                    try
                     {
                         callback(!timedout);
+                        tracker.Commit(new { timedout });
                         return true;
                     }
-                }
-                catch (Exception ex)
-                {
-                    bool seenBefore = exception != null && exception.GetType() == ex.GetType();
-                    exception = ex;
-                    OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
-                    return false;
+                    catch (Exception ex)
+                    {
+                        bool seenBefore = exception != null && exception.GetType() == ex.GetType();
+                        exception = ex;
+                        OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
+                        tracker.Commit(new { ex });
+                        return false;
+                    }
                 }
             }
         }

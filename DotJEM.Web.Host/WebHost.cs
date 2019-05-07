@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -14,6 +15,7 @@ using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
 using DotJEM.Diagnostic;
+using DotJEM.Diagnostic.DataProviders;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Migration;
@@ -91,6 +93,7 @@ namespace DotJEM.Web.Host
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new StringEnumConverter { CamelCaseText = true });
             configuration.Formatters.JsonFormatter.SerializerSettings.Converters.Add(new IsoDateTimeConverter());
         }
+
 
         public IWebHost Start()
         {
@@ -190,6 +193,7 @@ namespace DotJEM.Web.Host
             return this;
         }
 
+
         private void ResolveComponents()
         {
             container.ResolveAll<IExceptionLogger>()
@@ -279,6 +283,7 @@ namespace DotJEM.Web.Host
             return container.Resolve<T>();
         }
 
+
         protected virtual void BeforeStart() { }
         protected virtual void BeforeConfigure() { }
         protected virtual void Configure(IWindsorContainer container) { }
@@ -286,10 +291,12 @@ namespace DotJEM.Web.Host
         protected virtual void Configure(IStorageIndex index) { }
         protected virtual void Configure(IRouter router) { }
         protected virtual void Configure(IPipeline pipeline) { }
+
         protected virtual void AfterConfigure() { }
         protected virtual void BeforeInitialize() { }
         protected virtual void Initialize(IStorageContext storage) { }
         protected virtual void Initialize(IStorageIndex index) { }
+
         protected virtual void AfterInitialize() { }
         protected virtual void AfterStart() { }
 
