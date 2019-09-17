@@ -176,9 +176,7 @@ namespace DotJEM.Web.Host
                         dump.Dump(ticket, "Server startup failed. Unknown Error.");
                     }
                     Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
-
-
-                }
+                    }
                 catch (Exception ex)
                 {
                     //TODO: (jmd 2015-10-01) Temporary Dumping of failure we don't know where to put. 
