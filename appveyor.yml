@@ -1,5 +1,5 @@
-version: 0.2.{build}
-image: Visual Studio 2017
+version: 0.3.{build}
+image: Visual Studio 2019
 
 configuration: Release
 
@@ -26,9 +26,10 @@ pull_requests:
   do_not_increment_build_number: true
 
 before_build:
-  nuget restore
+  nuget restore src\DotJEM.Web.Host.sln
 
 build:
+  project: src\DotJEM.Web.Host.sln
   publish_nuget: true
   publish_nuget_symbols: true
 
