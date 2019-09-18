@@ -189,12 +189,9 @@ namespace DotJEM.Web.Host
             });
             return this;
         }
-
-
-        private void ResolveComponents()
+        protected virtual void ResolveComponents()
         {
-            container.ResolveAll<IExceptionLogger>()
-                .ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
+            container.ResolveAll<IExceptionLogger>().ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
             IExceptionHandler handler = container.Resolve<IExceptionHandler>();
             configuration.Services.Replace(typeof(IExceptionHandler), handler);
 

@@ -37,7 +37,7 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
         private IHttpActionResult ByHandlers(ExceptionHandlerContext context)
         {
             IWebHostExceptionHandler handler = LookupHandler(context.Exception.GetType());
-            return handler != null ? handler.Handle(context) : null;
+            return handler?.Handle(context);
         }
 
         private IHttpActionResult ByDefault(ExceptionHandlerContext context)
@@ -62,12 +62,13 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
 
         private WebHostUnhandledExceptionArgs OnUnhandledException(WebHostUnhandledExceptionArgs args)
         {
-            var handler = UnhandledException;
-            if (handler != null)
-            {
-                handler(this, args);
-            }
+            UnhandledException?.Invoke(this, args);
             return args;
+        }
+
+        public override bool ShouldHandle(ExceptionHandlerContext context)
+        {
+            return true;
         }
     }
 }
