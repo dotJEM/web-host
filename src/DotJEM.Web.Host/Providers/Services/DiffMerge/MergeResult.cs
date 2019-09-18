@@ -22,7 +22,6 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         JObject Conflicts { get; }
 
         bool HasConflicts { get; }
-
     }
 
     public class MergeResultWithVersion : IMergeResult
@@ -78,25 +77,6 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
         }
     }
 
-    public class MergeResultExceptionProxy : IMergeResult
-    {
-
-        public JToken Update { get; }
-        public JToken Merged => null;
-        public JToken Other { get; }
-        public JToken Origin { get; }
-        public JObject Conflicts { get; }
-        public bool HasConflicts { get; }
-
-        public MergeResultExceptionProxy(JToken update, JToken other, JToken origin, JObject conflicts, bool hasConflicts)
-        {
-            Update = update;
-            Other = other;
-            Origin = origin;
-            Conflicts = conflicts;
-            HasConflicts = hasConflicts;
-        }
-    }
 
     public class MergeResult : IMergeResult
     {
@@ -111,11 +91,12 @@ namespace DotJEM.Web.Host.Providers.Services.DiffMerge
             get
             {
                 if (HasConflicts)
-                    throw new JsonMergeConflictException(new MergeResultExceptionProxy(Update, Other, Origin, Conflicts, HasConflicts));
+                    throw new JsonMergeConflictException(this);
 
                 return merged;
             }
         }
+
 
         public bool HasConflicts { get; }
         public JObject Conflicts => BuildDiff(new JObject(), false);
