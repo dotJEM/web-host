@@ -152,9 +152,8 @@ namespace DotJEM.Web.Host
                 perf.TrackAction(indexManager.Start);
                 perf.TrackAction(AfterStart);
 
-                startup.Commit();
                 Initialization.Complete();
-
+                startup.Dispose();
             }).ContinueWith(result =>
             {
                 if (!result.IsFaulted)

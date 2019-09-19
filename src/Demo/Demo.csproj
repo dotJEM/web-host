@@ -55,7 +55,7 @@
       <HintPath>..\packages\DotJEM.AdvParsers.1.1.1\lib\netstandard1.3\DotJEM.AdvParsers.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Diagnostic.1.0.17\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
+      <HintPath>..\packages\DotJEM.Diagnostic.1.0.20\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.AspNet.SignalR.Core, Version=2.4.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.AspNet.SignalR.Core.2.4.1\lib\net45\Microsoft.AspNet.SignalR.Core.dll</HintPath>

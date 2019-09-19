@@ -17,21 +17,4 @@ namespace DotJEM.Web.Host.Providers.Pipeline
         JObject BeforeRevert(dynamic entity, dynamic current, string contentType, PipelineContext context);
         JObject AfterRevert(dynamic entity, dynamic current, string contentType, PipelineContext context);
     }
-
-    public class MyPipelineContext
-    {
-        public JObject Next(JObject entity) => null;
-    }
-
-    public class MyPipeline
-    {
-        public JObject Execute(JObject entity, MyPipelineContext context)
-        {
-            //Before...
-
-            return context.Next(entity);
-
-            //After
-        }
-    }
 }
