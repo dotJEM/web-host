@@ -166,16 +166,17 @@ namespace DotJEM.Web.Host
                 {
                     if (result.Exception != null)
                     {
-                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new {ticketId = ticket});
                         dump.Dump(ticket, result.Exception.ToString());
                     }
                     else
                     {
-                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new {ticketId = ticket});
                         dump.Dump(ticket, "Server startup failed. Unknown Error.");
                     }
+
                     Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
-                    }
+                }
                 catch (Exception ex)
                 {
                     //TODO: (jmd 2015-10-01) Temporary Dumping of failure we don't know where to put. 
@@ -185,6 +186,11 @@ namespace DotJEM.Web.Host
                     Initialization.SetProgress(dumpMessage);
                     dump.Dump(ticket, dumpMessage);
                 }
+                finally
+                {
+
+                }
+
             });
             return this;
         }
