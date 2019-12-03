@@ -381,29 +381,29 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Latest, progress.Count,  progress.Done));
             }
 
-            private class InitializationState
+            public class InitializationState
             {
-                private readonly string area;
-                private ChangeCount count;
-                private long token;
-                private long latest;
-                private string done;
+                public string Area { get; }
+                public ChangeCount Count { get; private set; }
+                public long Token { get; private set; }
+                public long Latest { get; private set; }
+                public string Done { get; private set; }
 
                 public InitializationState(string area)
                 {
-                    this.area = area;
+                    this.Area = area;
                 }
 
                 public InitializationState Add(long token, long latest, ChangeCount count, bool done)
                 {
-                    this.done = done ? "Completed" : "Indexing";
-                    this.count += count;
-                    this.token = token;
-                    this.latest = latest;
+                    this.Done = done ? "Completed" : "Indexing";
+                    this.Count += count;
+                    this.Token = token;
+                    this.Latest = latest;
                     return this;
                 }
 
-                public override string ToString() => $" -> {area}: {token} / {latest} changes processed, {count.Total} objects indexed. {done}";
+                public override string ToString() => $" -> {Area}: {Token} / {Latest} changes processed, {Count.Total} objects indexed. {Done}";
             }
         }
 
