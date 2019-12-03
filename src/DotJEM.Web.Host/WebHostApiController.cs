@@ -7,6 +7,7 @@ using System.Web.Http;
 using DotJEM.Web.Host.Results;
 using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Hubs;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host
 {
@@ -29,10 +30,14 @@ namespace DotJEM.Web.Host
             return new ForbiddenErrorMessageResult(HttpStatusCode.Forbidden, message, this);
         }
 
-
         protected virtual ServiceUnavailableMessageResult ServiceUnavailable(string message)
         {
             return new ServiceUnavailableMessageResult(HttpStatusCode.ServiceUnavailable, message, this);
+        }
+
+        protected virtual ServiceUnavailableMessageResultWithJson ServiceUnavailable(JObject json)
+        {
+            return new ServiceUnavailableMessageResultWithJson(HttpStatusCode.ServiceUnavailable, json, this);
         }
 
         protected dynamic FromFile(string path, string mediaType)

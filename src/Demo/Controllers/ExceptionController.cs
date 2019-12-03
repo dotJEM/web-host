@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Results;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
+using DotJEM.Web.Host.Results;
 
 namespace Demo.Controllers
 {

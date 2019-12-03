@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
@@ -13,6 +14,7 @@ using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
+using DotJEM.AdvParsers;
 using DotJEM.Diagnostic;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage;
@@ -148,14 +150,14 @@ namespace DotJEM.Web.Host
                 indexManager = container.Resolve<IStorageIndexManager>();
                 Initialization.SetProgress("Loading index.");
 
+ 
                 perf.TrackAction(storageManager.Start);
                 perf.TrackAction(indexManager.Start);
                 perf.TrackAction(AfterStart);
 
                 Initialization.Complete();
                 startup.Dispose();
-            }).ContinueWith(result =>
-            {
+            }).ContinueWith(async result => {
                 if (!result.IsFaulted)
                     return;
 
@@ -166,25 +168,32 @@ namespace DotJEM.Web.Host
                 {
                     if (result.Exception != null)
                     {
-                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new { ticketId = ticket });
+                        DiagnosticsLogger.LogException(Severity.Fatal, result.Exception, new {ticketId = ticket});
                         dump.Dump(ticket, result.Exception.ToString());
                     }
                     else
                     {
-                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new { ticketId = ticket });
+                        DiagnosticsLogger.LogFailure(Severity.Fatal, "Server startup failed. Unknown Error.", new {ticketId = ticket});
                         dump.Dump(ticket, "Server startup failed. Unknown Error.");
                     }
+
                     Initialization.SetProgress("Server startup failed. Please contact support. ({0})", ticket);
-                    }
+                }
                 catch (Exception ex)
                 {
                     //TODO: (jmd 2015-10-01) Temporary Dumping of failure we don't know where to put. 
                     string dumpMessage =
-                        ex.ToString() + Environment.NewLine + "-----------------------------------" +
-                        result.Exception?.ToString();
+                        $"{ex}{Environment.NewLine}-----------------------------------{Environment.NewLine}{result.Exception}";
                     Initialization.SetProgress(dumpMessage);
                     dump.Dump(ticket, dumpMessage);
                 }
+
+                await Task.Delay(10.Minutes())
+                    .ContinueWith(t =>
+                    {
+                        //NOTE: (jmd 2019-11-04) This restarts the application.
+                        HttpRuntime.UnloadAppDomain();
+                    });
             });
             return this;
         }
@@ -203,15 +212,19 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageIndex CreateIndex(Analyzer analyzer = null)
         {
+
             IndexStorageConfiguration storage = Configuration.Index.Storage;
             if (storage == null)
                 return new LuceneStorageIndex();
 
+
             switch (storage.Type)
             {
                 case IndexStorageType.File:
+                    ClearLuceneLock(storage.Path);
                     return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
                 case IndexStorageType.CachedMemory:
+                    ClearLuceneLock(storage.Path);
                     return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
                 case IndexStorageType.Memory:
                     return new LuceneStorageIndex(analyzer: analyzer);
@@ -224,7 +237,7 @@ namespace DotJEM.Web.Host
         {
             path = HostingEnvironment.MapPath(path);
             string padlock = Path.Combine(path, "write.lock");
-
+            
             //TODO: (jmd 2015-10-19) All this needs prober refactorings...
             //      Basically all what we do here should be in dotjem index as a "Unlock" feature as well as an "Clear" feature. 
             Random rnd = new Random();
@@ -252,7 +265,7 @@ namespace DotJEM.Web.Host
             }
 
             //TODO: (jmd 2015-10-08) Temporary workaround to ensure indexes are build from scratch.
-            //                       untill we have a way to track the index generation again. 
+            //                       until we have a way to track the index generation again. 
             try
             {
                 Directory.GetFiles(path)

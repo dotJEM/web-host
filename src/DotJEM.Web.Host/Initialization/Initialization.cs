@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Initialization
 {
     public interface IInitializationTracker
     {
-        event EventHandler<EventArgs> Progress; 
+        event EventHandler<EventArgs> Progress;
 
+        JObject Json { get; }
         string Message { get; }
         double Percent { get; }
         bool Completed { get; }
@@ -20,6 +22,9 @@ namespace DotJEM.Web.Host.Initialization
         void SetProgress(string message, params object[] args);
         void SetProgress(double percent, string message, params object[] args);
 
+        void SetProgress(JObject json, double percent);
+        void SetProgress(JObject json, string message, params object[] args);
+        void SetProgress(JObject json, double percent, string message, params object[] args);
         void Complete();
     }
 
@@ -27,33 +32,54 @@ namespace DotJEM.Web.Host.Initialization
     {
         public event EventHandler<EventArgs> Progress;
 
-        public string Message { get; private set; }
-        public double Percent { get; private set; }
-        public bool Completed { get; private set; }
+        public JObject Json { get; private set; }
+        public string Message { get; private set; } = "";
+        public double Percent { get; private set; } = 0;
+        public bool Completed { get; private set; } = false;
         public DateTime StarTime { get; } = DateTime.Now;
         public TimeSpan Duration => DateTime.Now - StarTime;
 
         public InitializationTracker()
         {
-            Message = "";
-            Percent = 0;
+            Json = CreateJObject(new JObject());
+        }
+
+        private JObject CreateJObject(JObject template)
+        {
+            JObject json = JObject.FromObject(new
+            {
+                completed = Completed,
+                percent = Percent,
+                starTime = StarTime,
+                duration = Duration,
+                message = Message,
+            });
+            json.Merge(template);
+            return json;
         }
 
         public void SetProgress(double percent)
-        {
-            Percent = percent;
-            OnProgress();
-        }
+            => SetProgress(percent, Message);
 
         public void SetProgress(string message, params object[] args)
-        {
-            SetProgress(Percent, message, args);
-        }
+            => SetProgress(Percent, message, args);
 
         public void SetProgress(double percent, string message, params object[] args)
+            => SetProgress(new JObject(), Percent, message, args);
+
+        public void SetProgress(JObject json, double percent)
+            => SetProgress(json, percent, Message);
+
+        public void SetProgress(JObject json, string message, params object[] args)
+            => SetProgress(json, Percent, message, args);
+
+        public void SetProgress(JObject json, double percent, string message, params object[] args)
         {
             Percent = percent;
             Message = args.Any() ? string.Format(message, args) : message;
+
+            Json = CreateJObject(Json);
+            Json.Merge(json);
             OnProgress();
         }
 

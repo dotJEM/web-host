@@ -1,4 +1,5 @@
 ﻿using DotJEM.Json.Storage.Adapter.Materialize.Log;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
 {

@@ -13,13 +13,11 @@ using DotJEM.Json.Storage.Adapter.Materialize.Log;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
-using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
-using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -273,7 +271,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
 
                 await Task.WhenAll(watchers.Values.Select(watcher => watcher.Reset(writer,0, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
-                    progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
+                    progress => {
+                        initTracker.Capture(progress);
+                        tracker.SetProgress(
+                            initTracker.Json,
+                            initTracker.Message);
+                    }))));
             }
             OnIndexReset(new IndexResetEventArgs());
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
@@ -297,7 +300,13 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new {args});
 
                 Sync.Await(watchers.Values.Select(watcher => watcher.Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
-                    progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
+                    progress =>
+                    {
+                        initTracker.Capture(progress);
+                        tracker.SetProgress(
+                            initTracker.Json,
+                            initTracker.Message);
+                    }))));
             }
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
@@ -318,7 +327,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         public void UpdateIndex()
         {
-            IStorageChangeCollection[] changes = Sync.Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
+            IStorageChangeCollection[] changes = Sync
+                .Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
             OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
             index.Flush();
         }
@@ -358,16 +368,17 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             private readonly ConcurrentDictionary<string, InitializationState> states;
 
+            public string Message => string.Join(Environment.NewLine, states.Values);
+            public JObject Json => JObject.FromObject(states);
+
             public StorageIndexManagerInitializationProgressTracker(IEnumerable<string> areas)
             {
                 states = new ConcurrentDictionary<string, InitializationState>(areas.ToDictionary(v => v, v => new InitializationState(v)));
             }
 
-            public string Capture(StorageIndexChangeLogWatcherInitializationProgress progress)
+            public void Capture(StorageIndexChangeLogWatcherInitializationProgress progress)
             {
                 states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Latest, progress.Count,  progress.Done));
-
-                return string.Join(Environment.NewLine, states.Values);
             }
 
             private class InitializationState
