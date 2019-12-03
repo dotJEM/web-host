@@ -369,7 +369,17 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             private readonly ConcurrentDictionary<string, InitializationState> states;
 
             public string Message => string.Join(Environment.NewLine, states.Values);
-            public JObject Json => JObject.FromObject(states);
+            public JObject Json
+            {
+                get
+                {
+                    return states.Aggregate(new JObject(), (json, pair) =>
+                    {
+                        json[pair.Key] = pair.Value.ToJson();
+                        return json;
+                    });
+                }
+            }
 
             public StorageIndexManagerInitializationProgressTracker(IEnumerable<string> areas)
             {
@@ -381,29 +391,41 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Latest, progress.Count,  progress.Done));
             }
 
-            public class InitializationState
+            private class InitializationState
             {
-                public string Area { get; }
-                public ChangeCount Count { get; private set; }
-                public long Token { get; private set; }
-                public long Latest { get; private set; }
-                public string Done { get; private set; }
+                private readonly string area;
+                private ChangeCount count;
+                private long token;
+                private long latest;
+                private string done;
 
                 public InitializationState(string area)
                 {
-                    this.Area = area;
+                    this.area = area;
                 }
 
                 public InitializationState Add(long token, long latest, ChangeCount count, bool done)
                 {
-                    this.Done = done ? "Completed" : "Indexing";
-                    this.Count += count;
-                    this.Token = token;
-                    this.Latest = latest;
+                    this.done = done ? "Completed" : "Indexing";
+                    this.count += count;
+                    this.token = token;
+                    this.latest = latest;
                     return this;
                 }
 
-                public override string ToString() => $" -> {Area}: {Token} / {Latest} changes processed, {Count.Total} objects indexed. {Done}";
+                public override string ToString() => $" -> {area}: {token} / {latest} changes processed, {count.Total} objects indexed. {done}";
+
+                public JObject ToJson()
+                {
+                    return new JObject
+                    {
+                        [nameof(area)] = area,
+                        [nameof(count)] = JToken.FromObject(count),
+                        [nameof(token)] = token,
+                        [nameof(latest)] = latest,
+                        [nameof(done)] = done,
+                    };
+                }
             }
         }
 

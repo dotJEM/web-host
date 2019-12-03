@@ -32,19 +32,16 @@ namespace DotJEM.Web.Host.Initialization
     {
         public event EventHandler<EventArgs> Progress;
 
-        public JObject Json { get; private set; }
+        private JObject jsonData = new JObject();
+
+        public JObject Json => CreateJObject();
         public string Message { get; private set; } = "";
         public double Percent { get; private set; } = 0;
         public bool Completed { get; private set; } = false;
         public DateTime StarTime { get; } = DateTime.Now;
         public TimeSpan Duration => DateTime.Now - StarTime;
 
-        public InitializationTracker()
-        {
-            Json = CreateJObject(new JObject());
-        }
-
-        private JObject CreateJObject(JObject template)
+        private JObject CreateJObject()
         {
             JObject json = JObject.FromObject(new
             {
@@ -53,8 +50,8 @@ namespace DotJEM.Web.Host.Initialization
                 starTime = StarTime,
                 duration = Duration,
                 message = Message,
+                metaData = jsonData
             });
-            json.Merge(template);
             return json;
         }
 
@@ -65,7 +62,7 @@ namespace DotJEM.Web.Host.Initialization
             => SetProgress(Percent, message, args);
 
         public void SetProgress(double percent, string message, params object[] args)
-            => SetProgress(new JObject(), Percent, message, args);
+            => SetProgress(jsonData, Percent, message, args);
 
         public void SetProgress(JObject json, double percent)
             => SetProgress(json, percent, Message);
@@ -77,9 +74,7 @@ namespace DotJEM.Web.Host.Initialization
         {
             Percent = percent;
             Message = args.Any() ? string.Format(message, args) : message;
-
-            Json = CreateJObject(Json);
-            Json.Merge(json);
+            jsonData = json;
             OnProgress();
         }
 
