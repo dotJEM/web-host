@@ -221,11 +221,9 @@ namespace DotJEM.Web.Host
             switch (storage.Type)
             {
                 case IndexStorageType.File:
-                    ClearLuceneLock(storage.Path);
-                    return new LuceneStorageIndex(new LuceneFileIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(storage.Path), analyzer: analyzer);
                 case IndexStorageType.CachedMemory:
-                    ClearLuceneLock(storage.Path);
-                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(ClearLuceneLock(storage.Path)), analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(storage.Path), analyzer: analyzer);
                 case IndexStorageType.Memory:
                     return new LuceneStorageIndex(analyzer: analyzer);
                 default:
@@ -233,51 +231,6 @@ namespace DotJEM.Web.Host
             }
         }
 
-        private static string ClearLuceneLock(string path)
-        {
-            path = HostingEnvironment.MapPath(path);
-            string padlock = Path.Combine(path, "write.lock");
-            
-            //TODO: (jmd 2015-10-19) All this needs prober refactorings...
-            //      Basically all what we do here should be in dotjem index as a "Unlock" feature as well as an "Clear" feature. 
-            Random rnd = new Random();
-            if (File.Exists(padlock))
-            {
-                for (int i = 0; ; i++)
-                {
-                    try
-                    {
-                        if (File.Exists(padlock))
-                        {
-                            File.Delete(padlock);
-                        }
-                        break;
-                    }
-                    catch (Exception)
-                    {
-                        //file might be locked...
-                        if (i > 10)
-                            throw;
-
-                        Thread.Sleep(rnd.Next(10) * 100 + i * 100);
-                    }
-                }
-            }
-
-            //TODO: (jmd 2015-10-08) Temporary workaround to ensure indexes are build from scratch.
-            //                       until we have a way to track the index generation again. 
-            try
-            {
-                Directory.GetFiles(path)
-                    .ForEach(File.Delete);
-            }
-            catch (Exception)
-            {
-                //ignore for now.
-            }
-
-            return path;
-        }
 
         protected virtual IStorageContext CreateStorage()
         {
