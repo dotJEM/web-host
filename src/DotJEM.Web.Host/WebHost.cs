@@ -212,18 +212,16 @@ namespace DotJEM.Web.Host
 
         protected virtual IStorageIndex CreateIndex(Analyzer analyzer = null)
         {
-
             IndexStorageConfiguration storage = Configuration.Index.Storage;
             if (storage == null)
                 return new LuceneStorageIndex();
-
-
+            
             switch (storage.Type)
             {
                 case IndexStorageType.File:
-                    return new LuceneStorageIndex(new LuceneFileIndexStorage(storage.Path), analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(HostingEnvironment.MapPath(storage.Path)), analyzer: analyzer);
                 case IndexStorageType.CachedMemory:
-                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(storage.Path), analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(HostingEnvironment.MapPath(storage.Path)), analyzer: analyzer);
                 case IndexStorageType.Memory:
                     return new LuceneStorageIndex(analyzer: analyzer);
                 default:
