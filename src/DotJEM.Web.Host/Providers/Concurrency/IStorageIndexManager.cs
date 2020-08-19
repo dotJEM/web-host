@@ -245,7 +245,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler, IInitializationTracker tracker, IDiagnosticsLogger logger)
         {
             this.index = index;
-            this.debugging = configuration.Index.Debugging;
+            this.debugging = configuration.Index.Debugging.Enabled;
             if (this.debugging)
                 this.index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
             this.scheduler = scheduler;

@@ -16,8 +16,8 @@ namespace DotJEM.Web.Host.Configuration.Elements
 
     public class IndexDebuggingConfiguration : ConfigurationElement
     {
-        [ConfigurationProperty("enable", IsRequired = false, DefaultValue = false)]
-        public bool Enable => (bool)this["enable"];
+        [ConfigurationProperty("enabled", IsRequired = false, DefaultValue = false)]
+        public bool Enabled => (bool)this["enabled"];
 
         [ConfigurationProperty("info-stream", IsRequired = false, DefaultValue = null)]
         public InfoStreamConfiguration IndexWriterInfoStream => (InfoStreamConfiguration)this["index-writer-info-stream"];
