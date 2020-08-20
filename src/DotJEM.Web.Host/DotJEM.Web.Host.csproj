@@ -374,6 +374,7 @@
     <Compile Include="WebHost.cs" />
     <Compile Include="WebHostApiController.cs" />
     <Compile Include="WebRoute.cs" />
+    <Compile Include="Writers\RollingStreamWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

@@ -31,7 +31,9 @@ using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Util;
+using DotJEM.Web.Host.Writers;
 using Lucene.Net.Analysis;
+using Lucene.Net.Index;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
@@ -104,6 +106,7 @@ namespace DotJEM.Web.Host
             AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
             Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
 
+            AttachIndexDebugging();
             Index = CreateIndex();
             Storage = CreateStorage();
 
@@ -197,6 +200,19 @@ namespace DotJEM.Web.Host
             });
             return this;
         }
+
+        private void AttachIndexDebugging()
+        {
+            IndexDebuggingConfiguration config = Configuration.Index.Debugging;
+            if (!config.Enabled) return;
+
+            InfoStreamConfiguration writerConfig = config?.IndexWriterInfoStream;
+            if (writerConfig != null)
+            {
+                IndexWriter.DefaultInfoStream = new RollingStreamWriter(writerConfig.Path, AdvParser.ParseByteCount(writerConfig.MaxSize), writerConfig.MaxFiles, writerConfig.Zip);
+            }
+        }
+
         protected virtual void ResolveComponents()
         {
             container.ResolveAll<IExceptionLogger>().ForEach(logger => HttpConfiguration.Services.Add(typeof(IExceptionLogger), logger));
@@ -213,9 +229,10 @@ namespace DotJEM.Web.Host
         protected virtual IStorageIndex CreateIndex(Analyzer analyzer = null)
         {
             IndexStorageConfiguration storage = Configuration.Index.Storage;
+
             if (storage == null)
                 return new LuceneStorageIndex();
-            
+
             switch (storage.Type)
             {
                 case IndexStorageType.File:

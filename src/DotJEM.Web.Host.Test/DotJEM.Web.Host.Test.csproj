@@ -103,6 +103,7 @@
     <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleConflictedMerges.cs" />
     <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleNonConflictedMerges.cs" />
     <Compile Include="Services\Pipeline\PipelineHandlerSetTest.cs" />
+    <Compile Include="Writers\RollingStreamWriterTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -114,5 +115,6 @@
       <Name>DotJEM.Web.Host</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
