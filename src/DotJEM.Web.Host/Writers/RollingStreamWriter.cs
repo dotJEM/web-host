@@ -135,7 +135,7 @@ namespace DotJEM.Web.Host.Writers
 
         private Task CompactAndClean(string[] files)
         {
-            return Task.Run(() =>
+            return Task.Factory.StartNew(() =>
             {
                 if (zip)
                 {
@@ -159,7 +159,7 @@ namespace DotJEM.Web.Host.Writers
                 {
                     DeleteFiles(files);
                 }
-            });
+            }, TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         private void DeleteFiles(string[] files)
