@@ -66,6 +66,19 @@ namespace DotJEM.Web.Host.Writers
             }
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                lock (padLock)
+                {
+                    innerWriter.Dispose();
+                    innerWriter = null;
+                }
+            }
+            base.Dispose(disposing);
+        }
+
         private void CheckFileSizeLimitReached()
         {
             lock (padLock)

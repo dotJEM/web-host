@@ -17,14 +17,14 @@ namespace DotJEM.Web.Host.Test.Writers
         {
             using (var directory = TemporaryTestDirectory.Generate())
             {
-                RollingStreamWriter writer = new RollingStreamWriter(directory.GenerateFile("lucene-writer.log"), 1024*5, 5, true);
-
-                for (int i = 0; i < 1000000; i++)
+                using (RollingStreamWriter writer = new RollingStreamWriter(directory.GenerateFile("lucene-writer.log"), 1024 * 5, 5, true)) 
                 {
-                    writer.WriteLine("Bring on the pain!");
-                    writer.WriteLine("We are writing all day long!!!");
+                    for (int i = 0; i < 1000000; i++)
+                    {
+                        writer.WriteLine("Bring on the pain!");
+                        writer.WriteLine("We are writing all day long!!!");
+                    }
                 }
-
             }
         }
 
