@@ -74,6 +74,7 @@ namespace DotJEM.Web.Host.Writers
                 {
                     innerWriter.Dispose();
                     innerWriter = null;
+                    pendingAsyncTask?.Wait();
                 }
             }
             base.Dispose(disposing);
