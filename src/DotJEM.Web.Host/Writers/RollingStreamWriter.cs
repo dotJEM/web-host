@@ -27,7 +27,6 @@ namespace DotJEM.Web.Host.Writers
             this.maxSize = maxSize;
             this.maxFiles = maxFiles;
             this.zip = zip;
-
             this.innerWriter = CreateWriter();
         }
 
