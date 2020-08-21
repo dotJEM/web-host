@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Reflection;
-using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Diagnostic;
@@ -14,7 +10,6 @@ using DotJEM.Diagnostic.DataProviders;
 using DotJEM.Diagnostic.Writers;
 using DotJEM.Json.Index.Util;
 using DotJEM.Web.Host.Configuration.Elements;
-using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance
 {

@@ -210,8 +210,9 @@ namespace DotJEM.Web.Host
             InfoStreamConfiguration writerConfig = config?.IndexWriterInfoStream;
             if (writerConfig != null)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(writerConfig.Path));
-                IndexWriter.DefaultInfoStream = new RollingStreamWriter(writerConfig.Path, AdvParser.ParseByteCount(writerConfig.MaxSize), writerConfig.MaxFiles, writerConfig.Zip);
+                string path = HostingEnvironment.MapPath(writerConfig.Path);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                IndexWriter.DefaultInfoStream = new RollingStreamWriter(path, AdvParser.ParseByteCount(writerConfig.MaxSize), writerConfig.MaxFiles, writerConfig.Zip);
             }
         }
 
