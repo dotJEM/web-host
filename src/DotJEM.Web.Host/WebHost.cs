@@ -204,7 +204,8 @@ namespace DotJEM.Web.Host
         private void AttachIndexDebugging()
         {
             IndexDebuggingConfiguration config = Configuration.Index.Debugging;
-            if (!config.Enabled) return;
+            if (!config.Enabled) 
+                return;
 
             InfoStreamConfiguration writerConfig = config?.IndexWriterInfoStream;
             if (writerConfig != null)
