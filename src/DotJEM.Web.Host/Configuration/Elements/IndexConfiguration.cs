@@ -4,7 +4,7 @@ namespace DotJEM.Web.Host.Configuration.Elements
 {
     public class IndexConfiguration : ConfigurationElement
     {
-        [ConfigurationProperty("debug", IsRequired = false, DefaultValue = null)]
+        [ConfigurationProperty("debug", IsRequired = false)]
         public IndexDebuggingConfiguration Debugging => this["debug"] as IndexDebuggingConfiguration;
 
         [ConfigurationProperty("storage", IsRequired = false)]
@@ -19,8 +19,8 @@ namespace DotJEM.Web.Host.Configuration.Elements
         [ConfigurationProperty("enabled", IsRequired = false, DefaultValue = false)]
         public bool Enabled => (bool)this["enabled"];
 
-        [ConfigurationProperty("info-stream", IsRequired = false, DefaultValue = null)]
-        public InfoStreamConfiguration IndexWriterInfoStream => (InfoStreamConfiguration)this["index-writer-info-stream"];
+        [ConfigurationProperty("index-writer-info-stream", IsRequired = false)]
+        public InfoStreamConfiguration IndexWriterInfoStream => this["index-writer-info-stream"] as InfoStreamConfiguration;
     }
 
     public class InfoStreamConfiguration : ConfigurationElement
