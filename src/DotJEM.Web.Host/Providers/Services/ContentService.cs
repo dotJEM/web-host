@@ -25,9 +25,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         JObject Delete(Guid id, string contentType);
 
-        IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
         JObject History(Guid id, string contentType, int version);
         JObject Revert(Guid id, string contentType, int version);
+        IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
+        IEnumerable<JObject> Deleted(string contentType, DateTime? from = null, DateTime? to = null);
     }
 
     public interface IContentMergeService
@@ -192,13 +193,13 @@ namespace DotJEM.Web.Host.Providers.Services
             return performance.TrackFunction(() => area.History.Get(id, from, to), TRACK_TYPE, new { fn = $"ContentService.History({id}, {contentType}, {from}, {to})" });
         }
 
-        public IEnumerable<JObject> Deleted(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
+        public IEnumerable<JObject> Deleted(string contentType, DateTime? from = null, DateTime? to = null)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
                 return Enumerable.Empty<JObject>();
 
-            return performance.TrackFunction(() => area.History.Get(id, from, to), TRACK_TYPE, new { fn = $"ContentService.History({id}, {contentType}, {from}, {to})"});
+            return performance.TrackFunction(() => area.History.GetDeleted(contentType, from, to), TRACK_TYPE, new { fn = $"ContentService.Deleted({id}, {contentType}, {from}, {to})"});
         }
 
         public JObject Revert(Guid id, string contentType, int version)
