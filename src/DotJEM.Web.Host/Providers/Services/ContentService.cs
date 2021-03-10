@@ -199,7 +199,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 return Enumerable.Empty<JObject>();
 
-            return performance.TrackFunction(() => area.History.GetDeleted(contentType, from, to), TRACK_TYPE, new { fn = $"ContentService.Deleted({id}, {contentType}, {from}, {to})"});
+            return performance.TrackFunction(() => area.History.GetDeleted(contentType, from, to), TRACK_TYPE, new { fn = $"ContentService.Deleted({contentType}, {from}, {to})"});
         }
 
         public JObject Revert(Guid id, string contentType, int version)
