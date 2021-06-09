@@ -8,6 +8,7 @@ using DotJEM.Diagnostic.Collectors;
 using DotJEM.Diagnostic.Correlation;
 using DotJEM.Diagnostic.DataProviders;
 using DotJEM.Diagnostic.Writers;
+using DotJEM.Diagnostic.Writers.NonBlocking;
 using DotJEM.Json.Index.Util;
 using DotJEM.Web.Host.Configuration.Elements;
 

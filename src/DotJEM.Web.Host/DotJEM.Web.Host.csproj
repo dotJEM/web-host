@@ -43,7 +43,7 @@
       <HintPath>..\packages\DotJEM.AdvParsers.1.1.7\lib\netstandard1.3\DotJEM.AdvParsers.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Diagnostic.1.0.34\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
+      <HintPath>..\packages\DotJEM.Diagnostic.1.0.36\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Json.Index, Version=0.0.111.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Index.0.0.111\lib\net45\DotJEM.Json.Index.dll</HintPath>
