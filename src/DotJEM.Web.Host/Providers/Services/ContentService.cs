@@ -6,6 +6,7 @@ using DotJEM.Diagnostic;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
@@ -31,49 +32,6 @@ namespace DotJEM.Web.Host.Providers.Services
         IEnumerable<JObject> Deleted(string contentType, DateTime? from = null, DateTime? to = null);
     }
 
-    public interface IContentMergeService
-    {
-        JObject EnsureMerge(Guid id, JObject entity, JObject prev);
-    }
-
-    public class ContentMergeService : IContentMergeService
-    {
-        private readonly IJsonMergeVisitor merger;
-        private readonly IStorageArea area;
-
-        public ContentMergeService(IJsonMergeVisitor merger, IStorageArea area)
-        {
-            this.merger = merger;
-            this.area = area;
-        }
-
-        public JObject EnsureMerge(Guid id, JObject update, JObject other)
-        {
-            //TODO: (jmd 2015-11-25) Dummy for designing the interface. Remove.
-            //throw new JsonMergeConflictException(new DummyMergeResult());
-
-            if (!area.HistoryEnabled)
-                return update;
-
-            if (update["$version"] == null)
-            {
-                throw new InvalidOperationException("A $version property is required for all PUT request, it should be the version of the document as you retreived it.");
-            }
-
-            int uVersion = (int)update["$version"];
-            int oVersion = (int)other["$version"];
-
-            if (uVersion == oVersion)
-                return update;
-
-            JObject origin = area.History.Get(id, uVersion);
-            return (JObject)merger
-                .Merge(update, other, origin)
-                .AddVersion(uVersion, oVersion)
-                .Merged;
-        }
-    }
-
     //TODO: Apply Pipeline for all requests.
     public class ContentService : IContentService
     {
@@ -83,6 +41,7 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
         private readonly IPipeline pipeline;
+        private readonly IAsyncPipeline asyncPipeline;
         private readonly ILogger performance;
         private readonly IContentMergeService merger;
 
@@ -121,6 +80,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Get(Guid id, string contentType)
         {
+            var ctx = asyncPipeline.ContextFactory.CreateGetContext(contentType);
+
+            asyncPipeline.Get(id, ctx);
+
             JObject entity = performance.TrackFunction(() => area.Get(id), TRACK_TYPE, new { fn = $"ContentService.Get({id}, {contentType})" } );
             using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
@@ -131,6 +94,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public JObject Post(string contentType, JObject entity)
         {
+
             using (PipelineContext context = pipeline.CreateContext(contentType, entity))
             {
                 entity = pipeline.ExecuteBeforePost(entity, contentType, context);

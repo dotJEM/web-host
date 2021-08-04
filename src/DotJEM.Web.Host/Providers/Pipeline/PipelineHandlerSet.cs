@@ -46,7 +46,6 @@ namespace DotJEM.Web.Host.Providers.Pipeline
             return ordered.Select(type => map[type]).ToList();
         }
 
-
         public IEnumerator<IPipelineHandler> GetEnumerator()
         {
             return handlers.GetEnumerator();
