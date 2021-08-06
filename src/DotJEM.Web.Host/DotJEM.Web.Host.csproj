@@ -292,6 +292,7 @@
     <Compile Include="ApiControllerExtentions.cs" />
     <Compile Include="Castle\ArraySubResolver.cs" />
     <Compile Include="Castle\ControllerSelector.cs" />
+    <Compile Include="Castle\WindsorContainerExtensions.cs" />
     <Compile Include="Castle\WindsorControllerActivator.cs" />
     <Compile Include="Common\Disposeable.cs" />
     <Compile Include="Configuration\Elements\DiagnosticsConfiguration.cs" />

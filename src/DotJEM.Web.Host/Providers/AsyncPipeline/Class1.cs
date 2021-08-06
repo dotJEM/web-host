@@ -8,7 +8,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers;
+using Castle.MicroKernel.SubSystems.Configuration;
+using Castle.Windsor;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.Pipeline;
@@ -20,13 +23,13 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         string ContentType { get; }
     }
+
     public interface IGetContext : IContext
     {
     }
 
     public interface IPostContext : IContext
     {
-        JObject Previous { get; }
     }
 
     public interface IPutContext : IContext
@@ -43,6 +46,29 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         JObject Previous { get; }
     }
+
+    internal class EmptyContext : IGetContext, IPostContext
+    {
+        public string ContentType { get; }
+      
+        public EmptyContext(string contentType)
+        {
+            ContentType = contentType;
+        }
+    }
+
+    internal class PreviousContext : IPutContext, IPatchContext, IDeleteContext
+    {
+        public string ContentType { get; }
+        public JObject Previous { get; }
+
+        public PreviousContext(string contentType, JObject previous)
+        {
+            ContentType = contentType;
+            Previous = previous;
+        }
+    }
+
 
     public interface IAsyncPipelineHandler
     {
@@ -108,58 +134,51 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public virtual Task<JObject> Delete(Guid id, IDeleteContext context, INextHandler<Guid> next) => next.Invoke(id);
     }
 
-    [ContentTypeFilter(".*")]
-    public class ExampleHandler : AsyncPipelineHandler
-    {
-        public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
-        {
-            JObject entity = await next.Invoke().ConfigureAwait(false);
-            entity["foo"] = "HAHA";
-            return entity;
-        }
-    }
+
     public interface IAsyncPipelineHandlerSet
     {
-        IBoundPipeline For(string contentType);
+        IPipeline For(string contentType);
     }
 
     public class ContentTypeFilterAttribute : Attribute
     {
-        public Regex Filter { get; }
+        private readonly Regex filter;
 
         public ContentTypeFilterAttribute(string regex, RegexOptions options = RegexOptions.Compiled | RegexOptions.IgnoreCase)
         {
-            Filter = new Regex(regex, options);
+            filter = new Regex(regex, options);
         }
 
-        public bool IsMatch(string contentType) => Filter.IsMatch(contentType);
+        public bool IsMatch(string contentType) => filter.IsMatch(contentType);
     }
 
     public class AsyncPipelineHandlerSet : IAsyncPipelineHandlerSet
     {
         private readonly ILogger performance;
+        private readonly IAsyncPipelineHandler termination;
         private readonly IAsyncPipelineHandler[] handlers;
-        private readonly ConcurrentDictionary<string, IBoundPipeline> cache = new ();
+        private readonly ConcurrentDictionary<string, IPipeline> cache = new ();
 
-        public AsyncPipelineHandlerSet(ILogger performance, IAsyncPipelineHandler[] steps)
+        public AsyncPipelineHandlerSet(ILogger performance, IAsyncPipelineHandler[] steps, IAsyncPipelineHandler termination)
         {
             this.performance = performance;
+            this.termination = termination;
             handlers = OrderHandlers(steps);
         }
         
-        public IBoundPipeline For(string contentType)
+        public IPipeline For(string contentType)
         {
             return cache.GetOrAdd(contentType, CreateBoundPipeline);
         }
 
-        private IBoundPipeline CreateBoundPipeline(string contentType)
+        private IPipeline CreateBoundPipeline(string contentType)
         {
+            IPipelineBuidler pipeline = performance.IsEnabled()
+                ? new PerformanceTrackingPipelineBuilder(performance, termination)
+                : new PipelineBuilder(termination);
             Stack<IAsyncPipelineHandler> filtered = new Stack<IAsyncPipelineHandler>(handlers.Where(x => CheckHandler(x, contentType)));
-            IBoundPipeline pipeline = performance.IsEnabled()
-                ? new PerformanceTrackingBoundPipeline(performance, filtered.Pop())
-                : new BoundPipeline(filtered.Pop());
             while (filtered.Count > 0) pipeline = pipeline.PushAfter(filtered.Pop());
-            return pipeline;
+            return pipeline.Build();
         }
 
         private bool CheckHandler(IAsyncPipelineHandler arg, string contentType)
@@ -204,10 +223,48 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
     }
 
-    public interface IBoundPipeline
+    public interface IPipelineBuidler
     {
-        IBoundPipeline PushAfter(IAsyncPipelineHandler handler);
+        IPipelineBuidler PushAfter(IAsyncPipelineHandler handler);
+        IPipeline Build();
+    }
 
+    public class PipelineBuilder : IPipelineBuidler
+    {
+        private readonly IAsyncPipelineHandler handler;
+        private readonly IPipelineBuidler next;
+
+        public PipelineBuilder(IAsyncPipelineHandler handler, IPipelineBuidler next = null)
+        {
+            this.handler = handler;
+            this.next = next;
+        }
+
+        public IPipelineBuidler PushAfter(IAsyncPipelineHandler handler) => new PipelineBuilder(handler, this);
+
+        public IPipeline Build() => new Pipeline(handler, next.Build());
+    }
+
+    public class PerformanceTrackingPipelineBuilder : IPipelineBuidler
+    {
+        private readonly ILogger performance;
+        private readonly IAsyncPipelineHandler handler;
+        private readonly IPipelineBuidler next;
+
+        public PerformanceTrackingPipelineBuilder(ILogger performance, IAsyncPipelineHandler handler, IPipelineBuidler next = null)
+        {
+            this.performance = performance;
+            this.handler = handler;
+            this.next = next;
+        }
+
+        public IPipelineBuidler PushAfter(IAsyncPipelineHandler handler) => new PerformanceTrackingPipelineBuilder(performance, handler, this);
+
+        public IPipeline Build() => new PerformanceTrackingPipeline(performance, handler, next?.Build());
+    }
+
+    public interface IPipeline
+    {
         Task<JObject> Get(Guid id, IGetContext context);
         Task<JObject> Post(JObject entity, IPostContext context);
         Task<JObject> Put(Guid id, JObject entity, IPutContext context);
@@ -215,20 +272,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         Task<JObject> Delete(Guid id, IDeleteContext context);
     }
 
-    public class BoundPipeline : IBoundPipeline
+    public class Pipeline : IPipeline
     {
-        private readonly BoundPipeline next;
+        private readonly IPipeline next;
         private readonly IAsyncPipelineHandler handler;
 
-        public BoundPipeline(IAsyncPipelineHandler handler, BoundPipeline next = null)
+        public Pipeline(IAsyncPipelineHandler handler, IPipeline next = null)
         {
             this.handler = handler;
             this.next = next;
-        }
-
-        public IBoundPipeline PushAfter(IAsyncPipelineHandler handler)
-        {
-            return new BoundPipeline(handler, this);
         }
 
         public Task<JObject> Get(Guid id, IGetContext context)
@@ -257,15 +309,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
     }
 
-    public class PerformanceTrackingBoundPipeline : IBoundPipeline
+    public class PerformanceTrackingPipeline : IPipeline
     {
-        private readonly PerformanceTrackingBoundPipeline next;
+        private readonly IPipeline next;
         private readonly ILogger performance;
         private readonly IAsyncPipelineHandler handler;
 
         private readonly string targetName;
 
-        public PerformanceTrackingBoundPipeline(ILogger performance, IAsyncPipelineHandler handler, PerformanceTrackingBoundPipeline next = null)
+        public PerformanceTrackingPipeline(ILogger performance, IAsyncPipelineHandler handler, IPipeline next = null)
         {
             this.performance = performance;
             this.handler = handler;
@@ -273,11 +325,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             this.targetName = handler.GetType().FullName;
         }
         
-        public IBoundPipeline PushAfter(IAsyncPipelineHandler handler)
-        {
-            return new PerformanceTrackingBoundPipeline(performance, handler, this);
-        }
-
         public async Task<JObject> Get(Guid id, IGetContext context)
         {
             using (Track(context)) return await handler.Get(id, context, new NextHandler<Guid>(id, x => next.Get(x, context)));
@@ -322,10 +369,44 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     public interface IAsyncPipelineContextFactory
     {
         IGetContext CreateGetContext(string contentType);
+        IPostContext CreatePostContext(string contentType);
+        IPutContext CreatePutContext(string contentType, JObject prevous);
+        IPatchContext CreatePatchContext(string contentType, JObject prevous);
+        IDeleteContext CreateDeleteContext(string contentType, JObject previous);
     }
 
-    class DefaultAsyncPipelineContextFactory : IAsyncPipelineContextFactory
+    public class DefaultAsyncPipelineContextFactory : IAsyncPipelineContextFactory
     {
+        public IGetContext CreateGetContext(string contentType) => new EmptyContext(contentType);
+        public IPostContext CreatePostContext(string contentType) => new EmptyContext(contentType);
+        public IPutContext CreatePutContext(string contentType, JObject previous) => new PreviousContext(contentType, previous);
+        public IPatchContext CreatePatchContext(string contentType, JObject previous) => new PreviousContext(contentType, previous);
+        public IDeleteContext CreateDeleteContext(string contentType, JObject previous) => new PreviousContext(contentType, previous);
+    }
+
+    public interface IAsyncPipelineFactory
+    {
+        IAsyncPipeline Create(IAsyncPipelineHandler termination);
+
+    }
+
+    public class AsyncPipelineFactory : IAsyncPipelineFactory
+    {
+        private readonly ILogger logger;
+        private readonly IAsyncPipelineHandler[] handlers;
+        private readonly IAsyncPipelineContextFactory contextFactory;
+
+        public AsyncPipelineFactory(ILogger logger, IAsyncPipelineHandler[] handlers, IAsyncPipelineContextFactory contextFactory = null)
+        {
+            this.logger = logger;
+            this.handlers = handlers;
+            this.contextFactory = contextFactory ?? new DefaultAsyncPipelineContextFactory();
+        }
+
+        public IAsyncPipeline Create(IAsyncPipelineHandler termination)
+        {
+            return new AsyncPipeline(new AsyncPipelineHandlerSet(logger, handlers, termination), contextFactory);
+        }
     }
 
     public interface IAsyncPipeline
@@ -336,6 +417,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         Task<JObject> Put(Guid id, JObject entity, IPutContext context);
         Task<JObject> Patch(Guid id, JObject entity, IPatchContext context);
         Task<JObject> Delete(Guid id, IDeleteContext context);
+
     }
 
     public class AsyncPipeline : IAsyncPipeline
@@ -344,9 +426,9 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
         public IAsyncPipelineContextFactory ContextFactory { get; }
 
-        public AsyncPipeline(IAsyncPipelineHandlerSet pipelines, IAsyncPipelineContextFactory factory = null)
+        public AsyncPipeline(IAsyncPipelineHandlerSet pipelines, IAsyncPipelineContextFactory factory)
         {
-            ContextFactory = factory ?? new DefaultAsyncPipelineContextFactory();
+            ContextFactory = factory;
             this.pipelines = pipelines;
         }
 
@@ -374,6 +456,13 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         {
             return pipelines.For(context.ContentType).Delete(id, context);
         }
+    }
 
+    public class AsyncPipelineInstaller : IWindsorInstaller
+    {
+        public void Install(IWindsorContainer container, IConfigurationStore store)
+        {
+            container.Register(Component.For<IAsyncPipelineFactory>().ImplementedBy<AsyncPipelineFactory>().LifestyleTransient());
+        }
     }
 }
