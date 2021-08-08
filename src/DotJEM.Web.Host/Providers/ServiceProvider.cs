@@ -25,6 +25,8 @@ namespace DotJEM.Web.Host.Providers
         public TService Create(string areaName)
         {
             TService service = GetOrCreateService(areaName);
+
+
             //service.Controller = controller;
             return service;
         }
