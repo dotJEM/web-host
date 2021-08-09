@@ -9,6 +9,7 @@ using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using Newtonsoft.Json.Linq;
 
 namespace Demo

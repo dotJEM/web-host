@@ -14,62 +14,12 @@ using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using DotJEM.Web.Host.Providers.Pipeline;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
-    public interface IContext
-    {
-        string ContentType { get; }
-    }
-
-    public interface IGetContext : IContext
-    {
-    }
-
-    public interface IPostContext : IContext
-    {
-    }
-
-    public interface IPutContext : IContext
-    {
-        JObject Previous { get; }
-    }
-
-    public interface IPatchContext : IContext
-    {
-        JObject Previous { get; }
-    }
-
-    public interface IDeleteContext : IContext
-    {
-        JObject Previous { get; }
-    }
-
-    internal class EmptyContext : IGetContext, IPostContext
-    {
-        public string ContentType { get; }
-      
-        public EmptyContext(string contentType)
-        {
-            ContentType = contentType;
-        }
-    }
-
-    internal class PreviousContext : IPutContext, IPatchContext, IDeleteContext
-    {
-        public string ContentType { get; }
-        public JObject Previous { get; }
-
-        public PreviousContext(string contentType, JObject previous)
-        {
-            ContentType = contentType;
-            Previous = previous;
-        }
-    }
-
-
     public interface IAsyncPipelineHandler
     {
         Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next);
@@ -134,7 +84,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public virtual Task<JObject> Delete(Guid id, IDeleteContext context, INextHandler<Guid> next) => next.Invoke(id);
     }
 
-
     public interface IAsyncPipelineHandlerSet
     {
         IPipeline For(string contentType);
@@ -176,7 +125,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             IPipelineBuidler pipeline = performance.IsEnabled()
                 ? new PerformanceTrackingPipelineBuilder(performance, termination)
                 : new PipelineBuilder(termination);
-            Stack<IAsyncPipelineHandler> filtered = new Stack<IAsyncPipelineHandler>(handlers.Where(x => CheckHandler(x, contentType)));
+            Stack<IAsyncPipelineHandler> filtered = new(handlers.Where(x => CheckHandler(x, contentType)));
             while (filtered.Count > 0) pipeline = pipeline.PushAfter(filtered.Pop());
             return pipeline.Build();
         }

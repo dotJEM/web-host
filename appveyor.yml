@@ -1,4 +1,4 @@
-version: 0.4.{build}
+version: 0.4.{build}-Beta.001
 image: Visual Studio 2019
 
 configuration: Release
@@ -37,8 +37,16 @@ on_success:
 - bash copilot
 
 deploy:
-  provider: NuGet
-  api_key:
-    secure: ahs8uNUo4+SV91Fury7y5vlrMNkyxo7d0U+cqRMQIFtAXkqL4ZCW4BAtvaYcWaoh
-  on:
-    branch: master 
+  - provider: NuGet
+    name: Master
+    api_key:
+      secure: ahs8uNUo4+SV91Fury7y5vlrMNkyxo7d0U+cqRMQIFtAXkqL4ZCW4BAtvaYcWaoh
+    on:
+      branch: master 
+      
+  - provider: NuGet
+    name: Beta
+    api_key:
+      secure: ahs8uNUo4+SV91Fury7y5vlrMNkyxo7d0U+cqRMQIFtAXkqL4ZCW4BAtvaYcWaoh
+    on:
+      branch: beta 
