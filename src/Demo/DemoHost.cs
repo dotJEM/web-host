@@ -10,6 +10,8 @@ using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using Newtonsoft.Json.Linq;
 
 namespace Demo
@@ -36,7 +38,7 @@ namespace Demo
             container.Register(Component.For<ContentController>().LifestyleTransient());
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
             
-            container.RegisterPipelineHandler<ExampleHandler>();
+            container.RegisterPipelineStep<ExampleHandler>();
 
         }
     }
@@ -44,6 +46,7 @@ namespace Demo
     [ContentTypeFilter(".*")]
     public class ExampleHandler : AsyncPipelineHandler
     {
+        
         public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);

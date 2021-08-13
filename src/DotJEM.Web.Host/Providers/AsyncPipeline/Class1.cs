@@ -15,80 +15,20 @@ using Castle.Windsor;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
 using DotJEM.Web.Host.Providers.Pipeline;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
-    public interface IAsyncPipelineHandler
-    {
-        Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next);
-        Task<JObject> Post(JObject entity, IPostContext context, INextHandler<JObject> next);
-        Task<JObject> Put(Guid id, JObject entity, IPutContext context, INextHandler<Guid, JObject> next);
-        Task<JObject> Patch(Guid id, JObject entity, IPatchContext context, INextHandler<Guid, JObject> next);
-        Task<JObject> Delete(Guid id, IDeleteContext context, INextHandler<Guid> next);
-    }
 
-    public interface INextHandler<in TOptArg>
-    {
-        Task<JObject> Invoke();
-        Task<JObject> Invoke(TOptArg narg);
-    }
 
-    public class NextHandler<TOptArg> : INextHandler<TOptArg>
-    {
-        private readonly TOptArg arg;
-        private readonly Func<TOptArg, Task<JObject>> target;
-
-        public NextHandler(TOptArg arg, Func<TOptArg, Task<JObject>> target)
-        {
-            this.arg = arg;
-            this.target = target;
-        }
-
-        public Task<JObject> Invoke() => Invoke(arg);
-
-        public Task<JObject> Invoke(TOptArg newArg) => target.Invoke(newArg);
-    }
-
-    public interface INextHandler<in TOptArg1, in TObtArg2>
-    {
-        Task<JObject> Invoke();
-        Task<JObject> Invoke(TOptArg1 arg1, TObtArg2 arg2);
-    }
-
-    public class NextHandler<TOptArg1, TOptArg2> : INextHandler<TOptArg1, TOptArg2>
-    {
-        private readonly TOptArg1 arg1;
-        private readonly TOptArg2 arg2;
-        private readonly Func<TOptArg1, TOptArg2, Task<JObject>> target;
-
-        public NextHandler(TOptArg1 arg1, TOptArg2 arg2, Func<TOptArg1, TOptArg2, Task<JObject>> target)
-        {
-            this.arg1 = arg1;
-            this.arg2 = arg2;
-            this.target = target;
-        }
-
-        public Task<JObject> Invoke() => Invoke(arg1, arg2);
-
-        public Task<JObject> Invoke(TOptArg1 newArg1, TOptArg2 newArg2) => target(newArg1, newArg2);
-    }
-
-    public abstract class AsyncPipelineHandler : IAsyncPipelineHandler
-    {
-        public virtual Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next) => next.Invoke();
-        public virtual Task<JObject> Post(JObject entity, IPostContext context, INextHandler<JObject> next) => next.Invoke();
-        public virtual Task<JObject> Put(Guid id, JObject entity, IPutContext context, INextHandler<Guid, JObject> next) => next.Invoke();
-        public virtual Task<JObject> Patch(Guid id, JObject entity, IPatchContext context, INextHandler<Guid, JObject> next) => next.Invoke(id, entity);
-        public virtual Task<JObject> Delete(Guid id, IDeleteContext context, INextHandler<Guid> next) => next.Invoke(id);
-    }
-
-    public interface IAsyncPipelineHandlerSet
+    public interface IAsyncPipelineHandlerCollection
     {
         IPipeline For(string contentType);
     }
 
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class ContentTypeFilterAttribute : Attribute
     {
         private readonly Regex filter;
@@ -101,14 +41,14 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public bool IsMatch(string contentType) => filter.IsMatch(contentType);
     }
 
-    public class AsyncPipelineHandlerSet : IAsyncPipelineHandlerSet
+    public class AsyncPipelineHandlerCollection : IAsyncPipelineHandlerCollection
     {
         private readonly ILogger performance;
         private readonly IAsyncPipelineHandler termination;
         private readonly IAsyncPipelineHandler[] handlers;
         private readonly ConcurrentDictionary<string, IPipeline> cache = new ();
 
-        public AsyncPipelineHandlerSet(ILogger performance, IAsyncPipelineHandler[] steps, IAsyncPipelineHandler termination)
+        public AsyncPipelineHandlerCollection(ILogger performance, IAsyncPipelineHandler[] steps, IAsyncPipelineHandler termination)
         {
             this.performance = performance;
             this.termination = termination;
@@ -354,7 +294,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
         public IAsyncPipeline Create(IAsyncPipelineHandler termination)
         {
-            return new AsyncPipeline(new AsyncPipelineHandlerSet(logger, handlers, termination), contextFactory);
+            return new AsyncPipeline(new AsyncPipelineHandlerCollection(logger, handlers, termination), contextFactory);
         }
     }
 
@@ -371,11 +311,11 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     public class AsyncPipeline : IAsyncPipeline
     {
-        private readonly IAsyncPipelineHandlerSet pipelines;
+        private readonly IAsyncPipelineHandlerCollection pipelines;
 
         public IAsyncPipelineContextFactory ContextFactory { get; }
 
-        public AsyncPipeline(IAsyncPipelineHandlerSet pipelines, IAsyncPipelineContextFactory factory)
+        public AsyncPipeline(IAsyncPipelineHandlerCollection pipelines, IAsyncPipelineContextFactory factory)
         {
             ContextFactory = factory;
             this.pipelines = pipelines;

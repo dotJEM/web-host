@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using Castle.DynamicProxy;
 using Castle.Windsor;
+using DotJEM.Diagnostic;
+using DotJEM.Web.Host.Diagnostics.Performance;
 
 namespace DotJEM.Web.Host.Providers
 {
@@ -11,46 +14,45 @@ namespace DotJEM.Web.Host.Providers
         bool Release(string areaName);
     }
 
-    public abstract class ServiceProvider<TService> : IServiceProvider<TService>
+    public abstract class ServiceProvider<TService> : IServiceProvider<TService> where TService : class
     {
         private readonly Func<string, TService> factory;
-        //private readonly Dictionary<string, TService> services = new Dictionary<string, TService>();
-        private readonly ConcurrentDictionary<string, TService> services = new ConcurrentDictionary<string, TService>();
+        private readonly ILogger logger;
+        private readonly IPerformanceLogAspectSignatureCache cache;
+        private readonly ConcurrentDictionary<string, TService> services = new();
 
-        protected ServiceProvider(Func<string, TService> factory)
+        protected ServiceProvider(Func<string, TService> factory, ILogger logger, IPerformanceLogAspectSignatureCache cache)
         {
             this.factory = factory;
+            this.logger = logger;
+            this.cache = cache;
         }
 
-        public TService Create(string areaName)
-        {
-            TService service = GetOrCreateService(areaName);
-
-
-            //service.Controller = controller;
-            return service;
-        }
+        public TService Create(string areaName) => GetOrCreateService(areaName);
 
         private TService GetOrCreateService(string areaName)
         {
+            if (areaName == null) throw new ArgumentNullException(nameof(areaName));
             try
             {
-                return services.GetOrAdd(areaName, factory);
-
-                //return !services.ContainsKey(areaName) ? (services[areaName] = factory(areaName)) : services[areaName];
+                return services.GetOrAdd(areaName, CreateService);
             }
             catch (NullReferenceException ex)
             {
-                string message = areaName != null ? "Area name was: " + areaName : "Area name was NULL: ";
-                throw new NullReferenceException(message, ex);
+                throw new NullReferenceException("Area name was: " + areaName, ex);
             }
 
+            TService CreateService(string area) {
+                TService service = factory(area);
+                return logger.IsEnabled() 
+                    ? new ProxyGenerator().CreateInterfaceProxyWithTarget(service, new PerformanceLogAspect(logger, cache))
+                    : service;
+            }
         }
 
         public virtual bool Release(string areaName)
         {
-            TService removed;
-            return services.TryRemove(areaName, out removed);
+            return services.TryRemove(areaName, out TService _);
         }
     }
 }

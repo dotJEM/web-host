@@ -1,28 +1,22 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DotJEM.Web.Host.Providers.AsyncPipeline;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Pipeline
 {
     public abstract class PipelineHandler : IPipelineHandler
     {
-        private readonly Lazy<Predicate<string>> accepts;
 
         protected PipelineHandler()
         {
-            accepts = new Lazy<Predicate<string>>(() =>
-            {
-                Regex[] filters = ContentTypeFilterAttribute.GetFilters(this)
-                    .Select(filter => filter.BuildRegex()).ToArray();
-
-                return contentType => filters.Length < 1 || filters.Any(filter => filter.IsMatch(contentType));
-            });
+           
         }
 
         public virtual bool Accept(string contentType)
         {
-            return accepts.Value(contentType);
+            return true;
         }
 
         public virtual JObject BeforeGet(dynamic entity, string contentType, PipelineContext context)

@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Castle.MicroKernel.Resolvers;
+using DotJEM.Web.Host.Providers.AsyncPipeline;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
 
 namespace DotJEM.Web.Host.Providers.Pipeline
 {

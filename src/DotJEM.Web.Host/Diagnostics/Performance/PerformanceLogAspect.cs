@@ -28,8 +28,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         private async Task AwaitIntercept(IInvocation invocation)
         {
-            string target = invocation.TargetType.FullName;
-            using (logger.Track(target, new JObject {["target"] = GetSignature(invocation)}))
+            using (logger.Track(invocation.TargetType.Name, 
+                new JObject {["target"] = invocation.TargetType.FullName, ["method"] = GetSignature(invocation)}))
             {
                 invocation.Proceed();
                 if (invocation.ReturnValue is Task task)
@@ -44,8 +44,8 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             {
                 string args = string.Join(", ", invocation.Method.GetParameters()
                     .Select((param, i) => param.ParameterType == typeof(string) 
-                        ? $"[{param.GetType()}] \"{{{i}}}\"" 
-                        : $"[{param.GetType()}] {{{i}}}"));
+                        ? $"[{param.ParameterType}] \"{{{i}}}\"" 
+                        : $"[{param.ParameterType}] {{{i}}}"));
                 return $"{invocation.TargetType.Name}::{invocation.Method.Name}({args})";
             }
         }

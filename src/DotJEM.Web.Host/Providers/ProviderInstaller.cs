@@ -14,6 +14,7 @@ namespace DotJEM.Web.Host.Providers
             container.Register(Component.For<IServiceProvider<IContentService>>().ImplementedBy<ContentServiceProvider>());
             container.Register(Component.For<IServiceProvider<ISearchService>>().ImplementedBy<SearchServiceProvider>());
             container.Register(Component.For<IServiceProvider<IFileService>>().ImplementedBy<FileServiceProvider>());
+            container.Register(Component.For<IServiceProvider<IHistoryService>>().ImplementedBy<HistoryServiceProvider>());
 
             container.Register(Component.For<IWebScheduler>().ImplementedBy<WebScheduler>());
         }
