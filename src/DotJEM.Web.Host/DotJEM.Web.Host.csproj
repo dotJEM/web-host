@@ -340,7 +340,9 @@
     <Compile Include="Providers\AsyncPipeline\Contexts\IPutContext.cs" />
     <Compile Include="Providers\AsyncPipeline\Contexts\PreviousContext.cs" />
     <Compile Include="Providers\AsyncPipeline\Handlers\AsyncPipelineHandler.cs" />
+    <Compile Include="Providers\AsyncPipeline\Handlers\AsyncPipelineHandlerCollection.cs" />
     <Compile Include="Providers\AsyncPipeline\Handlers\IAsyncPipelineHandler.cs" />
+    <Compile Include="Providers\AsyncPipeline\Handlers\IAsyncPipelineHandlerCollection.cs" />
     <Compile Include="Providers\AsyncPipeline\Handlers\INextHandler.cs" />
     <Compile Include="Providers\AsyncPipeline\Handlers\NextHandler.cs" />
     <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />

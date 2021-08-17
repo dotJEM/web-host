@@ -4,6 +4,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
@@ -21,96 +23,6 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
-
-
-    public interface IAsyncPipelineHandlerCollection
-    {
-        IPipeline For(string contentType);
-    }
-
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public class ContentTypeFilterAttribute : Attribute
-    {
-        private readonly Regex filter;
-
-        public ContentTypeFilterAttribute(string regex, RegexOptions options = RegexOptions.Compiled | RegexOptions.IgnoreCase)
-        {
-            filter = new Regex(regex, options);
-        }
-
-        public bool IsMatch(string contentType) => filter.IsMatch(contentType);
-    }
-
-    public class AsyncPipelineHandlerCollection : IAsyncPipelineHandlerCollection
-    {
-        private readonly ILogger performance;
-        private readonly IAsyncPipelineHandler termination;
-        private readonly IAsyncPipelineHandler[] handlers;
-        private readonly ConcurrentDictionary<string, IPipeline> cache = new ();
-
-        public AsyncPipelineHandlerCollection(ILogger performance, IAsyncPipelineHandler[] steps, IAsyncPipelineHandler termination)
-        {
-            this.performance = performance;
-            this.termination = termination;
-            handlers = OrderHandlers(steps);
-        }
-        
-        public IPipeline For(string contentType)
-        {
-            return cache.GetOrAdd(contentType, CreateBoundPipeline);
-        }
-
-        private IPipeline CreateBoundPipeline(string contentType)
-        {
-            IPipelineBuidler pipeline = performance.IsEnabled()
-                ? new PerformanceTrackingPipelineBuilder(performance, termination)
-                : new PipelineBuilder(termination);
-            Stack<IAsyncPipelineHandler> filtered = new(handlers.Where(x => CheckHandler(x, contentType)));
-            while (filtered.Count > 0) pipeline = pipeline.PushAfter(filtered.Pop());
-            return pipeline.Build();
-        }
-
-        private bool CheckHandler(IAsyncPipelineHandler arg, string contentType)
-        {
-            //TODO: Enforce at least one Attribute.
-            return arg
-                .GetType()
-                .GetCustomAttributes(typeof(ContentTypeFilterAttribute), true)
-                .Cast<ContentTypeFilterAttribute>()
-                .Any(att => att.IsMatch(contentType));
-        }
-
-        private static IAsyncPipelineHandler[] OrderHandlers(IAsyncPipelineHandler[] steps)
-        {
-            Queue<IAsyncPipelineHandler> queue = new Queue<IAsyncPipelineHandler>(steps);
-            Dictionary<Type, IAsyncPipelineHandler> map = steps.ToDictionary(h => h.GetType());
-            var ordered = new HashSet<Type>();
-            while (queue.Count > 0)
-            {
-                IAsyncPipelineHandler handler = queue.Dequeue();
-                Type handlerType = handler.GetType();
-                PipelineDepencency[] dependencies = PipelineDepencency.GetDepencencies(handler);
-                if (dependencies.Length < 1 || dependencies.All(d => ordered.Contains(d.Type)))
-                {
-                    ordered.Add(handlerType);
-                }
-                else
-                {
-                    IEnumerable<PipelineDepencency> unknownDependencies = dependencies
-                        .Where(dep => !map.ContainsKey(dep.Type))
-                        .ToArray();
-                    if (unknownDependencies.Any())
-                    {
-                        string message = $"{handlerType.FullName} has dependencies to be satisfied, missing dependencies:" +
-                                         $"\n\r{string.Join("\n\r - ", unknownDependencies.Select(d => d.Type.FullName))}";
-                        throw new DependencyResolverException(message);
-                    }
-                    queue.Enqueue(handler);
-                }
-            }
-            return ordered.Select(type => map[type]).ToArray();
-        }
-    }
 
     public interface IPipelineBuidler
     {
@@ -301,12 +213,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     public interface IAsyncPipeline
     {
         IAsyncPipelineContextFactory ContextFactory { get; }
+
         Task<JObject> Get(Guid id, IGetContext context);
         Task<JObject> Post(JObject entity, IPostContext context);
         Task<JObject> Put(Guid id, JObject entity, IPutContext context);
         Task<JObject> Patch(Guid id, JObject entity, IPatchContext context);
         Task<JObject> Delete(Guid id, IDeleteContext context);
-
     }
 
     public class AsyncPipeline : IAsyncPipeline
@@ -354,4 +266,105 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             container.Register(Component.For<IAsyncPipelineFactory>().ImplementedBy<AsyncPipelineFactory>().LifestyleTransient());
         }
     }
+
+
+    public interface IJsonPipeline
+    {
+        Task<JObject> Execute(IJsonPipelineContext context);
+    }
+
+    public interface IJsonPipelineContext
+    {
+    }
+
+    public interface IPipelines
+    {
+        IJsonPipeline Select(IPipelineSelector selector);
+    }
+
+    public interface IPipelineSelector
+    {
+    }
+
+    [ContentTypeFilter(".*")]
+    public class ExampleHandler : AsyncPipelineHandler
+    {
+        [HttpMethodFilter("GET")]
+        public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
+        {
+            JObject entity = await next.Invoke().ConfigureAwait(false);
+            entity["foo"] = "HAHA";
+            return entity;
+        }
+    }
+
+
+
+    public interface INullSelector : IPipelineSelector { }
+
+    public static class SelectorBuilder
+    {
+        public static INullSelector For => null;
+    }
+
+    public static class PipelinesSelectorExtensions
+    {
+        public static IPipelineSelector ContentType(this IPipelineSelector self, string contentType)
+        {
+            return new ContentTypeSelector(contentType);
+        }
+        public static IPipelineSelector Name(this IPipelineSelector self, string name)
+        {
+            return new ContentTypeSelector(name);
+        }
+    }
+
+    public class ContentTypeSelector : IPipelineSelector
+    {
+        private readonly string contentType;
+
+        public ContentTypeSelector(string contentType)
+        {
+            this.contentType = contentType;
+        }
+    }
+
+    public class NameSelector : IPipelineSelector
+    {
+        private readonly string name;
+
+        public NameSelector(string name)
+        {
+            this.name = name;
+        }
+    }
+
+
+    public abstract class PipelineSelectorAttribute : Attribute
+    {
+        
+    }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+    public class HttpMethodFilterAttribute : PipelineSelectorAttribute
+    {
+        public HttpMethodFilterAttribute(string method)
+        {
+        }
+    }
+
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+    public class ContentTypeFilterAttribute : PipelineSelectorAttribute
+    {
+        private readonly Regex filter;
+
+        public ContentTypeFilterAttribute(string regex, RegexOptions options = RegexOptions.Compiled | RegexOptions.IgnoreCase)
+        {
+            filter = new Regex(regex, options);
+        }
+
+        public bool IsMatch(string contentType) => filter.IsMatch(contentType);
+    }
+
 }

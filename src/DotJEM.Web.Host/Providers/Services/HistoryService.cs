@@ -6,6 +6,7 @@ using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using DotJEM.Web.Host.Providers.Concurrency;
 using Newtonsoft.Json.Linq;
+using static DotJEM.Web.Host.Providers.AsyncPipeline.SelectorBuilder;
 
 namespace DotJEM.Web.Host.Providers.Services
 {
@@ -22,6 +23,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
     public class HistoryService : IHistoryService
     {
+        private readonly IPipelines pipelines;
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
         private readonly IAsyncPipeline pipeline;
@@ -67,8 +69,12 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 throw new InvalidOperationException("Cannot revert document when history is not enabled.");
 
+            IJsonPipeline pipeline = pipelines.Select(For.ContentType(contentType).Name("Revert"));
+
+            pipeline.Execute(new RevertPipelineContext(contentType, version));
 
             JObject current = area.Get(id);
+            
             //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, current);
             JObject entity = area.History.Get(id, version);
             area.Update(id, entity);
@@ -90,5 +96,10 @@ namespace DotJEM.Web.Host.Providers.Services
             //    return entity;
             //}
         }
+    }
+
+    public class RevertPipelineProvider
+    {
+
     }
 }
