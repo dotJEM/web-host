@@ -268,9 +268,16 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     }
 
 
+
+
+    /* NEW CONCEPT: Named pipelines */
+
+
+
+
     public interface IJsonPipeline
     {
-        Task<JObject> Execute(IJsonPipelineContext context);
+        Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IJsonPipelineContext;
     }
 
     public interface IJsonPipelineContext
@@ -302,7 +309,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     public interface INullSelector : IPipelineSelector { }
 
-    public static class SelectorBuilder
+    public static class XPipeline
     {
         public static INullSelector For => null;
     }
@@ -311,11 +318,40 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         public static IPipelineSelector ContentType(this IPipelineSelector self, string contentType)
         {
-            return new ContentTypeSelector(contentType);
+            return self.And(new ContentTypeSelector(contentType));
         }
+
         public static IPipelineSelector Name(this IPipelineSelector self, string name)
         {
-            return new ContentTypeSelector(name);
+            return self.And(new ContentTypeSelector(name));
+        }
+
+        public static IPipelineSelector And(this IPipelineSelector self, IPipelineSelector other)
+        {
+            if (self == null)
+                return other;
+
+            if (self is CompositeAndSelector and)
+                return and.Merge(other);
+
+            return new CompositeAndSelector(self, other);
+        }
+    }
+
+    public class CompositeAndSelector : IPipelineSelector
+    {
+        private readonly IPipelineSelector[] selectors;
+
+        public CompositeAndSelector(params IPipelineSelector[] selectors)
+        {
+            this.selectors = selectors;
+        }
+
+        public IPipelineSelector Merge(IPipelineSelector other)
+        {
+            if (other is CompositeAndSelector and)
+                return new CompositeAndSelector(selectors.Concat(and.selectors).ToArray());
+            return new CompositeAndSelector(selectors.Append(other).ToArray());
         }
     }
 

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using DotJEM.Web.Host.Providers.Concurrency;
+using DotJEM.Web.Host.Tasks;
 using Newtonsoft.Json.Linq;
-using static DotJEM.Web.Host.Providers.AsyncPipeline.SelectorBuilder;
+using static DotJEM.Web.Host.Providers.AsyncPipeline.XPipeline;
 
 namespace DotJEM.Web.Host.Providers.Services
 {
@@ -14,11 +16,11 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         IStorageArea StorageArea { get; }
 
-        JObject History(Guid id, string contentType, int version);
-        JObject Revert(Guid id, string contentType, int version);
+        Task<JObject> History(Guid id, string contentType, int version);
+        Task<JObject> Revert(Guid id, string contentType, int version);
 
-        IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
-        IEnumerable<JObject> Deleted(string contentType, DateTime? from = null, DateTime? to = null);
+        Task<IEnumerable<JObject>> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
+        Task<IEnumerable<JObject>> Deleted(string contentType, DateTime? from = null, DateTime? to = null);
     }
 
     public class HistoryService : IHistoryService
@@ -26,60 +28,64 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IPipelines pipelines;
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
-        private readonly IAsyncPipeline pipeline;
 
         public IStorageArea StorageArea => area;
 
-        public HistoryService(IStorageArea area, IStorageIndexManager manager, IAsyncPipeline pipeline)
+        public HistoryService(IStorageArea area, IStorageIndexManager manager, IPipelines pipelines)
         {
             this.area = area;
             this.manager = manager;
-            this.pipeline = pipeline;
+            this.pipelines = pipelines;
         }
 
-        public JObject History(Guid id, string contentType, int version)
+        public Task<JObject> History(Guid id, string contentType, int version)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
-                return null;
+                return Task.FromResult((JObject)null);
 
-            return area.History.Get(id, version);
+            return Task.Run(() => area.History.Get(id, version));
         }
 
-        public IEnumerable<JObject> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
+        public Task<IEnumerable<JObject>> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
-                return Enumerable.Empty<JObject>();
+                return Task.FromResult(Enumerable.Empty<JObject>());
 
-            return area.History.Get(id, from, to);
+            return Task.Run(() => area.History.Get(id, from, to));
         }
 
-        public IEnumerable<JObject> Deleted(string contentType, DateTime? from = null, DateTime? to = null)
+        public Task<IEnumerable<JObject>> Deleted(string contentType, DateTime? from = null, DateTime? to = null)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
-                return Enumerable.Empty<JObject>();
+                return Task.FromResult(Enumerable.Empty<JObject>());
 
-            return area.History.GetDeleted(contentType, from, to);
+            return Task.Run(() => area.History.GetDeleted(contentType, from, to));
         }
 
-        public JObject Revert(Guid id, string contentType, int version)
+        public Task<JObject> Revert(Guid id, string contentType, int version)
         {
             if (!area.HistoryEnabled)
                 throw new InvalidOperationException("Cannot revert document when history is not enabled.");
 
             IJsonPipeline pipeline = pipelines.Select(For.ContentType(contentType).Name("Revert"));
 
-            pipeline.Execute(new RevertPipelineContext(contentType, version));
-
             JObject current = area.Get(id);
+            JObject target = area.History.Get(id, version);
+            return pipeline.Execute(contentType, version, target, current, context =>
+            {
+                JObject result = area.Update(id, context.Target);
+                manager.QueueUpdate(result);
+                return result;
+            });
             
             //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, current);
-            JObject entity = area.History.Get(id, version);
-            area.Update(id, entity);
-            manager.QueueUpdate(entity);
-            return entity;
+            //JObject entity = area.History.Get(id, version);
+            //area.Update(id, entity);
+            //manager.QueueUpdate(entity);
+            //return entity;
 
             //entity = merger.EnsureMerge(id, entity, prev);
             //entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
@@ -95,6 +101,34 @@ namespace DotJEM.Web.Host.Providers.Services
             //    manager.QueueUpdate(entity);
             //    return entity;
             //}
+        }
+    }
+
+    public static class RevertPipelineExtensions
+    {
+        public static Task<JObject> ExecuteRevert(this IPipelines self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
+        {
+            IJsonPipeline pipeline = self.Select(For.Name("Revert").And(For.ContentType(contentType)));
+            return pipeline.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
+        }
+        public static Task<JObject> Execute(this IJsonPipeline self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
+        {
+            return self.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
+        }
+    }
+    public class RevertPipelineContext : IJsonPipelineContext
+    {
+        public string ContentType { get; }
+        public int Version { get; }
+        public JObject Target { get; }
+        public JObject Current { get; }
+
+        public RevertPipelineContext(string contentType, int version, JObject target, JObject current)
+        {
+            ContentType = contentType;
+            Version = version;
+            Target = target;
+            Current = current;
         }
     }
 
