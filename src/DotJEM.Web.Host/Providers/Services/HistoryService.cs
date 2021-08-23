@@ -70,7 +70,7 @@ namespace DotJEM.Web.Host.Providers.Services
             if (!area.HistoryEnabled)
                 throw new InvalidOperationException("Cannot revert document when history is not enabled.");
 
-            IJsonPipeline pipeline = pipelines.Select(For.ContentType(contentType).Name("Revert"));
+            var pipeline = pipelines.Select(For.ContentType(contentType).Name("Revert"));
 
             JObject current = area.Get(id);
             JObject target = area.History.Get(id, version);
@@ -80,27 +80,30 @@ namespace DotJEM.Web.Host.Providers.Services
                 manager.QueueUpdate(result);
                 return result;
             });
-            
-            //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, current);
-            //JObject entity = area.History.Get(id, version);
-            //area.Update(id, entity);
-            //manager.QueueUpdate(entity);
-            //return entity;
 
-            //entity = merger.EnsureMerge(id, entity, prev);
-            //entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
-            //manager.QueueUpdate(entity);
-            //return entity;
-
-            //using (PipelineContext context = pipeline.CreateContext(contentType, current))
-            //{
-            //    JObject entity = area.History.Get(id, version);
-            //    entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
-            //    area.Update(id, entity);
-            //    entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
-            //    manager.QueueUpdate(entity);
-            //    return entity;
-            //}
+            /**
+             * 
+             * IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, current);
+             * JObject entity = area.History.Get(id, version);
+             * area.Update(id, entity);
+             * manager.QueueUpdate(entity);
+             * return entity;
+             * 
+             * entity = merger.EnsureMerge(id, entity, prev);
+             * entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
+             * manager.QueueUpdate(entity);
+             * return entity;
+             * 
+             * using (PipelineContext context = pipeline.CreateContext(contentType, current))
+             * {
+             *     JObject entity = area.History.Get(id, version);
+             *     entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
+             *     area.Update(id, entity);
+             *     entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
+             *     manager.QueueUpdate(entity);
+             *     return entity;
+             * }
+            ***/
         }
     }
 
@@ -108,7 +111,7 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         public static Task<JObject> ExecuteRevert(this IPipelines self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
         {
-            IJsonPipeline pipeline = self.Select(For.Name("Revert").And(For.ContentType(contentType)));
+            var pipeline = self.Select(For.Name("Revert").And(For.ContentType(contentType)));
             return pipeline.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
         }
         public static Task<JObject> Execute(this IJsonPipeline self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
@@ -129,6 +132,23 @@ namespace DotJEM.Web.Host.Providers.Services
             Version = version;
             Target = target;
             Current = current;
+        }
+
+        public bool TryGetValue(string key, out string value)
+        {
+            switch (key)
+            {
+                case "ContentType":
+                    value = ContentType;
+                    return true;
+
+                case "Revert":
+                    value = ContentType;
+                    return true;
+            }
+
+            value = null;
+            return false;
         }
     }
 
