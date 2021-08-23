@@ -411,6 +411,16 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             }
             return (PipelineExecutorDelegate) method.CreateDelegate(typeof(PipelineExecutorDelegate), target);
         }
+        
+        private MethodCallExpression CreateMethodCall(Delegate target, ParameterExpression targetParameter, ParameterExpression parametersParameter)
+        {
+            List<Expression> parameters = BuildParameterList(target.Method, parametersParameter);
+
+            Type delegateType = target.GetType();
+            UnaryExpression instanceCast = Expression.Convert(targetParameter, delegateType);
+            // methodCall: ((Func<...>/Action<...>) target) @delegate.Invoke((T0) parameters[0], (T1) parameters[1], ...)
+            return Expression.Call(instanceCast, delegateType.GetMethod("Invoke"), parameters);
+        }
 
         private List<Expression> BuildParameterList(MethodInfo method, ParameterExpression source)
         {
