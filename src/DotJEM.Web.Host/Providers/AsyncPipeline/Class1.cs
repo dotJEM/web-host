@@ -276,12 +276,11 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
 
     //Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IJsonPipelineContext;
-    public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INextHandler<Guid> next);
     
-    [PropertyFilter("ContentType", ".*")]
+    [Factory.PropertyFilterAttribute("ContentType", ".*")]
     public class ExampleHandler : AsyncPipelineHandler
     {
-        [PropertyFilter("Method", "GET", RegexOptions.IgnoreCase)]
+        [Factory.PropertyFilterAttribute("Method", "GET", RegexOptions.IgnoreCase)]
         public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
@@ -291,7 +290,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     }
     public class JsonPipelineNode
     {
-        public JsonPipelineNode(PipelineSelectorAttribute[] selectors, PipelineExecutorDelegate target)
+        public JsonPipelineNode(Factory.PipelineSelectorAttribute[] selectors, PipelineExecutorDelegate target)
         {
             
         }
@@ -311,24 +310,24 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         private readonly List<JsonPipelineNodeGroup> nodes;
         private readonly ConcurrentDictionary<string, IPipeline> cache = new();
 
-        public JsonPipelineManager(ILogger performance, IJsonPipelineHandler[] providers)
+        public JsonPipelineManager(ILogger performance, Factory.IJsonPipelineHandler[] providers)
         {
             this.performance = performance;
             this.nodes = BuildHandlerGraph(providers);
         }
 
-        private List<JsonPipelineNodeGroup> BuildHandlerGraph(IJsonPipelineHandler[] providers)
+        private List<JsonPipelineNodeGroup> BuildHandlerGraph(Factory.IJsonPipelineHandler[] providers)
         {
             List<JsonPipelineNodeGroup> groups = new List<JsonPipelineNodeGroup>();
-            foreach (IJsonPipeline provider in OrderHandlers(providers))
+            foreach (Factory.IJsonPipeline provider in OrderHandlers(providers))
             {
                 Type type = provider.GetType();
-                PipelineSelectorAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineSelectorAttribute>().ToArray();
+                Factory.PipelineSelectorAttribute[] selectors = type.GetCustomAttributes().OfType<Factory.PipelineSelectorAttribute>().ToArray();
 
                 List<JsonPipelineNode> nodes = new List<JsonPipelineNode>();
                 foreach (MethodInfo method in type.GetMethods())
                 {
-                    PipelineSelectorAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineSelectorAttribute>().ToArray();
+                    Factory.PipelineSelectorAttribute[] methodSelectors = method.GetCustomAttributes().OfType<Factory.PipelineSelectorAttribute>().ToArray();
                     if (methodSelectors.Any())
                     {
                         PipelineExecutorDelegate @delegate = Factory.CreateInvocator(provider, method);
@@ -388,9 +387,13 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
     }
 
+
+    public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INextHandler<Guid> next);
+
+
     public class Factory
     {
-        public static PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
+        public PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
         {
             //JsonPipelineNode
             //TODO: Could we instead build a delegate which can extract parameters from the context there by mimimcing the original interface better?
@@ -400,21 +403,31 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
              *
              * ->   Execute((string)context.Get("contentType"), (Guid)context.Get("id"), context, next);
              */
-            ParameterExpression targetParameter = Expression.Parameter(typeof(object), "target");
+            ConstantExpression targetExpression = Expression.Constant(target);
             ParameterExpression contextParameter = Expression.Parameter(typeof(IJsonPipelineContext), "context");
+
+            //TODO: Generate an INextHandler with the approrpriate arguments.
             ParameterExpression nextParameter = Expression.Parameter(typeof(INextHandler<>), "next");
 
             // https://github.com/dotJEM/aspnetcore-fluentrouting/blob/master/src/DotJEM.AspNetCore.FluentRouting/Invoker/Execution/LambdaExecutorDelegateFactory.cs
-            foreach (ParameterInfo info in method.GetParameters())
-            {
+            //foreach (ParameterInfo info in method.GetParameters())
+            //{
 
-            }
-            return (PipelineExecutorDelegate) method.CreateDelegate(typeof(PipelineExecutorDelegate), target);
+            //}
+            var methodCall = CreateMethodCall(method, targetExpression, contextParameter, nextParameter);
+
+            UnaryExpression castMethodCall = Expression.Convert(methodCall, typeof(Task<JObject>));
+            Expression<PipelineExecutorDelegate> lambda = Expression.Lambda<PipelineExecutorDelegate>(castMethodCall, contextParameter, nextParameter);
+            return lambda.Compile();
+
+            //return (PipelineExecutorDelegate) method.CreateDelegate(typeof(PipelineExecutorDelegate), target);
         }
-        
-        private MethodCallExpression CreateMethodCall(Delegate target, ParameterExpression targetParameter, ParameterExpression parametersParameter)
+
+        private MethodCallExpression CreateMethodCall(MethodInfo target, ConstantExpression targetParameter, ParameterExpression contextParameter, ParameterExpression nextParameter)
         {
-            List<Expression> parameters = BuildParameterList(target.Method, parametersParameter);
+            List<Expression> parameters = BuildParameterList(target, contextParameter);
+            parameters.Add(contextParameter);
+            parameters.Add(nextParameter);
 
             Type delegateType = target.GetType();
             UnaryExpression instanceCast = Expression.Convert(targetParameter, delegateType);
@@ -422,37 +435,27 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return Expression.Call(instanceCast, delegateType.GetMethod("Invoke"), parameters);
         }
 
-        private List<Expression> BuildParameterList(MethodInfo method, ParameterExpression source)
-        {
-            List<Expression> parameters = new List<Expression>();
-            ParameterInfo[] infos = method.GetParameters();
-            for (int i = 0; i < infos.Length; i++)
-            {
-                ParameterInfo info = infos[i];
-                // arrayIndexAccessor: parameters[i]
-                BinaryExpression arrayIndexAccessor = Expression.ArrayIndex(source, Expression.Constant(i));
-                // castParameter: "(Ti) (FromBody<T..>) parameters[i]" or "(Ti) parameters[i]".
-                UnaryExpression castParameter = CreateParameterCast(arrayIndexAccessor, info.ParameterType);
-                parameters.Add(castParameter);
-            }
-            return parameters;
-        }
-        private UnaryExpression CreateParameterCast(BinaryExpression accessor, Type type)
-        {
-            //if (type.IsGenericType)
-            //{
-            //    Type firstInnerType = type.GenericTypeArguments.First();
-            //    Type bindingSourceParameterType = typeof(BindingSourceParameter<>).MakeGenericType(firstInnerType);
-            //    if (bindingSourceParameterType.IsAssignableFrom(type))
-            //    {
-            //        // castParameter: "(Ti) (FromBody<T..>) parameters[i]"
-            //        return  Expression.Convert(Expression.Convert(accessor, firstInnerType), type);
-            //    }
-            //}
-            // castParameter: "(Ti) parameters[i]"
-            return Expression.Convert(accessor, type);
-        }
+        private static readonly MethodInfo contextParameterGetter = typeof(IJsonPipelineContext).GetMethod("GetParameter");
 
+        private List<Expression> BuildParameterList(MethodInfo method, ParameterExpression contextParameter)
+        {
+            // Validate that method's signature ends with Context and Next.
+            ParameterInfo[] list = method.GetParameters();
+            return list
+                .Take(list.Length - 2)
+                .Select(info =>
+                {
+                    // context.GetParameter("name");
+                    MethodCallExpression call = Expression.Call(contextParameter, contextParameterGetter, Expression.Constant(info.Name));
+                    // object var1 = context.GetParameter("name");
+                    BinaryExpression assign = Expression.Assign(Expression.Variable(typeof(object)), call);
+                    // castParameter: "(Ti) (FromBody<T..>) parameters[i]" or "(Ti) parameters[i]".
+                    UnaryExpression castParameter = Expression.Convert(assign, info.ParameterType);
+
+                    return (Expression)castParameter;
+                })
+                .ToList();
+        }
     }
 
     public interface IJsonPipelineHandler
