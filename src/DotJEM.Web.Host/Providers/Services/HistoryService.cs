@@ -134,6 +134,11 @@ namespace DotJEM.Web.Host.Providers.Services
             Current = current;
         }
 
+        public object GetParameter(string key)
+        {
+            return null;
+        }
+
         public bool TryGetValue(string key, out string value)
         {
             switch (key)

@@ -277,10 +277,10 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     //Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IJsonPipelineContext;
     
-    [Factory.PropertyFilterAttribute("ContentType", ".*")]
+    [PropertyFilter("ContentType", ".*")]
     public class ExampleHandler : AsyncPipelineHandler
     {
-        [Factory.PropertyFilterAttribute("Method", "GET", RegexOptions.IgnoreCase)]
+        [PropertyFilter("Method", "GET", RegexOptions.IgnoreCase)]
         public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
@@ -288,60 +288,85 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return entity;
         }
     }
-    public class JsonPipelineNode
+
+    public class MethodNode
     {
-        public JsonPipelineNode(Factory.PipelineSelectorAttribute[] selectors, PipelineExecutorDelegate target)
+        private readonly PipelineFilterAttribute[] filters;
+
+        public PipelineExecutorDelegate Target { get; }
+
+        public MethodNode(PipelineFilterAttribute[] filters, PipelineExecutorDelegate target)
         {
-            
+            this.filters = filters;
+            this.Target = target;
+        }
+
+        public bool Accepts(IJsonPipelineContext context)
+        {
+            return filters.All(selector => selector.Accepts(context));
         }
     }
-    public class JsonPipelineNodeGroup
+    public class ClassNode
     {
-        public JsonPipelineNodeGroup(List<JsonPipelineNode> nodes)
+        private readonly List<MethodNode> nodes;
+
+        public ClassNode(List<MethodNode> nodes)
         {
-            
+            this.nodes = nodes;
+        }
+
+        public IEnumerable<MethodNode> For(IJsonPipelineContext context)
+        {
+            return nodes.Where(n => n.Accepts(context));
         }
     }
 
+    public interface IPipelines
+    {
+        IJsonPipeline For(IJsonPipelineContext context);
+    }
 
     public class JsonPipelineManager 
     {
         private readonly ILogger performance;
-        private readonly List<JsonPipelineNodeGroup> nodes;
+        private readonly List<ClassNode> nodes;
         private readonly ConcurrentDictionary<string, IPipeline> cache = new();
 
-        public JsonPipelineManager(ILogger performance, Factory.IJsonPipelineHandler[] providers)
+        public JsonPipelineManager(ILogger performance, IJsonPipelineHandler[] providers)
         {
             this.performance = performance;
             this.nodes = BuildHandlerGraph(providers);
+
+            //TODO: Make key generator, by running over all nodes and seeing which properties they interact with, we know which properties to use to generate our key.
+            //      We need to make sure we pass all the nodes to ensure everything has been accounted for.
         }
 
-        private List<JsonPipelineNodeGroup> BuildHandlerGraph(Factory.IJsonPipelineHandler[] providers)
+        private List<ClassNode> BuildHandlerGraph(IJsonPipelineHandler[] providers)
         {
-            List<JsonPipelineNodeGroup> groups = new List<JsonPipelineNodeGroup>();
-            foreach (Factory.IJsonPipeline provider in OrderHandlers(providers))
+            List<ClassNode> groups = new();
+            foreach (IJsonPipelineHandler provider in OrderHandlers(providers))
             {
                 Type type = provider.GetType();
-                Factory.PipelineSelectorAttribute[] selectors = type.GetCustomAttributes().OfType<Factory.PipelineSelectorAttribute>().ToArray();
+                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
 
-                List<JsonPipelineNode> nodes = new List<JsonPipelineNode>();
+                List<MethodNode> nodes = new();
                 foreach (MethodInfo method in type.GetMethods())
                 {
-                    Factory.PipelineSelectorAttribute[] methodSelectors = method.GetCustomAttributes().OfType<Factory.PipelineSelectorAttribute>().ToArray();
+                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
                     if (methodSelectors.Any())
                     {
-                        PipelineExecutorDelegate @delegate = Factory.CreateInvocator(provider, method);
-                        nodes.Add(new JsonPipelineNode(selectors.Concat(methodSelectors).ToArray(), @delegate));
+                        PipelineExecutorDelegate @delegate = new PipelineExecutorDelegateFactory().CreateInvocator(provider, method);
+                        nodes.Add(new MethodNode(selectors.Concat(methodSelectors).ToArray(), @delegate));
                     }
                 }
-                groups.Add(new JsonPipelineNodeGroup(nodes));
+                groups.Add(new ClassNode(nodes));
             }
             return groups;
         }
 
         private static IEnumerable<T> OrderHandlers<T>(T[] steps)
         {
-            Queue<T> queue = new Queue<T>(steps);
+            Queue<T> queue = new(steps);
             Dictionary<Type, T> map = steps.ToDictionary(h => h.GetType());
             var ordered = new HashSet<Type>();
             while (queue.Count > 0)
@@ -370,74 +395,87 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return ordered.Select(type => map[type]).ToArray();
         }
 
-        public IPipeline For(string contentType)
+        public ICompiledPipeline For(IJsonPipelineContext context)
         {
-            return cache.GetOrAdd(contentType, CreateBoundPipeline);
+            //TODO: Spying context is a one-time execution, ones it has been executed one time, we know all the
+            //      properties that can influence the selection, from there we can make a key generator and then use that.
+            //      - This also means that we can create the key generator in the constructor.
+            var recording = new SpyingContext(context);
+            var matchingNodes = nodes.SelectMany(n => n.For(context));
+
+            return new CompiledPipeline(matchingNodes);
         }
 
-        private IPipeline CreateBoundPipeline(string contentType)
+        private class SpyingContext : IJsonPipelineContext
         {
-            //IPipelineBuidler pipeline = performance.IsEnabled()
-            //    ? new PerformanceTrackingPipelineBuilder(performance, termination)
-            //    : new PipelineBuilder(termination);
-            //Stack<IAsyncPipelineHandler> filtered = new(handlers.Where(x => CheckHandler(x, contentType)));
-            //while (filtered.Count > 0) pipeline = pipeline.PushAfter(filtered.Pop());
-            //return pipeline.Build();
+            private IJsonPipelineContext origin;
+
+            public SpyingContext(IJsonPipelineContext origin)
+            {
+                this.origin = origin;
+            }
+
+            public bool TryGetValue(string key, out string value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public object GetParameter(string key)
+            {
+                throw new NotImplementedException();
+            }
+        }
+    }
+
+    public interface ICompiledPipeline
+    {
+        Task<JObject> Invoke(IJsonPipelineContext context, INext next);
+    }
+
+    public class CompiledPipeline : ICompiledPipeline
+    {
+        private PipelineExecutorDelegate[] targets;
+        
+        public CompiledPipeline(IEnumerable<MethodNode> nodes)
+        {
+            this.targets = nodes.Select(node => node.Target).ToArray();
+        }
+
+        public Task<JObject> Invoke(IJsonPipelineContext context, INext next)
+        {
             throw new NotImplementedException();
         }
     }
 
+    public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INext next);
 
-    public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INextHandler<Guid> next);
 
-
-    public class Factory
+    public class PipelineExecutorDelegateFactory
     {
-        public PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
-        {
-            //JsonPipelineNode
-            //TODO: Could we instead build a delegate which can extract parameters from the context there by mimimcing the original interface better?
-            // E.g.
-            /*
-             * Task<JObject> Get(string contentType, Guid id, IContext context, INext next);
-             *
-             * ->   Execute((string)context.Get("contentType"), (Guid)context.Get("id"), context, next);
-             */
-            ConstantExpression targetExpression = Expression.Constant(target);
-            ParameterExpression contextParameter = Expression.Parameter(typeof(IJsonPipelineContext), "context");
-
-            //TODO: Generate an INextHandler with the approrpriate arguments.
-            ParameterExpression nextParameter = Expression.Parameter(typeof(INextHandler<>), "next");
-
-            // https://github.com/dotJEM/aspnetcore-fluentrouting/blob/master/src/DotJEM.AspNetCore.FluentRouting/Invoker/Execution/LambdaExecutorDelegateFactory.cs
-            //foreach (ParameterInfo info in method.GetParameters())
-            //{
-
-            //}
-            var methodCall = CreateMethodCall(method, targetExpression, contextParameter, nextParameter);
-
-            UnaryExpression castMethodCall = Expression.Convert(methodCall, typeof(Task<JObject>));
-            Expression<PipelineExecutorDelegate> lambda = Expression.Lambda<PipelineExecutorDelegate>(castMethodCall, contextParameter, nextParameter);
-            return lambda.Compile();
-
-            //return (PipelineExecutorDelegate) method.CreateDelegate(typeof(PipelineExecutorDelegate), target);
-        }
-
-        private MethodCallExpression CreateMethodCall(MethodInfo target, ConstantExpression targetParameter, ParameterExpression contextParameter, ParameterExpression nextParameter)
-        {
-            List<Expression> parameters = BuildParameterList(target, contextParameter);
-            parameters.Add(contextParameter);
-            parameters.Add(nextParameter);
-
-            Type delegateType = target.GetType();
-            UnaryExpression instanceCast = Expression.Convert(targetParameter, delegateType);
-            // methodCall: ((Func<...>/Action<...>) target) @delegate.Invoke((T0) parameters[0], (T1) parameters[1], ...)
-            return Expression.Call(instanceCast, delegateType.GetMethod("Invoke"), parameters);
-        }
-
         private static readonly MethodInfo contextParameterGetter = typeof(IJsonPipelineContext).GetMethod("GetParameter");
 
-        private List<Expression> BuildParameterList(MethodInfo method, ParameterExpression contextParameter)
+
+        public PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
+        {
+            Expression<PipelineExecutorDelegate> lambda = BuildLambda(target, method);
+            return lambda.Compile();
+        }
+
+        public Expression<PipelineExecutorDelegate> BuildLambda(object target, MethodInfo method)
+        {
+            ConstantExpression targetParameter = Expression.Constant(target);
+            ParameterExpression contextParameter = Expression.Parameter(typeof(IJsonPipelineContext), "context");
+            ParameterExpression nextParameter = Expression.Parameter(typeof(INext), "next");
+
+            // context.GetParameter("first"), ..., context, (INextHandler<...>) next);
+            List<Expression> parameters = BuildParameterList(method, contextParameter, nextParameter);
+            UnaryExpression convertTarget = Expression.Convert(targetParameter, target.GetType());
+            MethodCallExpression methodCall = Expression.Call(convertTarget, method, parameters);
+            UnaryExpression castMethodCall = Expression.Convert(methodCall, typeof(Task<JObject>));
+            return Expression.Lambda<PipelineExecutorDelegate>(castMethodCall, contextParameter, nextParameter);
+        }
+
+        private List<Expression> BuildParameterList(MethodInfo method, ParameterExpression contextParameter, ParameterExpression nextParameter)
         {
             // Validate that method's signature ends with Context and Next.
             ParameterInfo[] list = method.GetParameters();
@@ -447,15 +485,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 {
                     // context.GetParameter("name");
                     MethodCallExpression call = Expression.Call(contextParameter, contextParameterGetter, Expression.Constant(info.Name));
-                    // object var1 = context.GetParameter("name");
-                    BinaryExpression assign = Expression.Assign(Expression.Variable(typeof(object)), call);
-                    // castParameter: "(Ti) (FromBody<T..>) parameters[i]" or "(Ti) parameters[i]".
-                    UnaryExpression castParameter = Expression.Convert(assign, info.ParameterType);
 
-                    return (Expression)castParameter;
+                    // (parameterType) context.GetParameter("name"); 
+                    return (Expression)Expression.Convert(call, info.ParameterType);
                 })
+                .Append(contextParameter)
+                .Append(Expression.Convert(nextParameter, list.Last().ParameterType))
                 .ToList();
         }
+
     }
 
     public interface IJsonPipelineHandler
@@ -470,95 +508,21 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     public interface IJsonPipelineContext
     {
         bool TryGetValue(string key, out string value);
-    }
 
-    public interface IPipelines
-    {
-        IJsonPipeline Select(IPipelineSelector selector);
-    }
-
-    public interface IPipelineSelector
-    {
+        object GetParameter(string key);
     }
 
 
 
-    public interface INullSelector : IPipelineSelector { }
 
-    public static class XPipeline
+    public abstract class PipelineFilterAttribute : Attribute
     {
-        public static INullSelector For => null;
-    }
-
-    public static class PipelinesSelectorExtensions
-    {
-        public static IPipelineSelector ContentType(this IPipelineSelector self, string contentType)
-        {
-            return self.And(new ContentTypeSelector(contentType));
-        }
-
-        public static IPipelineSelector Name(this IPipelineSelector self, string name)
-        {
-            return self.And(new ContentTypeSelector(name));
-        }
-
-        public static IPipelineSelector And(this IPipelineSelector self, IPipelineSelector other)
-        {
-            if (self == null)
-                return other;
-
-            if (self is CompositeAndSelector and)
-                return and.Merge(other);
-
-            return new CompositeAndSelector(self, other);
-        }
-    }
-
-    public class CompositeAndSelector : IPipelineSelector
-    {
-        private readonly IPipelineSelector[] selectors;
-
-        public CompositeAndSelector(params IPipelineSelector[] selectors)
-        {
-            this.selectors = selectors;
-        }
-
-        public IPipelineSelector Merge(IPipelineSelector other)
-        {
-            if (other is CompositeAndSelector and)
-                return new CompositeAndSelector(selectors.Concat(and.selectors).ToArray());
-            return new CompositeAndSelector(selectors.Append(other).ToArray());
-        }
-    }
-
-    public class ContentTypeSelector : IPipelineSelector
-    {
-        private readonly string contentType;
-
-        public ContentTypeSelector(string contentType)
-        {
-            this.contentType = contentType;
-        }
-    }
-
-    public class NameSelector : IPipelineSelector
-    {
-        private readonly string name;
-
-        public NameSelector(string name)
-        {
-            this.name = name;
-        }
-    }
-
-
-    public abstract class PipelineSelectorAttribute : Attribute
-    {
+        public abstract bool Accepts(IJsonPipelineContext context);
     }
 
 
     [AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
-    public class PropertyFilterAttribute : PipelineSelectorAttribute
+    public class PropertyFilterAttribute : PipelineFilterAttribute
     {
         private readonly string key;
         private readonly Regex filter;
@@ -570,7 +534,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             filter = new Regex(regex, options | RegexOptions.Compiled);
         }
 
-        public bool Accepts(IJsonPipelineContext context)
+        public override bool Accepts(IJsonPipelineContext context)
         {
             return context.TryGetValue(key, out string value) && filter.IsMatch(value);
         }
@@ -578,7 +542,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-    public class ContentTypeFilterAttribute : PipelineSelectorAttribute
+    public class ContentTypeFilterAttribute : PipelineFilterAttribute
     {
         private readonly Regex filter;
 
@@ -588,6 +552,11 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
 
         public bool IsMatch(string contentType) => filter.IsMatch(contentType);
+
+        public override bool Accepts(IJsonPipelineContext context)
+        {
+            return context.TryGetValue("contentType", out string value) && filter.IsMatch(value);
+        }
     }
 
 }
