@@ -306,6 +306,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return filters.All(selector => selector.Accepts(context));
         }
     }
+
     public class ClassNode
     {
         private readonly List<MethodNode> nodes;
@@ -320,51 +321,14 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return nodes.Where(n => n.Accepts(context));
         }
     }
+    
+    public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INext next);
+    
 
-    public interface IPipelines
+    public class PipelineGraphFactory
     {
-        IJsonPipeline For(IJsonPipelineContext context);
-    }
 
-    public class JsonPipelineManager 
-    {
-        private readonly ILogger performance;
-        private readonly List<ClassNode> nodes;
-        private readonly ConcurrentDictionary<string, IPipeline> cache = new();
-
-        public JsonPipelineManager(ILogger performance, IJsonPipelineHandler[] providers)
-        {
-            this.performance = performance;
-            this.nodes = BuildHandlerGraph(providers);
-
-            //TODO: Make key generator, by running over all nodes and seeing which properties they interact with, we know which properties to use to generate our key.
-            //      We need to make sure we pass all the nodes to ensure everything has been accounted for.
-        }
-
-        private List<ClassNode> BuildHandlerGraph(IJsonPipelineHandler[] providers)
-        {
-            List<ClassNode> groups = new();
-            foreach (IJsonPipelineHandler provider in OrderHandlers(providers))
-            {
-                Type type = provider.GetType();
-                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
-
-                List<MethodNode> nodes = new();
-                foreach (MethodInfo method in type.GetMethods())
-                {
-                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
-                    if (methodSelectors.Any())
-                    {
-                        PipelineExecutorDelegate @delegate = new PipelineExecutorDelegateFactory().CreateInvocator(provider, method);
-                        nodes.Add(new MethodNode(selectors.Concat(methodSelectors).ToArray(), @delegate));
-                    }
-                }
-                groups.Add(new ClassNode(nodes));
-            }
-            return groups;
-        }
-
-        private static IEnumerable<T> OrderHandlers<T>(T[] steps)
+        private IEnumerable<T> OrderHandlers<T>(T[] steps)
         {
             Queue<T> queue = new(steps);
             Dictionary<Type, T> map = steps.ToDictionary(h => h.GetType());
@@ -395,65 +359,41 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return ordered.Select(type => map[type]).ToArray();
         }
 
-        public ICompiledPipeline For(IJsonPipelineContext context)
+        public List<ClassNode> BuildHandlerGraph(IJsonPipelineHandler[] providers)
         {
-            //TODO: Spying context is a one-time execution, ones it has been executed one time, we know all the
-            //      properties that can influence the selection, from there we can make a key generator and then use that.
-            //      - This also means that we can create the key generator in the constructor.
-            var recording = new SpyingContext(context);
-            var matchingNodes = nodes.SelectMany(n => n.For(context));
-
-            return new CompiledPipeline(matchingNodes);
-        }
-
-        private class SpyingContext : IJsonPipelineContext
-        {
-            private IJsonPipelineContext origin;
-
-            public SpyingContext(IJsonPipelineContext origin)
+            List<ClassNode> groups = new();
+            foreach (IJsonPipelineHandler provider in OrderHandlers(providers))
             {
-                this.origin = origin;
+                Type type = provider.GetType();
+                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+
+                List<MethodNode> nodes = new();
+                foreach (MethodInfo method in type.GetMethods())
+                {
+                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+                    if (methodSelectors.Any())
+                    {
+                        MethodNode node = new PipelineExecutorDelegateFactory().CreateNode(provider, method, selectors.Concat(methodSelectors).ToArray());
+                        nodes.Add(node);
+                    }
+                }
+                groups.Add(new ClassNode(nodes));
             }
-
-            public bool TryGetValue(string key, out string value)
-            {
-                throw new NotImplementedException();
-            }
-
-            public object GetParameter(string key)
-            {
-                throw new NotImplementedException();
-            }
-        }
-    }
-
-    public interface ICompiledPipeline
-    {
-        Task<JObject> Invoke(IJsonPipelineContext context, INext next);
-    }
-
-    public class CompiledPipeline : ICompiledPipeline
-    {
-        private PipelineExecutorDelegate[] targets;
-        
-        public CompiledPipeline(IEnumerable<MethodNode> nodes)
-        {
-            this.targets = nodes.Select(node => node.Target).ToArray();
+            return groups;
         }
 
-        public Task<JObject> Invoke(IJsonPipelineContext context, INext next)
-        {
-            throw new NotImplementedException();
-        }
     }
-
-    public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INext next);
-
 
     public class PipelineExecutorDelegateFactory
     {
         private static readonly MethodInfo contextParameterGetter = typeof(IJsonPipelineContext).GetMethod("GetParameter");
 
+        public MethodNode CreateNode(object target, MethodInfo method, PipelineFilterAttribute[] filters)
+        {
+            PipelineExecutorDelegate @delegate = CreateInvocator(target, method);
+
+            return new MethodNode(filters, @delegate);
+        }
 
         public PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
         {
@@ -475,10 +415,39 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return Expression.Lambda<PipelineExecutorDelegate>(castMethodCall, contextParameter, nextParameter);
         }
 
-        private List<Expression> BuildParameterList(MethodInfo method, ParameterExpression contextParameter, ParameterExpression nextParameter)
+        private NextFactory factory = new NextFactory();
+        private List<Expression> BuildParameterList(MethodInfo method, Expression contextParameter, Expression nextParameter)
         {
             // Validate that method's signature ends with Context and Next.
             ParameterInfo[] list = method.GetParameters();
+
+            ParameterInfo nextParameterInfo = list[list.Length - 1];
+            ParameterInfo contextParameterInfo = list[list.Length - 2];
+
+            if (contextParameterInfo.ParameterType != typeof(IJsonPipelineContext))
+                contextParameter = Expression.Convert(contextParameter, contextParameterInfo.ParameterType);
+
+            if (nextParameterInfo.ParameterType.IsGenericType)
+            {
+                Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
+                //MethodInfo nextFacMethod = typeof(NextFactory)
+                //    .GetMethods()
+                //    .FirstOrDefault(m => m.Name == nameof(NextFactory.Create) && m.GetParameters().Length - 2 == genericTypes.Length);
+
+                Expression[] arguments = generics
+                    .Select(Expression.Parameter)
+                    .Prepend(Expression.Parameter(typeof(INode)))
+                    .Prepend(Expression.Parameter(typeof(IJsonPipelineContext)))
+                    .ToArray();
+
+                Expression factoryInstance = Expression.Constant(factory);
+                MethodCallExpression factoryExp = Expression.Call(factoryInstance, "Create", generics, arguments);
+
+
+                
+
+            }
+
             return list
                 .Take(list.Length - 2)
                 .Select(info =>
@@ -496,6 +465,196 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     }
 
+    public class NextFactory
+    {
+        public INext<T> Create<T>(IJsonPipelineContext context, INode next, string paramName)
+            => new Next<T>(context, next, paramName);
+        public INext<T1, T2> Create<T1, T2>(IJsonPipelineContext context, INode next, string paramName1, string paramName2)
+            => new Next<T1, T2>(context, next, paramName1, paramName2);
+    }
+
+    public interface IPipelines
+    {
+        ICompiledPipeline<TContext> For<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IJsonPipelineContext;
+    }
+
+    public class JsonPipelineManager : IPipelines
+    {
+        private readonly ILogger performance;
+        private readonly List<ClassNode> nodes;
+        private readonly ConcurrentDictionary<string, IPipeline> cache = new();
+
+        public JsonPipelineManager(ILogger performance, IJsonPipelineHandler[] providers)
+        {
+            this.performance = performance;
+            this.nodes = new PipelineGraphFactory().BuildHandlerGraph(providers);
+
+            //TODO: Make key generator, by running over all nodes and seeing which properties they interact with, we know which properties to use to generate our key.
+            //      We need to make sure we pass all the nodes to ensure everything has been accounted for.
+        }
+
+        
+        //public Task<JObject> Invoke<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IJsonPipelineContext;
+        public ICompiledPipeline<TContext> For<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IJsonPipelineContext
+        {
+            //TODO: Spying context is a one-time execution, ones it has been executed one time, we know all the
+            //      properties that can influence the selection, from there we can make a key generator and then use that.
+            //      - This also means that we can create the key generator in the constructor.
+            var recording = new SpyingContext(context);
+            var matchingNodes = nodes.SelectMany(n => n.For(context));
+
+            return new CompiledPipeline<TContext>(matchingNodes, final);
+        }
+
+        private class SpyingContext : IJsonPipelineContext
+        {
+            private IJsonPipelineContext origin;
+
+            public SpyingContext(IJsonPipelineContext origin)
+            {
+                this.origin = origin;
+            }
+
+            public bool TryGetValue(string key, out string value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public object GetParameter(string key)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IJsonPipelineContext Replace(params (string key, object value)[] values)
+            {
+                throw new NotImplementedException();
+            }
+        }
+    }
+
+    public interface ICompiledPipeline<in TContext> where TContext : IJsonPipelineContext
+    {
+        Task<JObject> Invoke(TContext context);
+    }
+
+    public class CompiledPipeline<TContext> : ICompiledPipeline<TContext> where TContext : IJsonPipelineContext
+    {
+        private readonly INode target;
+        
+        public CompiledPipeline(IEnumerable<MethodNode> nodes, Func<TContext, Task<JObject>> final)
+        {
+            new Node((context, _) => final((TContext)context), null);
+
+            this.target = nodes.Reverse()
+                .Aggregate((INode)new Node((context, _) => final((TContext)context), null), (node, methodNode) => new Node(methodNode.Target, node));
+        }
+
+        public Task<JObject> Invoke(TContext context)
+        {
+            return target.Invoke(context);
+        }
+
+        private class Node : INode
+        {
+            private readonly INode next;
+            private readonly PipelineExecutorDelegate target;
+
+            public Node(PipelineExecutorDelegate target, INode next)
+            {
+                this.next = next;
+                this.target = target;
+            }
+
+            public Task<JObject> Invoke(IJsonPipelineContext context)
+            {
+                return target(context, new Next(context, next));
+            }
+        }
+    }
+
+    public interface INode
+    {
+        Task<JObject> Invoke(IJsonPipelineContext context);
+    }
+    
+    public interface INext
+    {
+        Task<JObject> Invoke();
+    }
+
+    public class Next : INext
+    {
+        protected INode NextNode { get; }
+        protected IJsonPipelineContext Context { get; }
+
+        public Next(IJsonPipelineContext context, INode next)
+        {
+            this.Context = context;
+            this.NextNode = next;
+        }
+
+
+        public Task<JObject> Invoke() => NextNode.Invoke(Context);
+    }
+    public interface INext<in T> : INext
+    {
+        Task<JObject> Invoke(T arg);
+    }
+
+    public class Next<T> : Next, INext<T>
+    {
+        private readonly string parameterName;
+
+        public Next(IJsonPipelineContext context, INode next, string parameterName) 
+            : base(context, next)
+        {
+            this.parameterName = parameterName;
+        }
+
+        public Task<JObject> Invoke(T arg) => NextNode.Invoke(Context.Replace((parameterName, arg)));
+    }
+
+    public interface INext<in T1, in T2> : INext
+    {
+        Task<JObject> Invoke(T1 arg1, T2 arg2);
+    }
+
+    public class Next<T1, T2> : Next, INext<T1, T2>
+    {
+        private readonly string arg1Name;
+        private readonly string arg2Name;
+
+        public Next(IJsonPipelineContext context, INode next, string arg1Name, string arg2Name) 
+            : base(context, next)
+        {
+            this.arg1Name = arg1Name;
+            this.arg2Name = arg2Name;
+        }
+
+        public Task<JObject> Invoke(T1 arg1, T2 arg2) => NextNode.Invoke(Context
+            .Replace((arg1Name, arg1), (arg2Name, arg2)));
+    }
+
+
+
+    public interface INext<in T1, in T2, in T3> : INext
+    {
+        Task<JObject> Invoke(T1 arg1, T2 arg2, T3 arg3);
+    }
+
+    public interface INext<in T1, in T2, in T3, in T4> : INext
+    {
+        Task<JObject> Invoke(T1 arg1, T2 arg2, T3 arg3, T4 arg4);
+    }
+
+    public interface INext<in T1, in T2, in T3, in T4, in T5> : INext
+    {
+        Task<JObject> Invoke(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5);
+    }
+
+    
+
+
     public interface IJsonPipelineHandler
     {
     }
@@ -510,16 +669,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         bool TryGetValue(string key, out string value);
 
         object GetParameter(string key);
+
+        IJsonPipelineContext Replace(params (string key, object value)[] values);
     }
-
-
 
 
     public abstract class PipelineFilterAttribute : Attribute
     {
         public abstract bool Accepts(IJsonPipelineContext context);
     }
-
 
     [AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
     public class PropertyFilterAttribute : PipelineFilterAttribute

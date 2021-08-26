@@ -8,7 +8,6 @@ using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Tasks;
 using Newtonsoft.Json.Linq;
-using static DotJEM.Web.Host.Providers.AsyncPipeline.XPipeline;
 
 namespace DotJEM.Web.Host.Providers.Services
 {
@@ -65,22 +64,29 @@ namespace DotJEM.Web.Host.Providers.Services
             return Task.Run(() => area.History.GetDeleted(contentType, from, to));
         }
 
-        public Task<JObject> Revert(Guid id, string contentType, int version)
+        public async Task<JObject> Revert(Guid id, string contentType, int version)
         {
             if (!area.HistoryEnabled)
                 throw new InvalidOperationException("Cannot revert document when history is not enabled.");
 
-            var pipeline = pipelines.Select(For.ContentType(contentType).Name("Revert"));
-
+            
             JObject current = area.Get(id);
             JObject target = area.History.Get(id, version);
-            return pipeline.Execute(contentType, version, target, current, context =>
-            {
-                JObject result = area.Update(id, context.Target);
-                manager.QueueUpdate(result);
-                return result;
-            });
 
+            RevertPipelineContext context = new RevertPipelineContext(id, contentType, version, target, current);
+            var pipeline = pipelines.For(context, async ctx => area.Update(ctx.Id, context.Target));
+
+            JObject result = await pipeline.Invoke(context);
+            manager.QueueUpdate(result);
+            return result;
+
+            //return pipeline.Execute(contentType, version, target, current, context =>
+            //{
+            //    JObject result = area.Update(id, context.Target);
+            //    manager.QueueUpdate(result);
+            //    return result;
+            //});
+            throw new NotImplementedException();
             /**
              * 
              * IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, current);
@@ -109,25 +115,27 @@ namespace DotJEM.Web.Host.Providers.Services
 
     public static class RevertPipelineExtensions
     {
-        public static Task<JObject> ExecuteRevert(this IPipelines self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
-        {
-            var pipeline = self.Select(For.Name("Revert").And(For.ContentType(contentType)));
-            return pipeline.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
-        }
-        public static Task<JObject> Execute(this IJsonPipeline self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
-        {
-            return self.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
-        }
+        //public static Task<JObject> ExecuteRevert(this IPipelines self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
+        //{
+        //    var pipeline = self.Select(For.Name("Revert").And(For.ContentType(contentType)));
+        //    return pipeline.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
+        //}
+        //public static Task<JObject> Execute(this IJsonPipeline self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
+        //{
+        //    return self.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
+        //}
     }
     public class RevertPipelineContext : IJsonPipelineContext
     {
+        public Guid Id { get; }
         public string ContentType { get; }
         public int Version { get; }
         public JObject Target { get; }
         public JObject Current { get; }
 
-        public RevertPipelineContext(string contentType, int version, JObject target, JObject current)
+        public RevertPipelineContext(Guid id, string contentType, int version, JObject target, JObject current)
         {
+            Id = id;
             ContentType = contentType;
             Version = version;
             Target = target;
@@ -139,15 +147,20 @@ namespace DotJEM.Web.Host.Providers.Services
             return null;
         }
 
+        public IJsonPipelineContext Replace(params (string key, object value)[] values)
+        {
+            return this;
+        }
+
         public bool TryGetValue(string key, out string value)
         {
             switch (key)
             {
-                case "ContentType":
+                case "contentType":
                     value = ContentType;
                     return true;
 
-                case "Revert":
+                case "revert":
                     value = ContentType;
                     return true;
             }
@@ -155,10 +168,5 @@ namespace DotJEM.Web.Host.Providers.Services
             value = null;
             return false;
         }
-    }
-
-    public class RevertPipelineProvider
-    {
-
     }
 }

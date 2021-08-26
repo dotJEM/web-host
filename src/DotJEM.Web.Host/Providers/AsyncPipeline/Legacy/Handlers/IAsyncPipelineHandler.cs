@@ -13,17 +13,17 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Handlers
         Task<JObject> Patch(Guid id, JObject entity, IPatchContext context, INextHandler<Guid, JObject> next);
         Task<JObject> Delete(Guid id, IDeleteContext context, INextHandler<Guid> next);
     }
-    public interface INext
+    public interface INextHandler
     {
         Task<JObject> Invoke();
     }
-    public interface INextHandler<in TOptArg> : INext
+    public interface INextHandler<in TOptArg> : INextHandler
     {
         Task<JObject> Invoke(TOptArg narg);
     }
 
 
-    public interface INextHandler<in TOptArg1, in TObtArg2> : INext
+    public interface INextHandler<in TOptArg1, in TObtArg2> : INextHandler
     {
         Task<JObject> Invoke(TOptArg1 arg1, TObtArg2 arg2);
     }

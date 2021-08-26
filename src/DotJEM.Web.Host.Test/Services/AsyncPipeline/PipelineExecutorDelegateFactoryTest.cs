@@ -49,14 +49,16 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
             JsonPipelineManager manager = new JsonPipelineManager(new FakeLogger(), new IJsonPipelineHandler[]
             {
                 new FakeFirstTarget(),
-                new FakeSecondTarget()
+                new FakeSecondTarget(),
+                new FakeThirdTarget()
             });
             FakeContext context = new FakeContext(new Dictionary<string, object>()
             {
                 {"id", 42},
-                {"name", "Foo"}
+                {"name", "Foo"},
+                { "test", "x" }
             });
-            manager.For(context);
+            manager.For(context, async fakeContext => new JObject()).Invoke(context);
 
         }
 
@@ -75,7 +77,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     public class FakeFirstTarget : IJsonPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INextHandler<int, string> next)
+        public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INext<int, string> next)
         {
             Console.WriteLine($"FakeFirstTarget.Run({id}, {name})");
             return next.Invoke();
@@ -85,7 +87,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     public class FakeSecondTarget : IJsonPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INextHandler<int, string> next)
+        public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INext<int, string> next)
         {
             Console.WriteLine($"FakeSecondTarget.Run({id}, {name})");
             return next.Invoke();
@@ -93,7 +95,18 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
     }
 
-    public class FakeNextHandler<T1, T2> : INextHandler<T1, T2>
+    public class FakeThirdTarget : IJsonPipelineHandler
+    {
+        [PropertyFilter("test", ".*")]
+        public Task<JObject> Run(int id, string name, FakeContext context, INext<int, string> next)
+        {
+            Console.WriteLine($"FakeSecondTarget.Run({id}, {name})");
+            return next.Invoke();
+        }
+
+    }
+
+    public class FakeNextHandler<T1, T2> : INext<T1, T2>
     {
         public Task<JObject> Invoke()
         {
@@ -117,15 +130,26 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
             this.values = values;
         }
 
-
         public bool TryGetValue(string key, out string value)
         {
-            throw new NotImplementedException();
+            if (values.TryGetValue(key, out object val) && val is string str)
+            {
+                value = str;
+                return true;
+            }
+
+            value = null;
+            return false;
         }
 
         public object GetParameter(string key)
         {
             return values[key];
+        }
+
+        public IJsonPipelineContext Replace(params (string key, object value)[] values)
+        {
+            throw new NotImplementedException();
         }
     }
 }
