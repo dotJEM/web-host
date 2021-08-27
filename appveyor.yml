@@ -32,10 +32,6 @@ build:
   project: src\DotJEM.Web.Host.sln
   publish_nuget: true
 
-on_success:
-- curl -s -o copilot https://copilot.blackducksoftware.com/ci/appveyor/scripts/upload
-- bash copilot
-
 deploy:
   - provider: NuGet
     name: Master
