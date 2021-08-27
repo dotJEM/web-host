@@ -36,17 +36,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     //Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IJsonPipelineContext;
 
-    [PropertyFilter("ContentType", ".*")]
-    public class ExampleHandler : IJsonPipelineHandler
-    {
-        [PropertyFilter("Method", "GET", RegexOptions.IgnoreCase)]
-        public async Task<JObject> Get(Guid id, IJsonPipelineContext context, INext<Guid> next)
-        {
-            JObject entity = await next.Invoke().ConfigureAwait(false);
-            entity["foo"] = "HAHA";
-            return entity;
-        }
-    }
 
     public class MethodNode
     {

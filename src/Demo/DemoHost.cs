@@ -38,6 +38,11 @@ namespace Demo
             container.RegisterPipelineStep<ExampleHandler>();
 
         }
+
+        //protected override void Configure(IPipelines pipeline)
+        //{
+        //    base.Configure(pipeline);
+        //}
     }
 
     [ContentTypeFilter(".*")]
