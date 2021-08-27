@@ -1,21 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Castle.Core;
-using DotJEM.Diagnostic;
-using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
 using DotJEM.Web.Host.Providers.Concurrency;
-using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
-using DotJEM.Web.Host.Tasks;
 using Newtonsoft.Json.Linq;
-using IPipeline = DotJEM.Web.Host.Providers.Pipeline.IPipeline;
 
 namespace DotJEM.Web.Host.Providers.Services
 {
@@ -240,7 +232,6 @@ namespace DotJEM.Web.Host.Providers.Services
             ICompiledPipeline<HttpPutPipelineContext> pipeline = pipelines
                 .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
             //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, prev);
-
             //entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
 
             entity = await pipeline.Invoke(context);
@@ -411,11 +402,11 @@ namespace DotJEM.Web.Host.Providers.Services
         }
     }
 
-    public static class PipelineExt
-    {
-        public static PipelineContext CreateContext(this IPipeline self, string contentType, JObject json, [CallerMemberName] string caller = "")
-        {
-            return self.ContextFactory.Create(caller, contentType, json);
-        }
-    }
+    //public static class PipelineExt
+    //{
+    //    public static PipelineContext CreateContext(this IPipeline self, string contentType, JObject json, [CallerMemberName] string caller = "")
+    //    {
+    //        return self.ContextFactory.Create(caller, contentType, json);
+    //    }
+    //}
 }

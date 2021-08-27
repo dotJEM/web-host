@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using AgileObjects.ReadableExpressions;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -34,12 +34,17 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         [Test]
         public void CreateInvocator_ReturnsDelegat2e()
         {
+
             PipelineExecutorDelegateFactory factory = new PipelineExecutorDelegateFactory();
 
-            FakeFirstTarget target = new FakeFirstTarget();
-            var lambda = factory.BuildLambda(target, target.GetType().GetMethod(nameof(FakeFirstTarget.Run)));
 
-            Console.WriteLine(lambda.ToReadableString());
+            FakeFirstTarget target = new FakeFirstTarget();
+            Expression<NextFactoryDelegate> exp = factory.CreateNextStuff(target.GetType().GetMethod(nameof(FakeFirstTarget.Run)));
+
+            Console.WriteLine(exp.ToReadableString());
+
+            exp.Compile();
+
         }
 
         [Test]
@@ -90,7 +95,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INext<int, string> next)
         {
             Console.WriteLine($"FakeSecondTarget.Run({id}, {name})");
-            return next.Invoke();
+            return next.Invoke(50, "OPPS");
         }
 
     }
@@ -123,7 +128,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
     public class FakeContext : IJsonPipelineContext
     {
-        private Dictionary<string, object> values;
+        private readonly Dictionary<string, object> values;
 
         public FakeContext(Dictionary<string, object> values)
         {
@@ -149,7 +154,9 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
         public IJsonPipelineContext Replace(params (string key, object value)[] values)
         {
-            throw new NotImplementedException();
+            foreach ((string key, object value)  in values)
+                this.values[key] = value;
+            return this;
         }
     }
 }

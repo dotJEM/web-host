@@ -27,8 +27,8 @@ using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
+using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.Concurrency;
-using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Util;
@@ -130,7 +130,7 @@ namespace DotJEM.Web.Host
             DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
 
             perf.TrackAction(BeforeConfigure);
-            perf.TrackAction(() => Configure(container.Resolve<IPipeline>()), "Configure Pipeline");
+            perf.TrackAction(() => Configure(container.Resolve<IPipelines>()), "Configure Pipeline");
             perf.TrackAction(() => Configure(container), "Configure Container");
             perf.TrackAction(() => Configure(Storage), "Configure Storage");
             perf.TrackAction(() => Configure(Index), "Configure Index");
@@ -269,7 +269,7 @@ namespace DotJEM.Web.Host
         protected virtual void Configure(IStorageContext storage) { }
         protected virtual void Configure(IStorageIndex index) { }
         protected virtual void Configure(IRouter router) { }
-        protected virtual void Configure(IPipeline pipeline) { }
+        protected virtual void Configure(IPipelines pipeline) { }
 
         protected virtual void AfterConfigure() { }
         protected virtual void BeforeInitialize() { }

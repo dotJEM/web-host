@@ -8,8 +8,6 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Castle.MicroKernel.Registration;
@@ -17,271 +15,32 @@ using Castle.MicroKernel.Resolvers;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Diagnostic;
-using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
-using DotJEM.Web.Host.Providers.Pipeline;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
 
-    public interface IPipelineBuidler
-    {
-        IPipelineBuidler PushAfter(IAsyncPipelineHandler handler);
-        IPipeline Build();
-    }
 
-    public class PipelineBuilder : IPipelineBuidler
-    {
-        private readonly IAsyncPipelineHandler handler;
-        private readonly IPipelineBuidler next;
-
-        public PipelineBuilder(IAsyncPipelineHandler handler, IPipelineBuidler next = null)
-        {
-            this.handler = handler;
-            this.next = next;
-        }
-
-        public IPipelineBuidler PushAfter(IAsyncPipelineHandler handler) => new PipelineBuilder(handler, this);
-
-        public IPipeline Build() => new Pipeline(handler, next.Build());
-    }
-
-    public class PerformanceTrackingPipelineBuilder : IPipelineBuidler
-    {
-        private readonly ILogger performance;
-        private readonly IAsyncPipelineHandler handler;
-        private readonly IPipelineBuidler next;
-
-        public PerformanceTrackingPipelineBuilder(ILogger performance, IAsyncPipelineHandler handler, IPipelineBuidler next = null)
-        {
-            this.performance = performance;
-            this.handler = handler;
-            this.next = next;
-        }
-
-        public IPipelineBuidler PushAfter(IAsyncPipelineHandler handler) => new PerformanceTrackingPipelineBuilder(performance, handler, this);
-
-        public IPipeline Build() => new PerformanceTrackingPipeline(performance, handler, next?.Build());
-    }
-
-    public interface IPipeline
-    {
-        Task<JObject> Get(Guid id, IGetContext context);
-        Task<JObject> Post(JObject entity, IPostContext context);
-        Task<JObject> Put(Guid id, JObject entity, IPutContext context);
-        Task<JObject> Patch(Guid id, JObject entity, IPatchContext context);
-        Task<JObject> Delete(Guid id, IDeleteContext context);
-    }
-
-    public class Pipeline : IPipeline
-    {
-        private readonly IPipeline next;
-        private readonly IAsyncPipelineHandler handler;
-
-        public Pipeline(IAsyncPipelineHandler handler, IPipeline next = null)
-        {
-            this.handler = handler;
-            this.next = next;
-        }
-
-        public Task<JObject> Get(Guid id, IGetContext context)
-        {
-            return handler.Get(id, context, new NextHandler<Guid>(id, x => next.Get(x, context)));
-        }
-
-        public Task<JObject> Post(JObject entity, IPostContext context)
-        {
-            return handler.Post(entity, context, new NextHandler<JObject>(entity, x => next.Post(x, context)));
-        }
-
-        public Task<JObject> Put(Guid id, JObject entity, IPutContext context)
-        {
-            return handler.Put(id, entity, context, new NextHandler<Guid, JObject>(id, entity, (x, y) => next.Put(x, y, context)));
-        }
-
-        public Task<JObject> Patch(Guid id, JObject entity, IPatchContext context)
-        {
-            return handler.Patch(id, entity, context, new NextHandler<Guid, JObject>(id, entity, (x, y) => next.Patch(x, y, context)));
-        }
-
-        public Task<JObject> Delete(Guid id, IDeleteContext context)
-        {
-            return handler.Delete(id, context, new NextHandler<Guid>(id, x => next.Delete(x, context)));
-        }
-    }
-
-    public class PerformanceTrackingPipeline : IPipeline
-    {
-        private readonly IPipeline next;
-        private readonly ILogger performance;
-        private readonly IAsyncPipelineHandler handler;
-
-        private readonly string targetName;
-
-        public PerformanceTrackingPipeline(ILogger performance, IAsyncPipelineHandler handler, IPipeline next = null)
-        {
-            this.performance = performance;
-            this.handler = handler;
-            this.next = next;
-            this.targetName = handler.GetType().FullName;
-        }
-        
-        public async Task<JObject> Get(Guid id, IGetContext context)
-        {
-            using (Track(context)) return await handler.Get(id, context, new NextHandler<Guid>(id, x => next.Get(x, context)));
-        }
-
-        public async Task<JObject> Post(JObject entity, IPostContext context)
-        {
-            using (Track(context)) return await handler.Post(entity, context, new NextHandler<JObject>(entity, x => next.Post(x, context)));
-        }
-
-        public async Task<JObject> Put(Guid id, JObject entity, IPutContext context)
-        {
-            using (Track(context)) return await handler.Put(id, entity, context, new NextHandler<Guid, JObject>(id, entity, (x, y) => next.Put(x, y, context)));
-        }
-
-        public async Task<JObject> Patch(Guid id, JObject entity, IPatchContext context)
-        {
-            using (Track(context)) return await handler.Patch(id, entity, context, new NextHandler<Guid, JObject>(id, entity, (x, y) => next.Patch(x, y, context)));
-        }
-
-        public async Task<JObject> Delete(Guid id, IDeleteContext context)
-        {
-            using (Track(context)) return await handler.Delete(id, context, new NextHandler<Guid>(id, x => next.Delete(x, context)));
-        }
-
-        private IDisposable Track(IContext context, [CallerMemberName] string method = null)
-        {
-            return performance.Track("pipeline", CreateMessage(context.ContentType, method));
-        }
-
-        private JToken CreateMessage(string contentType, string method)
-        {
-            return new JObject
-            {
-                ["target"] = targetName,
-                ["method"] = method,
-                ["contentType"] = contentType
-            };
-        }
-    }
-
-    public interface IAsyncPipelineContextFactory
-    {
-        IGetContext CreateGetContext(string contentType);
-        IPostContext CreatePostContext(string contentType);
-        IPutContext CreatePutContext(string contentType, JObject prevous);
-        IPatchContext CreatePatchContext(string contentType, JObject prevous);
-        IDeleteContext CreateDeleteContext(string contentType, JObject previous);
-    }
-
-    public class DefaultAsyncPipelineContextFactory : IAsyncPipelineContextFactory
-    {
-        public IGetContext CreateGetContext(string contentType) => new EmptyContext(contentType);
-        public IPostContext CreatePostContext(string contentType) => new EmptyContext(contentType);
-        public IPutContext CreatePutContext(string contentType, JObject previous) => new PreviousContext(contentType, previous);
-        public IPatchContext CreatePatchContext(string contentType, JObject previous) => new PreviousContext(contentType, previous);
-        public IDeleteContext CreateDeleteContext(string contentType, JObject previous) => new PreviousContext(contentType, previous);
-    }
-
-    public interface IAsyncPipelineFactory
-    {
-        IAsyncPipeline Create(IAsyncPipelineHandler termination);
-
-    }
-
-    public class AsyncPipelineFactory : IAsyncPipelineFactory
-    {
-        private readonly ILogger logger;
-        private readonly IAsyncPipelineHandler[] handlers;
-        private readonly IAsyncPipelineContextFactory contextFactory;
-
-        public AsyncPipelineFactory(ILogger logger, IAsyncPipelineHandler[] handlers, IAsyncPipelineContextFactory contextFactory = null)
-        {
-            this.logger = logger;
-            this.handlers = handlers;
-            this.contextFactory = contextFactory ?? new DefaultAsyncPipelineContextFactory();
-        }
-
-        public IAsyncPipeline Create(IAsyncPipelineHandler termination)
-        {
-            return new AsyncPipeline(new AsyncPipelineHandlerCollection(logger, handlers, termination), contextFactory);
-        }
-    }
-
-    public interface IAsyncPipeline
-    {
-        IAsyncPipelineContextFactory ContextFactory { get; }
-
-        Task<JObject> Get(Guid id, IGetContext context);
-        Task<JObject> Post(JObject entity, IPostContext context);
-        Task<JObject> Put(Guid id, JObject entity, IPutContext context);
-        Task<JObject> Patch(Guid id, JObject entity, IPatchContext context);
-        Task<JObject> Delete(Guid id, IDeleteContext context);
-    }
-
-    public class AsyncPipeline : IAsyncPipeline
-    {
-        private readonly IAsyncPipelineHandlerCollection pipelines;
-
-        public IAsyncPipelineContextFactory ContextFactory { get; }
-
-        public AsyncPipeline(IAsyncPipelineHandlerCollection pipelines, IAsyncPipelineContextFactory factory)
-        {
-            ContextFactory = factory;
-            this.pipelines = pipelines;
-        }
-
-        public Task<JObject> Get(Guid id, IGetContext context)
-        {
-            return pipelines.For(context.ContentType).Get(id, context);
-        }
-
-        public Task<JObject> Post(JObject entity, IPostContext context)
-        {
-            return pipelines.For(context.ContentType).Post(entity, context);
-        }
-
-        public Task<JObject> Put(Guid id, JObject entity, IPutContext context)
-        {
-            return pipelines.For(context.ContentType).Put(id, entity, context);
-        }
-
-        public Task<JObject> Patch(Guid id, JObject entity, IPatchContext context)
-        {
-            return pipelines.For(context.ContentType).Patch(id, entity, context);
-        }
-
-        public Task<JObject> Delete(Guid id, IDeleteContext context)
-        {
-            return pipelines.For(context.ContentType).Delete(id, context);
-        }
-    }
 
     public class AsyncPipelineInstaller : IWindsorInstaller
     {
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
-            container.Register(Component.For<IAsyncPipelineFactory>().ImplementedBy<AsyncPipelineFactory>().LifestyleTransient());
+            container.Register(Component.For<IPipelines>().ImplementedBy<JsonPipelineManager>().LifestyleTransient());
         }
     }
-
-
 
 
     /* NEW CONCEPT: Named pipelines */
 
 
     //Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IJsonPipelineContext;
-    
+
     [PropertyFilter("ContentType", ".*")]
-    public class ExampleHandler : AsyncPipelineHandler
+    public class ExampleHandler : IJsonPipelineHandler
     {
         [PropertyFilter("Method", "GET", RegexOptions.IgnoreCase)]
-        public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
+        public async Task<JObject> Get(Guid id, IJsonPipelineContext context, INext<Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
             entity["foo"] = "HAHA";
@@ -294,11 +53,13 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         private readonly PipelineFilterAttribute[] filters;
 
         public PipelineExecutorDelegate Target { get; }
+        public NextFactoryDelegate NextFactory { get; }
 
-        public MethodNode(PipelineFilterAttribute[] filters, PipelineExecutorDelegate target)
+        public MethodNode(PipelineFilterAttribute[] filters, PipelineExecutorDelegate target, NextFactoryDelegate nextFactory)
         {
             this.filters = filters;
             this.Target = target;
+            NextFactory = nextFactory;
         }
 
         public bool Accepts(IJsonPipelineContext context)
@@ -323,7 +84,8 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     }
     
     public delegate Task<JObject> PipelineExecutorDelegate(IJsonPipelineContext context, INext next);
-    
+
+    public delegate INext NextFactoryDelegate(IJsonPipelineContext context, INode node);
 
     public class PipelineGraphFactory
     {
@@ -391,8 +153,9 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public MethodNode CreateNode(object target, MethodInfo method, PipelineFilterAttribute[] filters)
         {
             PipelineExecutorDelegate @delegate = CreateInvocator(target, method);
+            NextFactoryDelegate nextFactory = CreateNextFactoryDelegate(method);
 
-            return new MethodNode(filters, @delegate);
+            return new MethodNode(filters, @delegate, nextFactory);
         }
 
         public PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
@@ -415,38 +178,14 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return Expression.Lambda<PipelineExecutorDelegate>(castMethodCall, contextParameter, nextParameter);
         }
 
-        private NextFactory factory = new NextFactory();
         private List<Expression> BuildParameterList(MethodInfo method, Expression contextParameter, Expression nextParameter)
         {
             // Validate that method's signature ends with Context and Next.
             ParameterInfo[] list = method.GetParameters();
-
-            ParameterInfo nextParameterInfo = list[list.Length - 1];
             ParameterInfo contextParameterInfo = list[list.Length - 2];
 
             if (contextParameterInfo.ParameterType != typeof(IJsonPipelineContext))
                 contextParameter = Expression.Convert(contextParameter, contextParameterInfo.ParameterType);
-
-            if (nextParameterInfo.ParameterType.IsGenericType)
-            {
-                Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
-                //MethodInfo nextFacMethod = typeof(NextFactory)
-                //    .GetMethods()
-                //    .FirstOrDefault(m => m.Name == nameof(NextFactory.Create) && m.GetParameters().Length - 2 == genericTypes.Length);
-
-                Expression[] arguments = generics
-                    .Select(Expression.Parameter)
-                    .Prepend(Expression.Parameter(typeof(INode)))
-                    .Prepend(Expression.Parameter(typeof(IJsonPipelineContext)))
-                    .ToArray();
-
-                Expression factoryInstance = Expression.Constant(factory);
-                MethodCallExpression factoryExp = Expression.Call(factoryInstance, "Create", generics, arguments);
-
-
-                
-
-            }
 
             return list
                 .Take(list.Length - 2)
@@ -463,15 +202,44 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 .ToList();
         }
 
+
+
+        public NextFactoryDelegate CreateNextFactoryDelegate(MethodInfo method)
+        {
+            Expression<NextFactoryDelegate> lambda = CreateNextStuff(method);
+            return lambda.Compile();
+        }
+
+        public Expression<NextFactoryDelegate> CreateNextStuff(MethodInfo method)
+        {
+            ParameterInfo[] list = method.GetParameters();
+            ParameterInfo nextParameterInfo = list[list.Length - 1];
+            Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
+
+            ParameterExpression contextParameter = Expression.Parameter(typeof(IJsonPipelineContext), "context");
+            ParameterExpression nodeParameter = Expression.Parameter(typeof(INode), "node");
+
+            Expression[] arguments = list
+                .Take(list.Length - 2)
+                .Select(p => (Expression)Expression.Constant(p.Name))
+                .Prepend(nodeParameter)
+                .Prepend(contextParameter)
+                .ToArray();
+            MethodCallExpression methodCall = Expression.Call(typeof(NextFactory), nameof(NextFactory.Create), generics, arguments);
+
+            return Expression.Lambda<NextFactoryDelegate>(methodCall, contextParameter, nodeParameter);
+        }
+
+        public static class NextFactory
+        {
+            public static INext<T> Create<T>(IJsonPipelineContext context, INode next, string paramName)
+                => new Next<T>(context, next, paramName);
+            public static INext<T1, T2> Create<T1, T2>(IJsonPipelineContext context, INode next, string paramName1, string paramName2)
+                => new Next<T1, T2>(context, next, paramName1, paramName2);
+        }
     }
 
-    public class NextFactory
-    {
-        public INext<T> Create<T>(IJsonPipelineContext context, INode next, string paramName)
-            => new Next<T>(context, next, paramName);
-        public INext<T1, T2> Create<T1, T2>(IJsonPipelineContext context, INode next, string paramName1, string paramName2)
-            => new Next<T1, T2>(context, next, paramName1, paramName2);
-    }
+    
 
     public interface IPipelines
     {
@@ -482,7 +250,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         private readonly ILogger performance;
         private readonly List<ClassNode> nodes;
-        private readonly ConcurrentDictionary<string, IPipeline> cache = new();
+        private readonly ConcurrentDictionary<string, object> cache = new();
 
         public JsonPipelineManager(ILogger performance, IJsonPipelineHandler[] providers)
         {
@@ -543,10 +311,10 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         
         public CompiledPipeline(IEnumerable<MethodNode> nodes, Func<TContext, Task<JObject>> final)
         {
-            new Node((context, _) => final((TContext)context), null);
-
             this.target = nodes.Reverse()
-                .Aggregate((INode)new Node((context, _) => final((TContext)context), null), (node, methodNode) => new Node(methodNode.Target, node));
+                .Aggregate(
+                    (INode)new Node((context, _) => final((TContext)context), (_, _) => null, null), 
+                    (node, methodNode) => new Node(methodNode.Target, methodNode.NextFactory, node));
         }
 
         public Task<JObject> Invoke(TContext context)
@@ -558,16 +326,19 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         {
             private readonly INode next;
             private readonly PipelineExecutorDelegate target;
+            private readonly NextFactoryDelegate factory;
 
-            public Node(PipelineExecutorDelegate target, INode next)
+            public Node(PipelineExecutorDelegate target, NextFactoryDelegate factory, INode next)
             {
                 this.next = next;
+                this.factory = factory;
                 this.target = target;
             }
 
             public Task<JObject> Invoke(IJsonPipelineContext context)
             {
-                return target(context, new Next(context, next));
+
+                return target(context, factory(context, next));
             }
         }
     }
@@ -592,7 +363,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             this.Context = context;
             this.NextNode = next;
         }
-
 
         public Task<JObject> Invoke() => NextNode.Invoke(Context);
     }
@@ -635,8 +405,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             .Replace((arg1Name, arg1), (arg2Name, arg2)));
     }
 
-
-
     public interface INext<in T1, in T2, in T3> : INext
     {
         Task<JObject> Invoke(T1 arg1, T2 arg2, T3 arg3);
@@ -651,8 +419,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         Task<JObject> Invoke(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5);
     }
-
-    
 
 
     public interface IJsonPipelineHandler
@@ -698,23 +464,45 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
     }
 
-
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-    public class ContentTypeFilterAttribute : PipelineFilterAttribute
+    public class ContentTypeFilterAttribute : PropertyFilterAttribute
     {
-        private readonly Regex filter;
 
-        public ContentTypeFilterAttribute(string regex, RegexOptions options = RegexOptions.Compiled | RegexOptions.IgnoreCase)
+        public ContentTypeFilterAttribute(string regex, RegexOptions options = RegexOptions.None)
+        : base("contentType", regex, options)
         {
-            filter = new Regex(regex, options);
-        }
-
-        public bool IsMatch(string contentType) => filter.IsMatch(contentType);
-
-        public override bool Accepts(IJsonPipelineContext context)
-        {
-            return context.TryGetValue("contentType", out string value) && filter.IsMatch(value);
         }
     }
 
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+    public class HttpMethodFilterAttribute : PropertyFilterAttribute
+    {
+
+        public HttpMethodFilterAttribute(string regex, RegexOptions options = RegexOptions.None)
+            : base("method", regex, options |RegexOptions.IgnoreCase)
+        {
+        }
+    }
+
+
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public class PipelineDepencency : Attribute
+    {
+        public Type Type { get; set; }
+
+        public PipelineDepencency(Type other)
+        {
+            Type = other;
+        }
+
+        public static PipelineDepencency[] GetDepencencies(object handler)
+        {
+            Type type = handler.GetType();
+            return type
+                .GetCustomAttributes(typeof(PipelineDepencency), true)
+                .OfType<PipelineDepencency>()
+                .ToArray();
+        }
+    }
 }

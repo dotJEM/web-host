@@ -4,12 +4,9 @@ using System.Linq;
  using DotJEM.Diagnostic;
  using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
- using DotJEM.Web.Host.Diagnostics.Performance;
  using DotJEM.Web.Host.Providers.AsyncPipeline;
- using DotJEM.Web.Host.Tasks;
  using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
- using IPipeline = DotJEM.Web.Host.Providers.Pipeline.IPipeline;
 
  namespace DotJEM.Web.Host.Providers.Services
 {
@@ -41,13 +38,13 @@ using Newtonsoft.Json.Linq;
     public class SearchService : ISearchService
     {
         private readonly IStorageIndex index;
-        private readonly IAsyncPipeline pipeline;
+        private readonly IPipelines pipelines;
         private readonly ILogger performance;
 
-        public SearchService(IStorageIndex index, IAsyncPipeline pipeline, ILogger performance)
+        public SearchService(IStorageIndex index, IPipelines pipelines, ILogger performance)
         {
             this.index = index;
-            this.pipeline = pipeline;
+            this.pipelines = pipelines;
             this.performance = performance;
         }
 
