@@ -64,6 +64,9 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
                 { "test", "x" }
             });
             manager.For(context, async fakeContext => new JObject()).Invoke(context);
+            manager.For(context, async fakeContext => new JObject()).Invoke(context);
+            manager.For(context, async fakeContext => new JObject()).Invoke(context);
+            manager.For(context, async fakeContext => new JObject()).Invoke(context);
 
         }
 
@@ -89,6 +92,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         }
     }
 
+        [PropertyFilter("name", ".*")]
     public class FakeSecondTarget : IJsonPipelineHandler
     {
         [PropertyFilter("test", ".*")]
