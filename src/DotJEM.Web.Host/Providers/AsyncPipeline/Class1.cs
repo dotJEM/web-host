@@ -8,6 +8,8 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Castle.MicroKernel.Registration;
@@ -233,9 +235,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 => new Next<T1, T2>(context, next, paramName1, paramName2);
         }
     }
-
     
-
     public interface IPipelines
     {
         ICompiledPipeline<TContext> For<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IJsonPipelineContext;
@@ -246,7 +246,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         private readonly ILogger performance;
         private readonly List<ClassNode> nodes;
         private readonly ConcurrentDictionary<string, object> cache = new();
-
+        private readonly Func<IJsonPipelineContext, string> keyGenerator;
         public JsonPipelineManager(ILogger performance, IJsonPipelineHandler[] providers)
         {
             this.performance = performance;
@@ -254,33 +254,49 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
             //TODO: Make key generator, by running over all nodes and seeing which properties they interact with, we know which properties to use to generate our key.
             //      We need to make sure we pass all the nodes to ensure everything has been accounted for.
+
+            var context = new SpyingContext();
+            nodes.SelectMany(n => n.For(context)).ToArray();
+            keyGenerator = context.CreateKeyGenerator();
         }
 
         
-        //public Task<JObject> Invoke<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IJsonPipelineContext;
         public ICompiledPipeline<TContext> For<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IJsonPipelineContext
         {
             //TODO: Spying context is a one-time execution, ones it has been executed one time, we know all the
             //      properties that can influence the selection, from there we can make a key generator and then use that.
             //      - This also means that we can create the key generator in the constructor.
-            var recording = new SpyingContext(context);
-            var matchingNodes = nodes.SelectMany(n => n.For(context));
-
+            //var recording = new SpyingContext(context);
+            string key = keyGenerator(context);
+            Console.WriteLine(key);
+            return (ICompiledPipeline<TContext>) cache.GetOrAdd(key, k =>
+            {
+                IEnumerable<MethodNode> matchingNodes = nodes.SelectMany(n => n.For(context));
             return new CompiledPipeline<TContext>(performance, matchingNodes, final);
+            });
         }
 
         private class SpyingContext : IJsonPipelineContext
         {
-            private IJsonPipelineContext origin;
-
-            public SpyingContext(IJsonPipelineContext origin)
-            {
-                this.origin = origin;
-            }
+            private readonly HashSet<string> parameters = new ();
 
             public bool TryGetValue(string key, out string value)
             {
-                throw new NotImplementedException();
+                parameters.Add(key);
+                value = "";
+                return true;
+            }
+            public Func<IJsonPipelineContext, string> CreateKeyGenerator()
+            {
+                Console.WriteLine(string.Join(", ", parameters));
+                Encoding encoding = Encoding.UTF8;
+                SHA256CryptoServiceProvider provider = new SHA256CryptoServiceProvider();
+                return context =>
+                {
+                    IEnumerable<byte> bytes = parameters.SelectMany(key => context.TryGetValue(key, out string value) ? encoding.GetBytes(value) : new byte[0]);
+                    byte[] hash = provider.ComputeHash(bytes.ToArray());
+                    return string.Join("", hash.Select(b => b.ToString("X2")));
+                };
             }
 
             public object GetParameter(string key)
