@@ -331,6 +331,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\AppConfigurationProvider.cs" />
     <Compile Include="Providers\AsyncPipeline\Class1.cs" />
+    <Compile Include="Providers\AsyncPipeline\PipelineExecutorDelegateFactory.cs" />
+    <Compile Include="Providers\AsyncPipeline\PipelineGraphFactory.cs" />
     <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
     <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
     <Compile Include="Providers\Concurrency\Installer.cs" />
