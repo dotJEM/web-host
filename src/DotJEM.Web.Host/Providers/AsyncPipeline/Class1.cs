@@ -15,6 +15,7 @@ using Castle.MicroKernel.Resolvers;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Diagnostic;
+using DotJEM.Web.Host.Diagnostics.Performance;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
@@ -35,9 +36,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
 
     //Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IJsonPipelineContext;
+    
 
+    public interface IPipelineMethod
+    {
+        PipelineExecutorDelegate Target { get; }
+        NextFactoryDelegate NextFactory { get; }
+    }
 
-    public class MethodNode
+    public class MethodNode : IPipelineMethod
     {
         private readonly PipelineFilterAttribute[] filters;
 
@@ -78,7 +85,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     public class PipelineGraphFactory
     {
-
         private IEnumerable<T> OrderHandlers<T>(T[] steps)
         {
             Queue<T> queue = new(steps);
@@ -260,7 +266,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             var recording = new SpyingContext(context);
             var matchingNodes = nodes.SelectMany(n => n.For(context));
 
-            return new CompiledPipeline<TContext>(matchingNodes, final);
+            return new CompiledPipeline<TContext>(performance, matchingNodes, final);
         }
 
         private class SpyingContext : IJsonPipelineContext
@@ -293,22 +299,82 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         Task<JObject> Invoke(TContext context);
     }
+    public class NullMethod : IPipelineMethod
+    {
+        public NullMethod(PipelineExecutorDelegate target)
+        {
+            Target = target;
+        }
+
+        public PipelineExecutorDelegate Target { get; }
+        public NextFactoryDelegate NextFactory { get; } = (_, _) => null;
+    }
 
     public class CompiledPipeline<TContext> : ICompiledPipeline<TContext> where TContext : IJsonPipelineContext
     {
         private readonly INode target;
         
-        public CompiledPipeline(IEnumerable<MethodNode> nodes, Func<TContext, Task<JObject>> final)
+
+        public CompiledPipeline(ILogger performance, IEnumerable<MethodNode> nodes, Func<TContext, Task<JObject>> final)
         {
-            this.target = nodes.Reverse()
-                .Aggregate(
-                    (INode)new Node((context, _) => final((TContext)context), (_, _) => null, null), 
-                    (node, methodNode) => new Node(methodNode.Target, methodNode.NextFactory, node));
+            if (performance.IsEnabled())
+            {
+                this.target = nodes.Reverse()
+                    .Aggregate(
+                        (INode)new PNode(performance, new NullMethod((context, _) => final((TContext)context)), null), 
+                        (node, methodNode) => new PNode(performance, methodNode, node));
+            }
+            else
+            {
+                this.target = nodes.Reverse()
+                    .Aggregate(
+                        (INode)new Node(new NullMethod((context, _) => final((TContext)context)), null), 
+                        (node, methodNode) => new Node(methodNode, node));
+            }
         }
 
         public Task<JObject> Invoke(TContext context)
         {
             return target.Invoke(context);
+        }
+
+        private class PNode : INode
+        {
+            private readonly INode next;
+            private readonly PipelineExecutorDelegate target;
+            private readonly NextFactoryDelegate factory;
+            private readonly ILogger performance;
+
+            public PNode(ILogger performance, IPipelineMethod method, INode next)
+            {
+                this.performance = performance;
+                this.next = next;
+                this.factory = method.NextFactory;
+                this.target = method.Target;
+            }
+
+            public async Task<JObject> Invoke(IJsonPipelineContext context)
+            {
+                using (performance.Track(""))
+                {
+                    return await target(context, factory(context, next));
+                }
+            }
+
+            //private IDisposable Track(IContext context, [CallerMemberName] string method = null)
+            //{
+            //    return performance.Track("pipeline", CreateMessage(context.ContentType, method));
+            //}
+
+            //private JToken CreateMessage(string contentType, string method)
+            //{
+            //    return new JObject
+            //    {
+            //        ["target"] = targetName,
+            //        ["method"] = method,
+            //        ["contentType"] = contentType
+            //    };
+            //}
         }
 
         private class Node : INode
@@ -317,16 +383,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             private readonly PipelineExecutorDelegate target;
             private readonly NextFactoryDelegate factory;
 
-            public Node(PipelineExecutorDelegate target, NextFactoryDelegate factory, INode next)
+            public Node(IPipelineMethod method, INode next)
             {
                 this.next = next;
-                this.factory = factory;
-                this.target = target;
+                this.factory = method.NextFactory;
+                this.target = method.Target;
             }
 
             public Task<JObject> Invoke(IJsonPipelineContext context)
             {
-
                 return target(context, factory(context, next));
             }
         }
