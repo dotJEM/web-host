@@ -234,6 +234,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             private readonly NextFactoryDelegate factory;
             private readonly ILogger performance;
             private readonly Func<IJsonPipelineContext, JObject> perfGenerator;
+            private readonly string signature;
 
             public PNode(ILogger performance, Func<IJsonPipelineContext, JObject> perfGenerator, IPipelineMethod method, INode next)
             {
@@ -242,31 +243,17 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 this.next = next;
                 this.factory = method.NextFactory;
                 this.target = method.Target;
+                this.signature = method.Signature;
             }
 
             public async Task<JObject> Invoke(IJsonPipelineContext context)
             {
                 //TODO: Here we generate the same JObject again and again, however it may be faster than reusing and clearing correctly.
                 JObject info = perfGenerator(context);
-                info["$$handler"] = "";
+                info["$$handler"] = signature;
                 using (performance.Track("pipeline", info))
                     return await target(context, factory(context, next));
             }
-
-            //private IDisposable Track(IContext context, [CallerMemberName] string method = null)
-            //{
-            //    return performance.Track("pipeline", CreateMessage(context.ContentType, method));
-            //}
-
-            //private JToken CreateMessage(string contentType, string method)
-            //{
-            //    return new JObject
-            //    {
-            //        ["target"] = targetName,
-            //        ["method"] = method,
-            //        ["contentType"] = contentType
-            //    };
-            //}
         }
 
         private class Node : INode
