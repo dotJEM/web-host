@@ -3,11 +3,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Castle.MicroKernel.Resolvers;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
 
-namespace DotJEM.Web.Host.Providers.AsyncPipeline
+namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
-    public class PipelineGraphFactory
+    public interface IPipelineGraphFactory
     {
+        List<IClassNode> BuildHandlerGraph(IPipelineHandler[] providers);
+    }
+
+    public class PipelineGraphFactory : IPipelineGraphFactory
+    {
+        public List<IClassNode> BuildHandlerGraph(IPipelineHandler[] providers)
+        {
+            List<IClassNode> groups = new();
+            foreach (IPipelineHandler provider in OrderHandlers(providers))
+            {
+                Type type = provider.GetType();
+                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+
+                List<MethodNode> nodes = new();
+                foreach (MethodInfo method in type.GetMethods())
+                {
+                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+                    if (methodSelectors.Any())
+                    {
+                        MethodNode node = new PipelineExecutorDelegateFactory().CreateNode(provider, method, selectors.Concat(methodSelectors).ToArray());
+                        nodes.Add(node);
+                    }
+                }
+                groups.Add(new ClassNode(nodes));
+            }
+            return groups;
+        }
+
         private IEnumerable<T> OrderHandlers<T>(T[] steps)
         {
             Queue<T> queue = new(steps);
@@ -38,29 +67,5 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             }
             return ordered.Select(type => map[type]).ToArray();
         }
-
-        public List<ClassNode> BuildHandlerGraph(IJsonPipelineHandler[] providers)
-        {
-            List<ClassNode> groups = new();
-            foreach (IJsonPipelineHandler provider in OrderHandlers(providers))
-            {
-                Type type = provider.GetType();
-                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
-
-                List<MethodNode> nodes = new();
-                foreach (MethodInfo method in type.GetMethods())
-                {
-                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
-                    if (methodSelectors.Any())
-                    {
-                        MethodNode node = new PipelineExecutorDelegateFactory().CreateNode(provider, method, selectors.Concat(methodSelectors).ToArray());
-                        nodes.Add(node);
-                    }
-                }
-                groups.Add(new ClassNode(nodes));
-            }
-            return groups;
-        }
-
     }
 }

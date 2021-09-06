@@ -6,7 +6,7 @@ namespace DotJEM.Web.Host.Castle
 {
     public static class WindsorContainerExtensions
     {
-        public static IWindsorContainer RegisterPipelineStep<T>(this IWindsorContainer self) where T : IJsonPipelineHandler
-            => self.Register(Component.For<IJsonPipelineHandler>().ImplementedBy<T>());
+        public static IWindsorContainer RegisterPipelineStep<T>(this IWindsorContainer self) where T : IPipelineHandler
+            => self.Register(Component.For<IPipelineHandler>().ImplementedBy<T>());
     }
 }

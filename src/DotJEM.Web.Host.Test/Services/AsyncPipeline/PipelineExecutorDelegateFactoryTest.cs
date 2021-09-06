@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using AgileObjects.ReadableExpressions;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Factories;
+using DotJEM.Web.Host.Providers.AsyncPipeline.NextHandlers;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -51,7 +54,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         public void Manager_ReturnsDelegat2e()
         {
 
-            JsonPipelineManager manager = new JsonPipelineManager(new FakeLogger(), new IJsonPipelineHandler[]
+            PipelineManager manager = new PipelineManager(new FakeLogger(), new IPipelineHandler[]
             {
                 new FakeFirstTarget(),
                 new FakeSecondTarget(),
@@ -82,10 +85,10 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         }
     }
 
-    public class FakeFirstTarget : IJsonPipelineHandler
+    public class FakeFirstTarget : IPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INext<int, string> next)
+        public Task<JObject> Run(int id, string name, IPipelineContext context, INext<int, string> next)
         {
             Console.WriteLine($"FakeFirstTarget.Run({id}, {name})");
             return next.Invoke();
@@ -93,10 +96,10 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     }
 
         [PropertyFilter("name", ".*")]
-    public class FakeSecondTarget : IJsonPipelineHandler
+    public class FakeSecondTarget : IPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, IJsonPipelineContext context, INext<int, string> next)
+        public Task<JObject> Run(int id, string name, IPipelineContext context, INext<int, string> next)
         {
             Console.WriteLine($"FakeSecondTarget.Run({id}, {name})");
             return next.Invoke(50, "OPPS");
@@ -104,7 +107,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
     }
 
-    public class FakeThirdTarget : IJsonPipelineHandler
+    public class FakeThirdTarget : IPipelineHandler
     {
         [PropertyFilter("test", ".*")]
         public Task<JObject> Run(int id, string name, FakeContext context, INext<int, string> next)
@@ -130,7 +133,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         }
     }
 
-    public class FakeContext : IJsonPipelineContext
+    public class FakeContext : IPipelineContext
     {
         private readonly Dictionary<string, object> values;
 
@@ -156,7 +159,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
             return values[key];
         }
 
-        public IJsonPipelineContext Replace(params (string key, object value)[] values)
+        public IPipelineContext Replace(params (string key, object value)[] values)
         {
             foreach ((string key, object value)  in values)
                 this.values[key] = value;

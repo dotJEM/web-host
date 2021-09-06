@@ -9,6 +9,8 @@ using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
+using DotJEM.Web.Host.Providers.AsyncPipeline.NextHandlers;
 using Newtonsoft.Json.Linq;
 
 namespace Demo
@@ -46,13 +48,21 @@ namespace Demo
     }
 
     [ContentTypeFilter(".*")]
-    public class ExampleHandler : IJsonPipelineHandler
+    public class ExampleHandler : IPipelineHandler
     {
         [HttpMethodFilter("GET")]
-        public async Task<JObject> Get(Guid id, IJsonPipelineContext context, INext<Guid> next)
+        public async Task<JObject> Get(Guid id, IPipelineContext context, INext<Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
             entity["foo"] = "HAHA";
+            return entity;
+        }
+
+        [HttpMethodFilter("GET")]
+        public async Task<JObject> Get2(Guid id, IPipelineContext context, INext<Guid> next)
+        {
+            JObject entity = await next.Invoke().ConfigureAwait(false);
+            entity["foo2"] = "HAHA2";
             return entity;
         }
     }

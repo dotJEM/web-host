@@ -4,13 +4,24 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
+using DotJEM.Web.Host.Providers.AsyncPipeline.NextHandlers;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Providers.AsyncPipeline
+namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
-    public class PipelineExecutorDelegateFactory
+    public interface IPipelineExecutorDelegateFactory
     {
-        private static readonly MethodInfo contextParameterGetter = typeof(IJsonPipelineContext).GetMethod("GetParameter");
+        MethodNode CreateNode(object target, MethodInfo method, PipelineFilterAttribute[] filters);
+        PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method);
+        Expression<PipelineExecutorDelegate> BuildLambda(object target, MethodInfo method);
+        NextFactoryDelegate CreateNextFactoryDelegate(MethodInfo method);
+        Expression<NextFactoryDelegate> CreateNextStuff(MethodInfo method);
+    }
+
+    public class PipelineExecutorDelegateFactory : IPipelineExecutorDelegateFactory
+    {
+        private static readonly MethodInfo contextParameterGetter = typeof(IPipelineContext).GetMethod("GetParameter");
 
         public MethodNode CreateNode(object target, MethodInfo method, PipelineFilterAttribute[] filters)
         {
@@ -31,7 +42,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public Expression<PipelineExecutorDelegate> BuildLambda(object target, MethodInfo method)
         {
             ConstantExpression targetParameter = Expression.Constant(target);
-            ParameterExpression contextParameter = Expression.Parameter(typeof(IJsonPipelineContext), "context");
+            ParameterExpression contextParameter = Expression.Parameter(typeof(IPipelineContext), "context");
             ParameterExpression nextParameter = Expression.Parameter(typeof(INext), "next");
 
             // context.GetParameter("first"), ..., context, (INextHandler<...>) next);
@@ -48,7 +59,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             ParameterInfo[] list = method.GetParameters();
             ParameterInfo contextParameterInfo = list[list.Length - 2];
 
-            if (contextParameterInfo.ParameterType != typeof(IJsonPipelineContext))
+            if (contextParameterInfo.ParameterType != typeof(IPipelineContext))
                 contextParameter = Expression.Convert(contextParameter, contextParameterInfo.ParameterType);
 
             return list
@@ -80,7 +91,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             ParameterInfo nextParameterInfo = list[list.Length - 1];
             Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
 
-            ParameterExpression contextParameter = Expression.Parameter(typeof(IJsonPipelineContext), "context");
+            ParameterExpression contextParameter = Expression.Parameter(typeof(IPipelineContext), "context");
             ParameterExpression nodeParameter = Expression.Parameter(typeof(INode), "node");
 
             Expression[] arguments = list
@@ -94,12 +105,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return Expression.Lambda<NextFactoryDelegate>(methodCall, contextParameter, nodeParameter);
         }
 
-        public static class NextFactory
-        {
-            public static INext<T> Create<T>(IJsonPipelineContext context, INode next, string paramName)
-                => new Next<T>(context, next, paramName);
-            public static INext<T1, T2> Create<T1, T2>(IJsonPipelineContext context, INode next, string paramName1, string paramName2)
-                => new Next<T1, T2>(context, next, paramName1, paramName2);
-        }
+        //public static class NextFactory
+        //{
+        //    public static INext<T> Create<T>(IPipelineContext context, INode next, string paramName)
+        //        => new Next<T>(context, next, paramName);
+        //    public static INext<T1, T2> Create<T1, T2>(IPipelineContext context, INode next, string paramName1, string paramName2)
+        //        => new Next<T1, T2>(context, next, paramName1, paramName2);
+        //}
     }
 }

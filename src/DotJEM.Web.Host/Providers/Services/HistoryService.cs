@@ -124,7 +124,7 @@ namespace DotJEM.Web.Host.Providers.Services
         //    return self.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
         //}
     }
-    public class RevertPipelineContext : IJsonPipelineContext
+    public class RevertPipelineContext : IPipelineContext
     {
         public Guid Id { get; }
         public string ContentType { get; }
@@ -146,7 +146,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return null;
         }
 
-        public IJsonPipelineContext Replace(params (string key, object value)[] values)
+        public IPipelineContext Replace(params (string key, object value)[] values)
         {
             return this;
         }

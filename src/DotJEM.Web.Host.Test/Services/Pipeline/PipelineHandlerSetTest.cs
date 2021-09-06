@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Castle.MicroKernel.Resolvers;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
 using NUnit.Framework;
 
 namespace DotJEM.Web.Host.Test.Services.Pipeline
@@ -74,23 +75,23 @@ namespace DotJEM.Web.Host.Test.Services.Pipeline
     }
 
 
-    public class First : IJsonPipelineHandler { }
+    public class First : IPipelineHandler { }
 
     [PipelineDepencency(typeof(First))]
-    public class Second : IJsonPipelineHandler { }
+    public class Second : IPipelineHandler { }
 
     [PipelineDepencency(typeof(First))]
     [PipelineDepencency(typeof(Third))]
-    public class NeedsFirstAndThird : IJsonPipelineHandler { }
+    public class NeedsFirstAndThird : IPipelineHandler { }
 
     [PipelineDepencency(typeof(Second))]
-    public class Third : IJsonPipelineHandler { }
+    public class Third : IPipelineHandler { }
 
     [PipelineDepencency(typeof(Third))]
-    public class Fourth : IJsonPipelineHandler { }
+    public class Fourth : IPipelineHandler { }
 
     [PipelineDepencency(typeof(Fourth))]
-    public class Fifth : IJsonPipelineHandler { }
+    public class Fifth : IPipelineHandler { }
 
 
 }

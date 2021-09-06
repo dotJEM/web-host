@@ -43,7 +43,7 @@ namespace DotJEM.Web.Host.Providers.Services
             this.merger = new ContentMergeService(merger, area);
         }
 
-        public class HttpGetPipelineContext : IJsonPipelineContext
+        public class HttpGetPipelineContext : IPipelineContext
         {
             private readonly string method;
             private readonly string contentType;
@@ -88,7 +88,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 };
             }
 
-            public IJsonPipelineContext Replace(params (string key, object value)[] values)
+            public IPipelineContext Replace(params (string key, object value)[] values)
             {
                 return this;
             }
@@ -105,7 +105,7 @@ namespace DotJEM.Web.Host.Providers.Services
             //return pipeline.Get(id, context);
         }
         
-        public class HttpPostPipelineContext : IJsonPipelineContext
+        public class HttpPostPipelineContext : IPipelineContext
         {
             private readonly string method;
             private readonly string contentType;
@@ -148,7 +148,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 };
             }
 
-            public IJsonPipelineContext Replace(params (string key, object value)[] values)
+            public IPipelineContext Replace(params (string key, object value)[] values)
             {
                 return this;
             }
@@ -164,7 +164,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return entity;
         }
         
-        public class HttpPutPipelineContext : IJsonPipelineContext
+        public class HttpPutPipelineContext : IPipelineContext
         {
             private readonly string method;
             private readonly string contentType;
@@ -217,7 +217,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 };
             }
 
-            public IJsonPipelineContext Replace(params (string key, object value)[] values)
+            public IPipelineContext Replace(params (string key, object value)[] values)
             {
                 return this;
             }
@@ -239,7 +239,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return entity;
         }
         
-        public class HttpPatchPipelineContext : IJsonPipelineContext
+        public class HttpPatchPipelineContext : IPipelineContext
         {
             private readonly string method;
             private readonly string contentType;
@@ -291,7 +291,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 };
             }
 
-            public IJsonPipelineContext Replace(params (string key, object value)[] values)
+            public IPipelineContext Replace(params (string key, object value)[] values)
             {
                 return this;
             }
@@ -320,7 +320,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return entity;
         }
 
-        public class HttpDeletePipelineContext : IJsonPipelineContext
+        public class HttpDeletePipelineContext : IPipelineContext
         {
             private string method;
             private string contentType;
@@ -369,7 +369,7 @@ namespace DotJEM.Web.Host.Providers.Services
                 };
             }
 
-            public IJsonPipelineContext Replace(params (string key, object value)[] values)
+            public IPipelineContext Replace(params (string key, object value)[] values)
             {
                 return this;
             }

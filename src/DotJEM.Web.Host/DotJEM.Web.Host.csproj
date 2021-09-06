@@ -331,8 +331,15 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\AppConfigurationProvider.cs" />
     <Compile Include="Providers\AsyncPipeline\Class1.cs" />
-    <Compile Include="Providers\AsyncPipeline\PipelineExecutorDelegateFactory.cs" />
-    <Compile Include="Providers\AsyncPipeline\PipelineGraphFactory.cs" />
+    <Compile Include="Common\EnumerableExtensions.cs" />
+    <Compile Include="Providers\AsyncPipeline\Factories\NextFactoryDelegate.cs" />
+    <Compile Include="Providers\AsyncPipeline\Factories\PipelineExecutorDelegate.cs" />
+    <Compile Include="Providers\AsyncPipeline\NextHandlers\Next.cs" />
+    <Compile Include="Providers\AsyncPipeline\NextHandlers\NextFactory.cs" />
+    <Compile Include="Providers\AsyncPipeline\Factories\PipelineExecutorDelegateFactory.cs" />
+    <Compile Include="Providers\AsyncPipeline\Attributes\PipelineFilterAttribute.cs" />
+    <Compile Include="Providers\AsyncPipeline\Factories\PipelineGraphFactory.cs" />
+    <Compile Include="Providers\AsyncPipeline\PipelineManager.cs" />
     <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
     <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
     <Compile Include="Providers\Concurrency\Installer.cs" />
