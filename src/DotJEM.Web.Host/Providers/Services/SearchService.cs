@@ -35,6 +35,21 @@ using Newtonsoft.Json.Linq;
         SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
     }
 
+    public class SearchContext : PipelineContext
+    {
+        public string ContentType => (string)GetParameter("contentType");
+        public Guid Id => (Guid)GetParameter("id");
+        public int Version => (int)GetParameter("version");
+        public JObject Target => (JObject)GetParameter("target");
+        public JObject Current => (JObject)GetParameter("current");
+
+        public SearchContext(string query, SearchResult result)
+        {
+            Set("type", "SEARCH");
+
+        }
+    }
+
     public class SearchService : ISearchService
     {
         private readonly IStorageIndex index;
@@ -58,6 +73,7 @@ using Newtonsoft.Json.Linq;
                 .Search(query)
                 .Skip(skip)
                 .Take(take);
+
 
             //TODO: extract contenttype based on configuration.
             SearchResult searchResult = new SearchResult(result

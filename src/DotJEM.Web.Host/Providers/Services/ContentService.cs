@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Castle.Core;
@@ -43,257 +44,102 @@ namespace DotJEM.Web.Host.Providers.Services
             this.merger = new ContentMergeService(merger, area);
         }
 
-        public class HttpGetPipelineContext : IPipelineContext
+        public class HttpPipelineContext : PipelineContext
         {
-            private readonly string method;
-            private readonly string contentType;
-            private readonly Guid id;
-            public Guid Id => id;
-
-            public HttpGetPipelineContext(string method, string contentType, Guid id)
+            public HttpPipelineContext(string method, string contentType)
             {
-                this.method = method;
-                this.contentType = contentType;
-                this.id = id;
+                this.Set(nameof(method), method);
+                this.Set(nameof(contentType), contentType);
             }
+        }
 
+        public class HttpGetContext : HttpPipelineContext
+        {
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid) GetParameter("id");
 
-            public bool TryGetValue(string key, out string value)
+            public HttpGetContext(string contentType, Guid id)
+                : base("GET", contentType)
             {
-                switch (key)
-                {
-                    case nameof(method): 
-                        value = method;
-                        return true;
-                    case nameof(contentType):
-                        value = method;
-                        return true;
-                    case nameof(id): 
-                        value = id.ToString("D");
-                        return true;
-                }
-
-                value = null;
-                return false;
-            }
-
-            public object GetParameter(string key)
-            {
-                return key switch
-                {
-                    nameof(method) => method,
-                    nameof(contentType) => contentType,
-                    nameof(id) => id,
-                    _ => null
-                };
-            }
-
-            public IPipelineContext Replace(params (string key, object value)[] values)
-            {
-                return this;
+                Set(nameof(id), id);
             }
         }
 
         public Task<JObject> GetAsync(Guid id, string contentType)
         {
-            HttpGetPipelineContext context = new ("GET", contentType, id);
-            ICompiledPipeline<HttpGetPipelineContext> pipeline = pipelines
+            HttpGetContext context = new (contentType, id);
+            ICompiledPipeline<HttpGetContext> pipeline = pipelines
                 .For(context, async ctx => area.Get(ctx.Id));
 
             return pipeline.Invoke(context);
-            //IGetContext context = pipeline.ContextFactory.CreateGetContext(contentType);
-            //return pipeline.Get(id, context);
         }
-        
-        public class HttpPostPipelineContext : IPipelineContext
+
+        public class HttpPostContext : HttpPipelineContext
         {
-            private readonly string method;
-            private readonly string contentType;
-            private readonly JObject entity;
+            public string ContentType => (string)GetParameter("contentType");
+            public JObject Entity => (JObject)GetParameter("entity");
 
-            public string ContentType => contentType;
-            public JObject Entity => entity;
-
-            public HttpPostPipelineContext(string method, string contentType, JObject entity)
+            public HttpPostContext( string contentType, JObject entity)
+                : base("POST", contentType)
             {
-                this.method = method;
-                this.contentType = contentType;
-                this.entity = entity;
-            }
-
-
-            public bool TryGetValue(string key, out string value)
-            {
-                switch (key)
-                {
-                    case nameof(method): 
-                        value = method;
-                        return true;
-                    case nameof(contentType):
-                        value = method;
-                        return true;
-                }
-                value = null;
-                return false;
-            }
-
-            public object GetParameter(string key)
-            {
-                return key switch
-                {
-                    nameof(method) => method,
-                    nameof(contentType) => contentType,
-                    nameof(entity) => entity,
-                    _ => null
-                };
-            }
-
-            public IPipelineContext Replace(params (string key, object value)[] values)
-            {
-                return this;
+                Set(nameof(entity), entity);
             }
         }
 
         public async Task<JObject> PostAsync(string contentType, JObject entity)
         {
-            HttpPostPipelineContext context = new ("POST", contentType, entity);
-            ICompiledPipeline<HttpPostPipelineContext> pipeline = pipelines
+            HttpPostContext context = new (contentType, entity);
+            ICompiledPipeline<HttpPostContext> pipeline = pipelines
                 .For(context, async ctx => area.Insert(ctx.ContentType, ctx.Entity));
             entity = await pipeline.Invoke(context);
             manager.QueueUpdate(entity);
             return entity;
         }
-        
-        public class HttpPutPipelineContext : IPipelineContext
+
+        public class HttpPutContext : HttpPipelineContext
         {
-            private readonly string method;
-            private readonly string contentType;
-            private readonly JObject entity;
-            private readonly JObject previous;
-            private readonly Guid id;
-            public Guid Id => id;
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid) GetParameter("id");
+            public JObject Entity => (JObject)GetParameter("entity");
+            public JObject Previous => (JObject)GetParameter("previous");
 
-            public string ContentType => contentType;
-            public JObject Entity => entity;
-
-            public HttpPutPipelineContext(string method, string contentType, Guid id, JObject entity, JObject previous)
+            public HttpPutContext(string contentType, Guid id, JObject entity, JObject previous)
+                : base("PUT", contentType)
             {
-                this.method = method;
-                this.contentType = contentType;
-                this.id = id;
-                this.entity = entity;
-                this.previous = previous;
-            }
-
-
-            public bool TryGetValue(string key, out string value)
-            {
-                switch (key)
-                {
-                    case nameof(method): 
-                        value = method;
-                        return true;
-                    case nameof(contentType):
-                        value = method;
-                        return true;
-                    case nameof(id):
-                        value = id.ToString("D");
-                        return true;
-                }
-                value = null;
-                return false;
-            }
-
-            public object GetParameter(string key)
-            {
-                return key switch
-                {
-                    nameof(method) => method,
-                    nameof(contentType) => contentType,
-                    nameof(entity) => entity,
-                    nameof(previous) => previous,
-                    nameof(id) => id,
-                    _ => null
-                };
-            }
-
-            public IPipelineContext Replace(params (string key, object value)[] values)
-            {
-                return this;
+                Set(nameof(id), id);
+                Set(nameof(entity), entity);
+                Set(nameof(previous), previous);
             }
         }
+
 
         public async Task<JObject> PutAsync(Guid id, string contentType, JObject entity)
         {
             JObject prev = area.Get(id);
             entity = merger.EnsureMerge(id, entity, prev);
-            
-            HttpPutPipelineContext context = new ("PUT", contentType, id, entity, prev);
-            ICompiledPipeline<HttpPutPipelineContext> pipeline = pipelines
+
+            HttpPutContext context = new (contentType, id, entity, prev);
+            ICompiledPipeline<HttpPutContext> pipeline = pipelines
                 .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
-            //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, prev);
-            //entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
 
             entity = await pipeline.Invoke(context);
             manager.QueueUpdate(entity);
             return entity;
         }
-        
-        public class HttpPatchPipelineContext : IPipelineContext
+
+        public class HttpPatchContext : HttpPipelineContext
         {
-            private readonly string method;
-            private readonly string contentType;
-            private readonly JObject entity;
-            private readonly JObject previous;
-            private readonly Guid id;
-            public Guid Id => id;
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid)GetParameter("id");
+            public JObject Entity => (JObject)GetParameter("entity");
+            public JObject Previous => (JObject)GetParameter("previous");
 
-            public string ContentType => contentType;
-            public JObject Entity => entity;
-
-            public HttpPatchPipelineContext(string method, string contentType, Guid id, JObject entity, JObject previous)
+            public HttpPatchContext(string contentType, Guid id, JObject entity, JObject previous)
+                : base("PATCH", contentType)
             {
-                this.method = method;
-                this.contentType = contentType;
-                this.id = id;
-                this.entity = entity;
-                this.previous = previous;
-            }
-
-            public bool TryGetValue(string key, out string value)
-            {
-                switch (key)
-                {
-                    case nameof(method): 
-                        value = method;
-                        return true;
-                    case nameof(contentType):
-                        value = method;
-                        return true;
-                    case nameof(id):
-                        value = id.ToString("D");
-                        return true;
-                }
-                value = null;
-                return false;
-            }
-
-            public object GetParameter(string key)
-            {
-                return key switch
-                {
-                    nameof(method) => method,
-                    nameof(contentType) => contentType,
-                    nameof(entity) => entity,
-                    nameof(previous) => previous,
-                    nameof(id) => id,
-                    _ => null
-                };
-            }
-
-            public IPipelineContext Replace(params (string key, object value)[] values)
-            {
-                return this;
+                Set(nameof(id), id);
+                Set(nameof(entity), entity);
+                Set(nameof(previous), previous);
             }
         }
 
@@ -307,9 +153,9 @@ namespace DotJEM.Web.Host.Providers.Services
             clone.Merge(entity);
             entity = clone;
             entity = merger.EnsureMerge(id, entity, prev);
-            
-            HttpPatchPipelineContext context = new ("PATCH", contentType, id, entity, prev);
-            ICompiledPipeline<HttpPatchPipelineContext> pipeline = pipelines
+
+            HttpPatchContext context = new (contentType, id, entity, prev);
+            ICompiledPipeline<HttpPatchContext> pipeline = pipelines
                 .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
             
             //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, prev);
@@ -320,61 +166,18 @@ namespace DotJEM.Web.Host.Providers.Services
             return entity;
         }
 
-        public class HttpDeletePipelineContext : IPipelineContext
+        public class HttpDeleteContext : HttpPipelineContext
         {
-            private string method;
-            private string contentType;
-            private JObject previous;
-            private Guid id;
-            public Guid Id => id;
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid)GetParameter("id");
 
-            public string ContentType => contentType;
-            public JObject Previous => previous;
-
-            public HttpDeletePipelineContext(string method, string contentType, Guid id, JObject previous)
+            public HttpDeleteContext(string contentType, Guid id, JObject previous)
+                : base("DELETE", contentType)
             {
-                this.method = method;
-                this.contentType = contentType;
-                this.id = id;
-                this.previous = previous;
-            }
-
-            public bool TryGetValue(string key, out string value)
-            {
-                switch (key)
-                {
-                    case nameof(method): 
-                        value = method;
-                        return true;
-                    case nameof(contentType):
-                        value = method;
-                        return true;
-                    case nameof(id):
-                        value = id.ToString("D");
-                        return true;
-                }
-                value = null;
-                return false;
-            }
-
-            public object GetParameter(string key)
-            {
-                return key switch
-                {
-                    nameof(method) => method,
-                    nameof(contentType) => contentType,
-                    nameof(previous) => previous,
-                    nameof(id) => id,
-                    _ => null
-                };
-            }
-
-            public IPipelineContext Replace(params (string key, object value)[] values)
-            {
-                return this;
+                Set(nameof(id), id);
+                Set(nameof(previous), previous);
             }
         }
-
 
         public async Task<JObject> DeleteAsync(Guid id, string contentType)
         {
@@ -382,13 +185,10 @@ namespace DotJEM.Web.Host.Providers.Services
             if (prev == null)
                 return null;
 
-            HttpDeletePipelineContext context = new ("DELETE", contentType, id, prev);
-            ICompiledPipeline<HttpDeletePipelineContext> pipeline = pipelines
+            HttpDeleteContext context = new (contentType, id, prev);
+            ICompiledPipeline<HttpDeleteContext> pipeline = pipelines
                 .For(context, async ctx => area.Delete(ctx.Id));
             
-            //IDeleteContext context = pipeline.ContextFactory.CreateDeleteContext(contentType, prev);
-
-            //JObject deleted = await pipeline.Delete(id, context);
             JObject deleted = await pipeline.Invoke(context);
             
             //Note: This may pose a bit of a problem, because we don't lock so far out (performance),
@@ -401,6 +201,8 @@ namespace DotJEM.Web.Host.Providers.Services
             return deleted;
         }
     }
+
+
 
     //public static class PipelineExt
     //{

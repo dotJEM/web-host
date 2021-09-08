@@ -72,7 +72,7 @@ namespace DotJEM.Web.Host.Providers.Services
             JObject current = area.Get(id);
             JObject target = area.History.Get(id, version);
 
-            RevertPipelineContext context = new RevertPipelineContext(id, contentType, version, target, current);
+            RevertContext context = new RevertContext(id, contentType, version, target, current);
             var pipeline = pipelines.For(context, async ctx => area.Update(ctx.Id, context.Target));
 
             JObject result = await pipeline.Invoke(context);
@@ -112,60 +112,23 @@ namespace DotJEM.Web.Host.Providers.Services
         }
     }
 
-    public static class RevertPipelineExtensions
+    public class RevertContext : PipelineContext
     {
-        //public static Task<JObject> ExecuteRevert(this IPipelines self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
-        //{
-        //    var pipeline = self.Select(For.Name("Revert").And(For.ContentType(contentType)));
-        //    return pipeline.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
-        //}
-        //public static Task<JObject> Execute(this IJsonPipeline self, string contentType, int version, JObject target, JObject current, Func<RevertPipelineContext, JObject> finalizer)
-        //{
-        //    return self.Execute(new RevertPipelineContext(contentType, version, target, current), finalizer);
-        //}
-    }
-    public class RevertPipelineContext : IPipelineContext
-    {
-        public Guid Id { get; }
-        public string ContentType { get; }
-        public int Version { get; }
-        public JObject Target { get; }
-        public JObject Current { get; }
+        public string ContentType => (string)GetParameter("contentType");
+        public Guid Id => (Guid)GetParameter("id");
+        public int Version => (int)GetParameter("version");
+        public JObject Target => (JObject)GetParameter("target");
+        public JObject Current => (JObject)GetParameter("current");
 
-        public RevertPipelineContext(Guid id, string contentType, int version, JObject target, JObject current)
+        public RevertContext(string contentType, Guid id, int version, JObject target, JObject current)
         {
-            Id = id;
-            ContentType = contentType;
-            Version = version;
-            Target = target;
-            Current = current;
-        }
-
-        public object GetParameter(string key)
-        {
-            return null;
-        }
-
-        public IPipelineContext Replace(params (string key, object value)[] values)
-        {
-            return this;
-        }
-
-        public bool TryGetValue(string key, out string value)
-        {
-            switch (key)
-            {
-                case "contentType":
-                    value = ContentType;
-                    return true;
-
-                case "revert":
-                    value = ContentType;
-                    return true;
-            }
-
-            value = null;
-            return false;
+            Set("type", "REVERT");
+            Set(nameof(contentType), contentType);
+            Set(nameof(id), id);
+            Set(nameof(version), version);
+            Set(nameof(target), target);
+            Set(nameof(current), current);
         }
     }
+
 }
