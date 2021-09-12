@@ -25,13 +25,13 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
             PipelineExecutorDelegateFactory factory = new PipelineExecutorDelegateFactory();
 
             FakeFirstTarget target = new FakeFirstTarget();
-            PipelineExecutorDelegate action = factory.CreateInvocator(target, target.GetType().GetMethod(nameof(FakeFirstTarget.Run)));
+            PipelineExecutorDelegate<JObject> action = factory.CreateInvocator<JObject>(target, target.GetType().GetMethod(nameof(FakeFirstTarget.Run)));
             FakeContext context = new FakeContext(new Dictionary<string, object>()
             {
                 {"id", 42},
                 {"name", "Foo"}
             });
-            action(context, new FakeNextHandler<int, string>());
+            action(context, new FakeNextHandler<JObject, int, string>());
         }
 
         [Test]
@@ -42,7 +42,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
 
             FakeFirstTarget target = new FakeFirstTarget();
-            Expression<NextFactoryDelegate> exp = factory.CreateNextStuff(target.GetType().GetMethod(nameof(FakeFirstTarget.Run)));
+            Expression<NextFactoryDelegate<JObject>> exp = factory.CreateNextStuff<JObject>(target.GetType().GetMethod(nameof(FakeFirstTarget.Run)));
 
             Console.WriteLine(exp.ToReadableString());
 
@@ -88,7 +88,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     public class FakeFirstTarget : IPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, IPipelineContext context, INext<int, string> next)
+        public Task<JObject> Run(int id, string name, IPipelineContext context, INext<JObject, int, string> next)
         {
             Console.WriteLine($"FakeFirstTarget.Run({id}, {name})");
             return next.Invoke();
@@ -99,7 +99,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     public class FakeSecondTarget : IPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, IPipelineContext context, INext<int, string> next)
+        public Task<JObject> Run(int id, string name, IPipelineContext context, INext<JObject, int, string> next)
         {
             Console.WriteLine($"FakeSecondTarget.Run({id}, {name})");
             return next.Invoke(50, "OPPS");
@@ -110,7 +110,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     public class FakeThirdTarget : IPipelineHandler
     {
         [PropertyFilter("test", ".*")]
-        public Task<JObject> Run(int id, string name, FakeContext context, INext<int, string> next)
+        public Task<JObject> Run(int id, string name, FakeContext context, INext<JObject, int, string> next)
         {
             Console.WriteLine($"FakeSecondTarget.Run({id}, {name})");
             return next.Invoke();
@@ -118,18 +118,18 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
     }
 
-    public class FakeNextHandler<T1, T2> : INext<T1, T2>
+    public class FakeNextHandler<TResult, T1, T2> : INext<TResult, T1, T2>
     {
-        public Task<JObject> Invoke()
+        public Task<TResult> Invoke()
         {
             Console.WriteLine($"FakeNextHandler.Invoke()");
-            return Task.FromResult(new JObject());
+            return Task.FromResult(default(TResult));
         }
 
-        public Task<JObject> Invoke(T1 arg1, T2 arg2)
+        public Task<TResult> Invoke(T1 arg1, T2 arg2)
         {
             Console.WriteLine($"FakeNextHandler.Invoke({arg1}, {arg2})");
-            return Task.FromResult(new JObject());
+            return Task.FromResult(default(TResult));
         }
     }
 
@@ -153,6 +153,8 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
             value = null;
             return false;
         }
+
+        public bool TryGetValue(string key, out object value) => values.TryGetValue(key, out value);
 
         public object GetParameter(string key)
         {

@@ -2,5 +2,5 @@
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
-    public delegate INext NextFactoryDelegate(IPipelineContext context, INode node);
+    public delegate INext<T> NextFactoryDelegate<T>(IPipelineContext context, INode<T> node);
 }

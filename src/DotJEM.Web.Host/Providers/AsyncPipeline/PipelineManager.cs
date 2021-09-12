@@ -14,38 +14,47 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
     public interface IPipelines
     {
-        ICompiledPipeline<TContext> For<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IPipelineContext;
+        ICompiledPipeline<TContext, T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext;
     }
     public class PipelineManager : IPipelines
     {
         private readonly ILogger performance;
-        private readonly List<IClassNode> nodes;
+        private readonly IPipelineHandler[] providers;
+        //private readonly List<IClassNode<JObject>> nodes;
+
         private readonly ConcurrentDictionary<string, object> cache = new();
-        private readonly Func<IPipelineContext, string> keyGenerator;
+        //private readonly Func<IPipelineContext, string> keyGenerator;
 
         //TODO: Only relevant if performance is enabled, so the "strategy devide" needs to be pulled up.
-        private readonly Func<IPipelineContext, JObject> perfGenerator;
+        //private readonly Func<IPipelineContext, JObject> perfGenerator;
 
         public PipelineManager(ILogger performance, IPipelineHandler[] providers)
         {
             this.performance = performance;
-            this.nodes = new PipelineGraphFactory().BuildHandlerGraph(providers);
+            this.providers = providers;
+            //this.nodes = new PipelineGraphFactory().BuildHandlerGraph<JObject>(providers);
 
             //TODO: Make key generator, by running over all nodes and seeing which properties they interact with, we know which properties to use to generate our key.
             //      We need to make sure we pass all the nodes to ensure everything has been accounted for.
 
-            SpyingContext context = new ();
-            nodes.SelectMany(n => n.For(context)).Enumerate();
-            keyGenerator = context.CreateKeyGenerator();
-            perfGenerator = context.CreatePerfGenerator();
+            //SpyingContext context = new ();
+           // nodes.SelectMany(n => n.For(context)).Enumerate();
+           // keyGenerator = context.CreateKeyGenerator();
+           // perfGenerator = context.CreatePerfGenerator();
         }
 
-        public ICompiledPipeline<TContext> For<TContext>(TContext context, Func<TContext, Task<JObject>> final) where TContext : IPipelineContext
+        public ICompiledPipeline<TContext, T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
         {
-            return (ICompiledPipeline<TContext>)cache.GetOrAdd(keyGenerator(context), key =>
+            List<IClassNode<T>> nodes = new PipelineGraphFactory().BuildHandlerGraph<T>(providers);
+            SpyingContext spy = new();
+            nodes.SelectMany(n => n.For(context)).Enumerate();
+            Func<IPipelineContext, string> keyGenerator = spy.CreateKeyGenerator();
+            Func<IPipelineContext, JObject> perfGenerator = spy.CreatePerfGenerator();
+
+            return (ICompiledPipeline<TContext, T>)cache.GetOrAdd(keyGenerator(context), key =>
             {
-                IEnumerable<MethodNode> matchingNodes = nodes.SelectMany(n => n.For(context));
-                return new CompiledPipeline<TContext>(performance, perfGenerator, matchingNodes, final);
+                IEnumerable<MethodNode<T>> matchingNodes = nodes.SelectMany(n => n.For(context));
+                return new CompiledPipeline<TContext, T>(performance, perfGenerator, matchingNodes, final);
             });
         }
 
@@ -56,10 +65,9 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             private readonly Encoding encoding = Encoding.UTF8;
 
 
-            public bool TryGetValue(string key, out string value)
+            public bool TryGetValue(string key, out object value)
             {
                 parameters.Add(key);
-
                 value = "";
                 return true;
             }
@@ -69,7 +77,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 Console.WriteLine(string.Join(", ", parameters));
                 return context =>
                 {
-                    IEnumerable<byte> bytes = parameters.SelectMany(key => context.TryGetValue(key, out string value) ? encoding.GetBytes(value) : Array.Empty<byte>());
+                    IEnumerable<byte> bytes = parameters.SelectMany(key => context.TryGetValue(key, out object value) ? encoding.GetBytes(value.ToString()) : Array.Empty<byte>());
                     byte[] hash = provider.ComputeHash(bytes.ToArray());
                     return string.Join("", hash.Select(b => b.ToString("X2")));
                 };
@@ -80,8 +88,8 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 {
                     return parameters.Aggregate(new JObject(), (obj, key) =>
                     {
-                        if (context.TryGetValue(key, out string value))
-                            obj[key] = value;
+                        if (context.TryGetValue(key, out object value))
+                            obj[key] = value.ToString();
                         return obj;
                     });
                 };

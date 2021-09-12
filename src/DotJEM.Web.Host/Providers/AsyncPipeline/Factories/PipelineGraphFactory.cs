@@ -9,30 +9,30 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
     public interface IPipelineGraphFactory
     {
-        List<IClassNode> BuildHandlerGraph(IPipelineHandler[] providers);
+        List<IClassNode<T>> BuildHandlerGraph<T>(IPipelineHandler[] providers);
     }
 
     public class PipelineGraphFactory : IPipelineGraphFactory
     {
-        public List<IClassNode> BuildHandlerGraph(IPipelineHandler[] providers)
+        public List<IClassNode<T>> BuildHandlerGraph<T>(IPipelineHandler[] providers)
         {
-            List<IClassNode> groups = new();
+            List<IClassNode<T>> groups = new();
             foreach (IPipelineHandler provider in OrderHandlers(providers))
             {
                 Type type = provider.GetType();
                 PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
 
-                List<MethodNode> nodes = new();
+                List<MethodNode<T>> nodes = new();
                 foreach (MethodInfo method in type.GetMethods())
                 {
                     PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
                     if (methodSelectors.Any())
                     {
-                        MethodNode node = new PipelineExecutorDelegateFactory().CreateNode(provider, method, selectors.Concat(methodSelectors).ToArray());
+                        MethodNode<T> node = new PipelineExecutorDelegateFactory().CreateNode<T>(provider, method, selectors.Concat(methodSelectors).ToArray());
                         nodes.Add(node);
                     }
                 }
-                groups.Add(new ClassNode(nodes));
+                groups.Add(new ClassNode<T>(nodes));
             }
             return groups;
         }

@@ -18,7 +18,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Attributes
 
         public override bool Accepts(IPipelineContext context)
         {
-            return context.TryGetValue(key, out string value) && filter.IsMatch(value);
+            return context.TryGetValue(key, out object value) && value is string str && filter.IsMatch(str);
         }
     }
 }

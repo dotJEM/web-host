@@ -51,7 +51,7 @@ namespace Demo
     public class ExampleHandler : IPipelineHandler
     {
         [HttpMethodFilter("GET")]
-        public async Task<JObject> Get(Guid id, IPipelineContext context, INext<Guid> next)
+        public async Task<JObject> Get(Guid id, IPipelineContext context, INext<JObject, Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
             entity["foo"] = "HAHA";
@@ -59,7 +59,7 @@ namespace Demo
         }
 
         [HttpMethodFilter("GET")]
-        public async Task<JObject> Get2(Guid id, IPipelineContext context, INext<Guid> next)
+        public async Task<JObject> Get2(Guid id, IPipelineContext context, INext<JObject, Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
             entity["foo2"] = "HAHA2";

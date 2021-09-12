@@ -4,5 +4,5 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
-    public delegate Task<JObject> PipelineExecutorDelegate(IPipelineContext context, INext next);
+    public delegate Task<T> PipelineExecutorDelegate<T>(IPipelineContext context, INext<T> next);
 }

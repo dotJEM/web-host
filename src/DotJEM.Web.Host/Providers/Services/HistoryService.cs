@@ -72,7 +72,7 @@ namespace DotJEM.Web.Host.Providers.Services
             JObject current = area.Get(id);
             JObject target = area.History.Get(id, version);
 
-            RevertContext context = new RevertContext(id, contentType, version, target, current);
+            RevertContext context = new RevertContext(contentType, id, version, target, current);
             var pipeline = pipelines.For(context, async ctx => area.Update(ctx.Id, context.Target));
 
             JObject result = await pipeline.Invoke(context);

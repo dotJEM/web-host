@@ -12,45 +12,45 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
     public interface IPipelineExecutorDelegateFactory
     {
-        MethodNode CreateNode(object target, MethodInfo method, PipelineFilterAttribute[] filters);
-        PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method);
-        Expression<PipelineExecutorDelegate> BuildLambda(object target, MethodInfo method);
-        NextFactoryDelegate CreateNextFactoryDelegate(MethodInfo method);
-        Expression<NextFactoryDelegate> CreateNextStuff(MethodInfo method);
+        MethodNode<T> CreateNode<T>(object target, MethodInfo method, PipelineFilterAttribute[] filters);
+        PipelineExecutorDelegate<T> CreateInvocator<T>(object target, MethodInfo method);
+        Expression<PipelineExecutorDelegate<T>> BuildLambda<T>(object target, MethodInfo method);
+        NextFactoryDelegate<T> CreateNextFactoryDelegate<T>(MethodInfo method);
+        Expression<NextFactoryDelegate<T>> CreateNextStuff<T>(MethodInfo method);
     }
 
     public class PipelineExecutorDelegateFactory : IPipelineExecutorDelegateFactory
     {
         private static readonly MethodInfo contextParameterGetter = typeof(IPipelineContext).GetMethod("GetParameter");
 
-        public MethodNode CreateNode(object target, MethodInfo method, PipelineFilterAttribute[] filters)
+        public MethodNode<T> CreateNode<T>(object target, MethodInfo method, PipelineFilterAttribute[] filters)
         {
-            PipelineExecutorDelegate @delegate = CreateInvocator(target, method);
-            NextFactoryDelegate nextFactory = CreateNextFactoryDelegate(method);
+            PipelineExecutorDelegate<T> @delegate = CreateInvocator<T>(target, method);
+            NextFactoryDelegate<T> nextFactory = CreateNextFactoryDelegate<T>(method);
 
             string parameters = string.Join(", ", method.GetParameters().Select(param => $"{param.ParameterType.Name} {param.Name}"));
             string signature = $"{ target.GetType().Name}.{method.Name}({parameters})";
-            return new MethodNode(filters, @delegate, nextFactory, signature);
+            return new MethodNode<T>(filters, @delegate, nextFactory, signature);
         }
 
-        public PipelineExecutorDelegate CreateInvocator(object target, MethodInfo method)
+        public PipelineExecutorDelegate<T> CreateInvocator<T>(object target, MethodInfo method)
         {
-            Expression<PipelineExecutorDelegate> lambda = BuildLambda(target, method);
+            Expression<PipelineExecutorDelegate<T>> lambda = BuildLambda<T>(target, method);
             return lambda.Compile();
         }
 
-        public Expression<PipelineExecutorDelegate> BuildLambda(object target, MethodInfo method)
+        public Expression<PipelineExecutorDelegate<T>> BuildLambda<T>(object target, MethodInfo method)
         {
             ConstantExpression targetParameter = Expression.Constant(target);
             ParameterExpression contextParameter = Expression.Parameter(typeof(IPipelineContext), "context");
-            ParameterExpression nextParameter = Expression.Parameter(typeof(INext), "next");
+            ParameterExpression nextParameter = Expression.Parameter(typeof(INext<T>), "next");
 
             // context.GetParameter("first"), ..., context, (INextHandler<...>) next);
             List<Expression> parameters = BuildParameterList(method, contextParameter, nextParameter);
             UnaryExpression convertTarget = Expression.Convert(targetParameter, target.GetType());
             MethodCallExpression methodCall = Expression.Call(convertTarget, method, parameters);
-            UnaryExpression castMethodCall = Expression.Convert(methodCall, typeof(Task<JObject>));
-            return Expression.Lambda<PipelineExecutorDelegate>(castMethodCall, contextParameter, nextParameter);
+            UnaryExpression castMethodCall = Expression.Convert(methodCall, typeof(Task<T>));
+            return Expression.Lambda<PipelineExecutorDelegate<T>>(castMethodCall, contextParameter, nextParameter);
         }
 
         private List<Expression> BuildParameterList(MethodInfo method, Expression contextParameter, Expression nextParameter)
@@ -76,23 +76,20 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
                 .Append(Expression.Convert(nextParameter, list.Last().ParameterType))
                 .ToList();
         }
-
-
-
-        public NextFactoryDelegate CreateNextFactoryDelegate(MethodInfo method)
+        public NextFactoryDelegate<T> CreateNextFactoryDelegate<T>(MethodInfo method)
         {
-            Expression<NextFactoryDelegate> lambda = CreateNextStuff(method);
+            Expression<NextFactoryDelegate<T>> lambda = CreateNextStuff<T>(method);
             return lambda.Compile();
         }
 
-        public Expression<NextFactoryDelegate> CreateNextStuff(MethodInfo method)
+        public Expression<NextFactoryDelegate<T>> CreateNextStuff<T>(MethodInfo method)
         {
             ParameterInfo[] list = method.GetParameters();
             ParameterInfo nextParameterInfo = list[list.Length - 1];
             Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
 
             ParameterExpression contextParameter = Expression.Parameter(typeof(IPipelineContext), "context");
-            ParameterExpression nodeParameter = Expression.Parameter(typeof(INode), "node");
+            ParameterExpression nodeParameter = Expression.Parameter(typeof(INode<T>), "node");
 
             Expression[] arguments = list
                 .Take(list.Length - 2)
@@ -102,7 +99,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
                 .ToArray();
             MethodCallExpression methodCall = Expression.Call(typeof(NextFactory), nameof(NextFactory.Create), generics, arguments);
 
-            return Expression.Lambda<NextFactoryDelegate>(methodCall, contextParameter, nodeParameter);
+            return Expression.Lambda<NextFactoryDelegate<T>>(methodCall, contextParameter, nodeParameter);
         }
 
         //public static class NextFactory

@@ -28,22 +28,22 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     //Task<JObject> Execute<TContext>(TContext context, Func<TContext, JObject> finalize) where TContext : IPipelineContext;
 
 
-    public interface IPipelineMethod
+    public interface IPipelineMethod<T>
     {
-        PipelineExecutorDelegate Target { get; }
-        NextFactoryDelegate NextFactory { get; }
+        PipelineExecutorDelegate<T> Target { get; }
+        NextFactoryDelegate<T> NextFactory { get; }
         string Signature { get; }
     }
 
-    public class MethodNode : IPipelineMethod
+    public class MethodNode<T> : IPipelineMethod<T>
     {
         private readonly PipelineFilterAttribute[] filters;
         public string Signature { get; }
 
-        public PipelineExecutorDelegate Target { get; }
-        public NextFactoryDelegate NextFactory { get; }
+        public PipelineExecutorDelegate<T> Target { get; }
+        public NextFactoryDelegate<T> NextFactory { get; }
 
-        public MethodNode(PipelineFilterAttribute[] filters, PipelineExecutorDelegate target, NextFactoryDelegate nextFactory, string signature)
+        public MethodNode(PipelineFilterAttribute[] filters, PipelineExecutorDelegate<T> target, NextFactoryDelegate<T> nextFactory, string signature)
         {
             this.filters = filters;
             this.Signature = signature;
@@ -57,80 +57,80 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
     }
 
-    public class TerminationMethod : IPipelineMethod
+    public class TerminationMethod<T> : IPipelineMethod<T>
     {
-        public TerminationMethod(PipelineExecutorDelegate target)
+        public TerminationMethod(PipelineExecutorDelegate<T> target)
         {
             Target = target;
         }
 
-        public PipelineExecutorDelegate Target { get; }
-        public NextFactoryDelegate NextFactory { get; } = (_, _) => null;
+        public PipelineExecutorDelegate<T> Target { get; }
+        public NextFactoryDelegate<T> NextFactory { get; } = (_, _) => null;
         public string Signature => "PipelineTermination";
     }
 
-    public interface IClassNode
+    public interface IClassNode<T>
     {
-        IEnumerable<MethodNode> For(IPipelineContext context);
+        IEnumerable<MethodNode<T>> For(IPipelineContext context);
     }
 
-    public class ClassNode : IClassNode
+    public class ClassNode<T> : IClassNode<T>
     {
-        private readonly List<MethodNode> nodes;
+        private readonly List<MethodNode<T>> nodes;
 
-        public ClassNode(List<MethodNode> nodes)
+        public ClassNode(List<MethodNode<T>> nodes)
         {
             this.nodes = nodes;
         }
 
-        public IEnumerable<MethodNode> For(IPipelineContext context)
+        public IEnumerable<MethodNode<T>> For(IPipelineContext context)
         {
             return nodes.Where(n => n.Accepts(context));
         }
     }
 
-    public interface ICompiledPipeline<in TContext> where TContext : IPipelineContext
+    public interface ICompiledPipeline<in TContext, T> where TContext : IPipelineContext
     {
-        Task<JObject> Invoke(TContext context);
+        Task<T> Invoke(TContext context);
     }
 
-    public class CompiledPipeline<TContext> : ICompiledPipeline<TContext> where TContext : IPipelineContext
+    public class CompiledPipeline<TContext, T> : ICompiledPipeline<TContext, T> where TContext : IPipelineContext
     {
-        private readonly INode target;
+        private readonly INode<T> target;
 
-        public CompiledPipeline(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IEnumerable<MethodNode> nodes, Func<TContext, Task<JObject>> final)
+        public CompiledPipeline(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
         {
             if (performance.IsEnabled())
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (INode)new PNode(performance,perfGenerator, new TerminationMethod((context, _) => final((TContext)context)), null),
-                        (node, methodNode) => new PNode(performance,perfGenerator, methodNode, node));
+                        (INode<T>)new PNode<T>(performance,perfGenerator, new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (node, methodNode) => new PNode<T>(performance,perfGenerator, methodNode, node));
             }
             else
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (INode)new Node(new TerminationMethod((context, _) => final((TContext)context)), null),
-                        (node, methodNode) => new Node(methodNode, node));
+                        (INode<T>)new Node<T>(new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (node, methodNode) => new Node<T>(methodNode, node));
             }
         }
 
-        public Task<JObject> Invoke(TContext context)
+        public Task<T> Invoke(TContext context)
         {
             return target.Invoke(context);
         }
 
-        private class PNode : INode
+        private class PNode<T> : INode<T>
         {
-            private readonly INode next;
-            private readonly PipelineExecutorDelegate target;
-            private readonly NextFactoryDelegate factory;
+            private readonly INode<T> next;
+            private readonly PipelineExecutorDelegate<T> target;
+            private readonly NextFactoryDelegate<T> factory;
             private readonly ILogger performance;
             private readonly Func<IPipelineContext, JObject> perfGenerator;
             private readonly string signature;
 
-            public PNode(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IPipelineMethod method, INode next)
+            public PNode(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IPipelineMethod<T> method, INode<T> next)
             {
                 this.performance = performance;
                 this.perfGenerator = perfGenerator;
@@ -140,7 +140,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 this.signature = method.Signature;
             }
 
-            public async Task<JObject> Invoke(IPipelineContext context)
+            public async Task<T> Invoke(IPipelineContext context)
             {
                 //TODO: Here we generate the same JObject again and again, however it may be faster than reusing and clearing correctly.
                 JObject info = perfGenerator(context);
@@ -150,29 +150,31 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             }
         }
 
-        private class Node : INode
+        private class Node<T> : INode<T>
         {
-            private readonly INode next;
-            private readonly PipelineExecutorDelegate target;
-            private readonly NextFactoryDelegate factory;
+            private readonly INode<T> next;
+            private readonly PipelineExecutorDelegate<T> target;
+            private readonly NextFactoryDelegate<T> factory;
 
-            public Node(IPipelineMethod method, INode next)
+            public Node(IPipelineMethod<T> method, INode<T> next)
             {
                 this.next = next;
                 this.factory = method.NextFactory;
                 this.target = method.Target;
             }
 
-            public Task<JObject> Invoke(IPipelineContext context)
+            public Task<T> Invoke(IPipelineContext context)
             {
                 return target(context, factory(context, next));
             }
         }
     }
 
-    public interface INode
+    public interface INode { }
+
+    public interface INode<T> : INode
     {
-        Task<JObject> Invoke(IPipelineContext context);
+        Task<T> Invoke(IPipelineContext context);
     }
 
     public interface IPipelineHandler
