@@ -17,8 +17,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext;
     }
 
-    
-
     public class PipelineManager : IPipelines
     {
         private readonly ILogger performance;
