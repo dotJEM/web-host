@@ -15,7 +15,7 @@ namespace DotJEM.Web.Host.Test.Writers
         [Test]
         public void Pain()
         {
-            using (var directory = TemporaryTestDirectory.Generate())
+            using (TemporaryTestDirectory directory = TemporaryTestDirectory.Generate())
             {
                 using (RollingStreamWriter writer = new RollingStreamWriter(directory.GenerateFile("lucene-writer.log"), 1024 * 5, 5, true)) 
                 {

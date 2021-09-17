@@ -41,7 +41,9 @@ namespace DotJEM.Web.Host.Providers.Pipeline
                 .Where(step => step.Accept(contentType))
                 .Aggregate(json, (jo, step) => performance
                     .TrackFunction(() => step.AfterGet(jo, contentType, context), PIPELINE, new {
-                        contentType, method = "AfterGet", step = step.GetType().FullName
+                        contentType,
+                        method = "AfterGet", 
+                        step = step.GetType().FullName
                     }));
         }
 

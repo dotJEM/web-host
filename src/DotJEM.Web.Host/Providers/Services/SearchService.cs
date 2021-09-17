@@ -5,11 +5,13 @@ using System.Linq;
  using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
  using DotJEM.Web.Host.Diagnostics.Performance;
- using DotJEM.Web.Host.Providers.Pipeline;
+ using DotJEM.Web.Host.Providers.AsyncPipeline;
+ using DotJEM.Web.Host.Tasks;
  using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
+ using IPipeline = DotJEM.Web.Host.Providers.Pipeline.IPipeline;
 
-namespace DotJEM.Web.Host.Providers.Services
+ namespace DotJEM.Web.Host.Providers.Services
 {
     public sealed class SearchResult
     {
@@ -39,10 +41,10 @@ namespace DotJEM.Web.Host.Providers.Services
     public class SearchService : ISearchService
     {
         private readonly IStorageIndex index;
-        private readonly IPipeline pipeline;
+        private readonly IAsyncPipeline pipeline;
         private readonly ILogger performance;
 
-        public SearchService(IStorageIndex index, IPipeline pipeline, ILogger performance)
+        public SearchService(IStorageIndex index, IAsyncPipeline pipeline, ILogger performance)
         {
             this.index = index;
             this.pipeline = pipeline;
@@ -62,7 +64,8 @@ namespace DotJEM.Web.Host.Providers.Services
 
             //TODO: extract contenttype based on configuration.
             SearchResult searchResult = new SearchResult(result
-                .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
+                //TODO: need to introduce an alternative here.
+                //.Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
                 .ToArray(), result.TotalCount);
 
             performance.LogAsync("search", new

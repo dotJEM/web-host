@@ -1,4 +1,5 @@
 using System.Web.Http.ExceptionHandling;
+using Castle.DynamicProxy;
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
@@ -13,10 +14,12 @@ namespace DotJEM.Web.Host.Diagnostics
     {
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
-            container.Register(Component.For<ILogWriterFactory>().ImplementedBy<LogWriterFactory>().LifestyleSingleton());
+            //container.Register(Component.For<ILogWriterFactory>().ImplementedBy<LogWriterFactory>().LifestyleSingleton());
             container.Register(Component.For<IDiagnosticsLogger>().ImplementedBy<DiagnosticsLogger>().LifestyleTransient());
             container.Register(Component.For<IExceptionLogger>().ImplementedBy<DiagnosticsExceptionLogger>().LifestyleTransient());
             container.Register(Component.For<IExceptionHandler>().ImplementedBy<WebHostExceptionHandler>().LifestyleTransient());
+          
+            container.Register(Component.For<IInterceptor>().ImplementedBy<PerformanceLogAspect>());
             container.Register(Component.For<ILoggerFactory>().ImplementedBy<LoggerFactory>());
             container.Register(Component.For<ILogger>().UsingFactoryMethod(kernel => kernel.Resolve<ILoggerFactory>().Create()).LifestyleSingleton());
             container.Register(Component.For<IPerformanceLoggingCustomDataProviderManager>().ImplementedBy<PerformanceLoggingCustomDataProviderManager>());

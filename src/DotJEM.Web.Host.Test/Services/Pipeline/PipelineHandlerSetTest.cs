@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Castle.MicroKernel.Resolvers;
+using DotJEM.Web.Host.Providers.AsyncPipeline;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
 using DotJEM.Web.Host.Providers.Pipeline;
 using NUnit.Framework;
 

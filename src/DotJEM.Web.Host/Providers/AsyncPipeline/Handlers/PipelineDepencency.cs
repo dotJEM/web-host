@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace DotJEM.Web.Host.Providers.Pipeline
+namespace DotJEM.Web.Host.Providers.AsyncPipeline.Handlers
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class PipelineDepencency : Attribute
