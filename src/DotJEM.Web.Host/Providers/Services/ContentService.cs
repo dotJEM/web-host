@@ -68,10 +68,10 @@ namespace DotJEM.Web.Host.Providers.Services
         public Task<JObject> GetAsync(Guid id, string contentType)
         {
             HttpGetContext context = new (contentType, id);
-            ICompiledPipeline<HttpGetContext, JObject> pipeline = pipelines
+            ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, async ctx => area.Get(ctx.Id));
 
-            return pipeline.Invoke(context);
+            return pipeline.Invoke();
         }
 
         public class HttpPostContext : HttpPipelineContext
@@ -89,9 +89,9 @@ namespace DotJEM.Web.Host.Providers.Services
         public async Task<JObject> PostAsync(string contentType, JObject entity)
         {
             HttpPostContext context = new (contentType, entity);
-            ICompiledPipeline<HttpPostContext, JObject> pipeline = pipelines
+            ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, async ctx => area.Insert(ctx.ContentType, ctx.Entity));
-            entity = await pipeline.Invoke(context);
+            entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -119,10 +119,10 @@ namespace DotJEM.Web.Host.Providers.Services
             entity = merger.EnsureMerge(id, entity, prev);
 
             HttpPutContext context = new (contentType, id, entity, prev);
-            ICompiledPipeline<HttpPutContext, JObject> pipeline = pipelines
+            ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
 
-            entity = await pipeline.Invoke(context);
+            entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -155,13 +155,13 @@ namespace DotJEM.Web.Host.Providers.Services
             entity = merger.EnsureMerge(id, entity, prev);
 
             HttpPatchContext context = new (contentType, id, entity, prev);
-            ICompiledPipeline<HttpPatchContext, JObject> pipeline = pipelines
+            ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
             
             //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, prev);
             //entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
 
-            entity = await pipeline.Invoke(context);
+            entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -186,10 +186,10 @@ namespace DotJEM.Web.Host.Providers.Services
                 return null;
 
             HttpDeleteContext context = new (contentType, id, prev);
-            ICompiledPipeline<HttpDeleteContext, JObject> pipeline = pipelines
+            ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, async ctx => area.Delete(ctx.Id));
             
-            JObject deleted = await pipeline.Invoke(context);
+            JObject deleted = await pipeline.Invoke();
             
             //Note: This may pose a bit of a problem, because we don't lock so far out (performance),
             //      this can theoretically happen if two threads or two nodes are trying to delete the

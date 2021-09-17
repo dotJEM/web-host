@@ -89,16 +89,36 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
     }
 
-    public interface ICompiledPipeline<in TContext, T> where TContext : IPipelineContext
+
+    public interface ICompiledPipeline<T>
+    {
+        Task<T> Invoke();
+    }
+
+    public class CompiledPipeline<TContext, T> : ICompiledPipeline<T> where TContext : IPipelineContext
+    {
+        private readonly TContext context;
+        private readonly IUnboundPipeline<TContext, T> pipeline;
+
+        public CompiledPipeline(IUnboundPipeline<TContext, T> pipeline, TContext context)
+        {
+            this.pipeline = pipeline;
+            this.context = context;
+        }
+        
+        public Task<T> Invoke() => pipeline.Invoke(context);
+    }
+
+    public interface IUnboundPipeline<in TContext, T> where TContext : IPipelineContext
     {
         Task<T> Invoke(TContext context);
     }
 
-    public class CompiledPipeline<TContext, T> : ICompiledPipeline<TContext, T> where TContext : IPipelineContext
+    public class UnboundPipeline<TContext, T> : IUnboundPipeline<TContext, T> where TContext : IPipelineContext
     {
         private readonly INode<T> target;
 
-        public CompiledPipeline(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
+        public UnboundPipeline(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
         {
             if (performance.IsEnabled())
             {

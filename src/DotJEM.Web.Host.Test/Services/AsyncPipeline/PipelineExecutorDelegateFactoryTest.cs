@@ -66,10 +66,10 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
                 {"name", "Foo"},
                 { "test", "x" }
             });
-            manager.For(context, async fakeContext => new JObject()).Invoke(context);
-            manager.For(context, async fakeContext => new JObject()).Invoke(context);
-            manager.For(context, async fakeContext => new JObject()).Invoke(context);
-            manager.For(context, async fakeContext => new JObject()).Invoke(context);
+            manager.For(context, async fakeContext => new JObject()).Invoke();
+            manager.For(context, async fakeContext => new JObject()).Invoke();
+            manager.For(context, async fakeContext => new JObject()).Invoke();
+            manager.For(context, async fakeContext => new JObject()).Invoke();
 
         }
 

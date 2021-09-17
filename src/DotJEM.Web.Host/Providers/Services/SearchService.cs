@@ -70,7 +70,7 @@ using Newtonsoft.Json.Linq;
             //    .Take(take);
 
             SearchContext context = new SearchContext(query);
-            ICompiledPipeline<SearchContext, SearchResult> pipeline = pipelines
+            ICompiledPipeline<SearchResult> pipeline = pipelines
                 .For(context, async ctx =>
                 {
                     ISearchResult result = index
@@ -91,8 +91,7 @@ using Newtonsoft.Json.Linq;
                     });
                     return resolved;
                 });
-
-            return await pipeline.Invoke(context);
+            return await pipeline.Invoke();
 
             //TODO: extract contenttype based on configuration.
             //SearchResult searchResult = new SearchResult(result
