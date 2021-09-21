@@ -12,7 +12,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
     {
     }
 
-    class PipelineHandlerCollection : IPipelineHandlerCollection
+    public class PipelineHandlerCollection : IPipelineHandlerCollection
     {
         private readonly List<IPipelineHandler> providers;
 
