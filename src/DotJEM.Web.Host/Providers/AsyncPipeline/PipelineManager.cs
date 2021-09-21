@@ -20,7 +20,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     public class PipelineManager : IPipelines
     {
         private readonly ILogger performance;
-        private readonly IPipelineHandler[] providers;
+        private readonly IPipelineHandlerCollection providers;
 
         private readonly ConcurrentDictionary<string, object> cache = new();
         //private readonly Func<IPipelineContext, string> keyGenerator;
@@ -28,7 +28,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         //TODO: Only relevant if performance is enabled, so the "strategy devide" needs to be pulled up.
         //private readonly Func<IPipelineContext, JObject> perfGenerator;
 
-        public PipelineManager(ILogger performance, IPipelineHandler[] providers)
+        public PipelineManager(ILogger performance, IPipelineHandlerCollection providers)
         {
             this.performance = performance;
             this.providers = providers;
