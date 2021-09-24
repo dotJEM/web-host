@@ -1,6 +1,7 @@
 ﻿ using System;
 using System.Collections.Generic;
 using System.Linq;
+ using System.Threading.Tasks;
  using DotJEM.Diagnostic;
  using DotJEM.Json.Index;
 using DotJEM.Json.Index.Searching;
@@ -31,22 +32,16 @@ using Newtonsoft.Json.Linq;
 
     public interface ISearchService
     {
-        SearchResult Search(string query, int skip = 0, int take = 20);
+        Task<SearchResult> Search(string query, int skip = 0, int take = 20);
         SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
     }
 
     public class SearchContext : PipelineContext
     {
-        public string ContentType => (string)GetParameter("contentType");
-        public Guid Id => (Guid)GetParameter("id");
-        public int Version => (int)GetParameter("version");
-        public JObject Target => (JObject)GetParameter("target");
-        public JObject Current => (JObject)GetParameter("current");
-
-        public SearchContext(string query, SearchResult result)
+        public SearchContext(string query)
         {
             Set("type", "SEARCH");
-
+            Set(nameof(query), query);
         }
     }
 
@@ -63,33 +58,56 @@ using Newtonsoft.Json.Linq;
             this.performance = performance;
         }
 
-        public SearchResult Search(string query, int skip = 0, int take = 20)
+        public async Task<SearchResult> Search(string query, int skip = 0, int take = 20)
         {
             //TODO: Throw exception on invalid query.
             //if (string.IsNullOrWhiteSpace(query))
             //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-            ISearchResult result = index
-                .Search(query)
-                .Skip(skip)
-                .Take(take);
+            //ISearchResult result = index
+            //    .Search(query)
+            //    .Skip(skip)
+            //    .Take(take);
 
+            SearchContext context = new SearchContext(query);
+            ICompiledPipeline<SearchResult> pipeline = pipelines
+                .For(context, async ctx =>
+                {
+                    ISearchResult result = index
+                        .Search(query)
+                        .Skip(skip)
+                        .Take(take);
+
+                    SearchResult resolved =  new SearchResult(result.ToArray(), result.TotalCount);
+                    await performance.LogAsync("search", new
+                    {
+                        totalTime = (long)result.TotalTime.TotalMilliseconds,
+                        searchTime = (long)result.SearchTime.TotalMilliseconds,
+                        loadTime = (long)result.LoadTime.TotalMilliseconds,
+                        query,
+                        skip,
+                        take,
+                        results = result.TotalCount
+                    });
+                    return resolved;
+                });
+            return await pipeline.Invoke();
 
             //TODO: extract contenttype based on configuration.
-            SearchResult searchResult = new SearchResult(result
-                //TODO: need to introduce an alternative here.
-                //.Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
-                .ToArray(), result.TotalCount);
+            //SearchResult searchResult = new SearchResult(result
+            //    //TODO: need to introduce an alternative here.
+            //    //.Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
+            //    .ToArray(), result.TotalCount);
 
-            performance.LogAsync("search", new
-            {
-                totalTime = (long)result.TotalTime.TotalMilliseconds,
-                searchTime = (long)result.SearchTime.TotalMilliseconds,
-                loadTime = (long)result.LoadTime.TotalMilliseconds,
-                query, skip, take,
-                results = result.TotalCount
-            });
-            return searchResult;
+            //performance.LogAsync("search", new
+            //{
+            //    totalTime = (long)result.TotalTime.TotalMilliseconds,
+            //    searchTime = (long)result.SearchTime.TotalMilliseconds,
+            //    loadTime = (long)result.LoadTime.TotalMilliseconds,
+            //    query, skip, take,
+            //    results = result.TotalCount
+            //});
+            //return searchResult;
         }
 
         public SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc")

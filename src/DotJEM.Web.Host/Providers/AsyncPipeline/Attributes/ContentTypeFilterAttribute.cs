@@ -7,8 +7,8 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Attributes
     public class ContentTypeFilterAttribute : PropertyFilterAttribute
     {
 
-        public ContentTypeFilterAttribute(string regex, RegexOptions options = RegexOptions.None)
-            : base("contentType", regex, options)
+        public ContentTypeFilterAttribute(string contentType, RegexOptions options = RegexOptions.None)
+            : base("contentType", $"^{contentType}$", options)
         {
         }
     }

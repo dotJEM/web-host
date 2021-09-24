@@ -14,8 +14,9 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
     public interface IPipelines
     {
-        ICompiledPipeline<TContext, T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext;
+        ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext;
     }
+
     public class PipelineManager : IPipelines
     {
         private readonly ILogger performance;
@@ -43,18 +44,25 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
            // perfGenerator = context.CreatePerfGenerator();
         }
 
-        public ICompiledPipeline<TContext, T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
+        public ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
         {
+            IUnboundPipeline<TContext, T> unbound = LookupPipeline(context, final);
+            return new CompiledPipeline<TContext, T>(unbound, context);
+        }
+
+        public IUnboundPipeline<TContext, T> LookupPipeline<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
+        {
+            // Don't compute the graph over and over again, we can cache it!!!
             List<IClassNode<T>> nodes = new PipelineGraphFactory().BuildHandlerGraph<T>(providers);
             SpyingContext spy = new();
             nodes.SelectMany(n => n.For(context)).Enumerate();
             Func<IPipelineContext, string> keyGenerator = spy.CreateKeyGenerator();
             Func<IPipelineContext, JObject> perfGenerator = spy.CreatePerfGenerator();
 
-            return (ICompiledPipeline<TContext, T>)cache.GetOrAdd(keyGenerator(context), key =>
+            return (IUnboundPipeline<TContext, T>)cache.GetOrAdd(keyGenerator(context), key =>
             {
                 IEnumerable<MethodNode<T>> matchingNodes = nodes.SelectMany(n => n.For(context));
-                return new CompiledPipeline<TContext, T>(performance, perfGenerator, matchingNodes, final);
+                return new UnboundPipeline<TContext, T>(performance, perfGenerator, matchingNodes, final);
             });
         }
 
