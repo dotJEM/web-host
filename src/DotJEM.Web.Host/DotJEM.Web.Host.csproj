@@ -338,6 +338,8 @@
     <Compile Include="Common\EnumerableExtensions.cs" />
     <Compile Include="Providers\AsyncPipeline\Factories\NextFactoryDelegate.cs" />
     <Compile Include="Providers\AsyncPipeline\Factories\PipelineExecutorDelegate.cs" />
+    <Compile Include="Providers\AsyncPipeline\IPipelineContext.cs" />
+    <Compile Include="Providers\AsyncPipeline\IPipelineHandler.cs" />
     <Compile Include="Providers\AsyncPipeline\NextHandlers\Next.cs" />
     <Compile Include="Providers\AsyncPipeline\Factories\PipelineExecutorDelegateFactory.cs" />
     <Compile Include="Providers\AsyncPipeline\Attributes\PipelineFilterAttribute.cs" />
