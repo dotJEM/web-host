@@ -7,8 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
-using System.Web.Http.Results;
-using DotJEM.Web.Host.Providers.Pipeline;
 
 namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
 {
@@ -25,8 +23,7 @@ namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
 
         private IWebHostExceptionHandler LookupHandler(Type exceptionType)
         {
-            IWebHostExceptionHandler handler;
-            if (map.TryGetValue(exceptionType, out handler))
+            if (map.TryGetValue(exceptionType, out IWebHostExceptionHandler handler))
                 return handler;
 
             return exceptionType != typeof(Exception)

@@ -9,9 +9,8 @@ using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Handlers;
-using DotJEM.Web.Host.Providers.AsyncPipeline.Contexts;
+using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
+using DotJEM.Web.Host.Providers.AsyncPipeline.NextHandlers;
 using Newtonsoft.Json.Linq;
 
 namespace Demo
@@ -41,16 +40,29 @@ namespace Demo
             container.RegisterPipelineStep<ExampleHandler>();
 
         }
+
+        //protected override void Configure(IPipelines pipeline)
+        //{
+        //    base.Configure(pipeline);
+        //}
     }
 
     [ContentTypeFilter(".*")]
-    public class ExampleHandler : AsyncPipelineHandler
+    public class ExampleHandler : IPipelineHandler
     {
-        
-        public override async Task<JObject> Get(Guid id, IGetContext context, INextHandler<Guid> next)
+        [HttpMethodFilter("GET")]
+        public async Task<JObject> Get(Guid id, IPipelineContext context, INext<JObject, Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);
             entity["foo"] = "HAHA";
+            return entity;
+        }
+
+        [HttpMethodFilter("GET")]
+        public async Task<JObject> Get2(Guid id, IPipelineContext context, INext<JObject, Guid> next)
+        {
+            JObject entity = await next.Invoke().ConfigureAwait(false);
+            entity["foo2"] = "HAHA2";
             return entity;
         }
     }
