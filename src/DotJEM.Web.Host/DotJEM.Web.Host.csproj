@@ -347,7 +347,6 @@
     <Compile Include="Providers\AsyncPipeline\Attributes\PipelineFilterAttribute.cs" />
     <Compile Include="Providers\AsyncPipeline\Factories\PipelineGraphFactory.cs" />
     <Compile Include="Providers\AsyncPipeline\NextHandlers\Next_Base.cs" />
-    <Compile Include="Providers\AsyncPipeline\PipelineContext.cs" />
     <Compile Include="Providers\AsyncPipeline\PipelineManager.cs" />
     <Compile Include="Providers\AsyncPipeline\UnboundPipeline.cs" />
     <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />

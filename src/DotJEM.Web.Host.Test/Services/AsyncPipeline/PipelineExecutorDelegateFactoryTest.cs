@@ -167,5 +167,15 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
                 this.values[key] = value;
             return this;
         }
+
+        public IPipelineContext Add(string key, object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IPipelineContext Set(string key, object value)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

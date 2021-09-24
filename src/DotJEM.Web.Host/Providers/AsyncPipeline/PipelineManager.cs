@@ -113,6 +113,15 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 throw new NotImplementedException();
             }
 
+            public IPipelineContext Add(string key, object value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IPipelineContext Set(string key, object value)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }
