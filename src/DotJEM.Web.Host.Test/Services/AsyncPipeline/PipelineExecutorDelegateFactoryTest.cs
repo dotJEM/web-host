@@ -154,6 +154,12 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
             return false;
         }
 
+        public object this[string key]
+        {
+            get => throw new NotImplementedException();
+            set => throw new NotImplementedException();
+        }
+
         public bool TryGetValue(string key, out object value) => values.TryGetValue(key, out value);
 
         public object GetParameter(string key)

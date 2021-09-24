@@ -103,6 +103,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 };
             }
 
+            public object this[string key]
+            {
+                get => throw new NotImplementedException();
+                set => throw new NotImplementedException();
+            }
+
             public object GetParameter(string key)
             {
                 throw new NotImplementedException();
