@@ -5,6 +5,8 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
     public interface IPipelineContext
     {
+        object this[string key] { get; set; }
+
         bool TryGetValue(string key, out object value);
 
         object GetParameter(string key);
@@ -13,12 +15,17 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
         IPipelineContext Add(string key, object value);
         IPipelineContext Set(string key, object value);
-
     }
 
     public class PipelineContext : IPipelineContext
     {
         private readonly Dictionary<string, object> parameters = new();
+
+        public object this[string key]
+        {
+            get => parameters[key];
+            set => parameters[key] = value;
+        }
 
         public virtual bool TryGetValue(string key, out object value) => parameters.TryGetValue(key, out value);
 
