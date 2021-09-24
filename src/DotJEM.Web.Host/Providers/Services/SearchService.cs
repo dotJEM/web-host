@@ -14,16 +14,16 @@ using Newtonsoft.Json.Linq;
     public sealed class SearchResult
     {
         public long TotalCount { get; set; }
-        public IEnumerable<dynamic> Results { get; set; }
+        public IEnumerable<JObject> Results { get; set; }
 
         public SearchResult(ISearchResult result)
         {
             //Note: We must do the actual enumeration here to kick of the search, otherwise TotalCount is 0.
-            Results = result.Select(hit => hit.Json).ToArray();
+            Results = result.Select(hit => hit.Entity).ToArray();
             TotalCount = result.TotalCount;
         }
 
-        public SearchResult(IEnumerable<dynamic> results, long totalCount)
+        public SearchResult(IEnumerable<JObject> results, long totalCount)
         {
             Results = results;
             TotalCount = totalCount;
@@ -33,6 +33,7 @@ using Newtonsoft.Json.Linq;
     public interface ISearchService
     {
         Task<SearchResult> Search(string query, int skip = 0, int take = 20);
+
         SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
     }
 
@@ -78,7 +79,7 @@ using Newtonsoft.Json.Linq;
                         .Skip(skip)
                         .Take(take);
 
-                    SearchResult resolved =  new SearchResult(result.ToArray(), result.TotalCount);
+                    SearchResult resolved =  new (result);
                     await performance.LogAsync("search", new
                     {
                         totalTime = (long)result.TotalTime.TotalMilliseconds,
