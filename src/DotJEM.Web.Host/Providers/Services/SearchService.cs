@@ -14,7 +14,7 @@ using Newtonsoft.Json.Linq;
     public sealed class SearchResult
     {
         public long TotalCount { get; set; }
-        public IEnumerable<JObject> Results { get; set; }
+        public IReadOnlyList<JObject> Results { get; set; }
 
         public SearchResult(ISearchResult result)
         {
@@ -25,24 +25,26 @@ using Newtonsoft.Json.Linq;
 
         public SearchResult(IEnumerable<JObject> results, long totalCount)
         {
-            Results = results;
+            Results = results.ToArray();
             TotalCount = totalCount;
         }
     }
 
     public interface ISearchService
     {
-        Task<SearchResult> Search(string query, int skip = 0, int take = 20);
+        Task<SearchResult> SearchAsync(string query, int skip = 0, int take = 20);
 
         SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
     }
 
     public class SearchContext : PipelineContext
     {
-        public SearchContext(string query)
+        public SearchContext(string query, int take, int skip)
         {
             Set("type", "SEARCH");
             Set(nameof(query), query);
+            Set(nameof(take), take);
+            Set(nameof(skip), skip);
         }
     }
 
@@ -59,7 +61,7 @@ using Newtonsoft.Json.Linq;
             this.performance = performance;
         }
 
-        public async Task<SearchResult> Search(string query, int skip = 0, int take = 20)
+        public async Task<SearchResult> SearchAsync(string query, int skip = 0, int take = 20)
         {
             //TODO: Throw exception on invalid query.
             //if (string.IsNullOrWhiteSpace(query))
@@ -70,7 +72,7 @@ using Newtonsoft.Json.Linq;
             //    .Skip(skip)
             //    .Take(take);
 
-            SearchContext context = new SearchContext(query);
+            SearchContext context = new SearchContext(query, take, skip);
             ICompiledPipeline<SearchResult> pipeline = pipelines
                 .For(context, async ctx =>
                 {

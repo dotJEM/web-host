@@ -14,11 +14,11 @@ namespace DotJEM.Web.Host.Providers.Services
     {
         IStorageArea StorageArea { get; }
 
-        Task<JObject> History(Guid id, string contentType, int version);
-        Task<JObject> Revert(Guid id, string contentType, int version);
+        Task<JObject> HistoryAsync(Guid id, string contentType, int version);
+        Task<JObject> RevertAsync(Guid id, string contentType, int version);
 
-        Task<IEnumerable<JObject>> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
-        Task<IEnumerable<JObject>> Deleted(string contentType, DateTime? from = null, DateTime? to = null);
+        Task<IEnumerable<JObject>> HistoryAsync(Guid id, string contentType, DateTime? from = null, DateTime? to = null);
+        Task<IEnumerable<JObject>> DeletedAsync(string contentType, DateTime? from = null, DateTime? to = null);
     }
 
     public class HistoryService : IHistoryService
@@ -36,7 +36,7 @@ namespace DotJEM.Web.Host.Providers.Services
             this.pipelines = pipelines;
         }
 
-        public Task<JObject> History(Guid id, string contentType, int version)
+        public Task<JObject> HistoryAsync(Guid id, string contentType, int version)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
@@ -45,7 +45,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return Task.Run(() => area.History.Get(id, version));
         }
 
-        public Task<IEnumerable<JObject>> History(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
+        public Task<IEnumerable<JObject>> HistoryAsync(Guid id, string contentType, DateTime? from = null, DateTime? to = null)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
@@ -54,7 +54,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return Task.Run(() => area.History.Get(id, from, to));
         }
 
-        public Task<IEnumerable<JObject>> Deleted(string contentType, DateTime? from = null, DateTime? to = null)
+        public Task<IEnumerable<JObject>> DeletedAsync(string contentType, DateTime? from = null, DateTime? to = null)
         {
             //TODO: (jmd 2015-11-10) Perhaps we should throw an exception instead (The API already does that btw). 
             if (!area.HistoryEnabled)
@@ -63,7 +63,7 @@ namespace DotJEM.Web.Host.Providers.Services
             return Task.Run(() => area.History.GetDeleted(contentType, from, to));
         }
 
-        public async Task<JObject> Revert(Guid id, string contentType, int version)
+        public async Task<JObject> RevertAsync(Guid id, string contentType, int version)
         {
             if (!area.HistoryEnabled)
                 throw new InvalidOperationException("Cannot revert document when history is not enabled.");
@@ -79,37 +79,6 @@ namespace DotJEM.Web.Host.Providers.Services
             JObject result = await pipeline.Invoke();
             manager.QueueUpdate(result);
             return result;
-
-            //return pipeline.Execute(contentType, version, target, current, context =>
-            //{
-            //    JObject result = area.Update(id, context.Target);
-            //    manager.QueueUpdate(result);
-            //    return result;
-            //});
-            throw new NotImplementedException();
-            /**
-             * 
-             * IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, current);
-             * JObject entity = area.History.Get(id, version);
-             * area.Update(id, entity);
-             * manager.QueueUpdate(entity);
-             * return entity;
-             * 
-             * entity = merger.EnsureMerge(id, entity, prev);
-             * entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
-             * manager.QueueUpdate(entity);
-             * return entity;
-             * 
-             * using (PipelineContext context = pipeline.CreateContext(contentType, current))
-             * {
-             *     JObject entity = area.History.Get(id, version);
-             *     entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
-             *     area.Update(id, entity);
-             *     entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
-             *     manager.QueueUpdate(entity);
-             *     return entity;
-             * }
-            ***/
         }
     }
 
