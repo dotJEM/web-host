@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,41 +8,34 @@ using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
-    public interface IPipelineGraphFactory
+    public interface IPipelineHandlerCollection : IEnumerable<IPipelineHandler>
     {
-        List<IClassNode<T>> BuildHandlerGraph<T>(IPipelineHandler[] providers);
     }
 
-    public class PipelineGraphFactory : IPipelineGraphFactory
+    public class PipelineHandlerCollection : IPipelineHandlerCollection
     {
-        public List<IClassNode<T>> BuildHandlerGraph<T>(IPipelineHandler[] providers)
-        {
-            List<IClassNode<T>> groups = new();
-            foreach (IPipelineHandler provider in OrderHandlers(providers))
-            {
-                Type type = provider.GetType();
-                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+        private readonly List<IPipelineHandler> providers;
 
-                List<MethodNode<T>> nodes = new();
-                foreach (MethodInfo method in type.GetMethods())
-                {
-                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
-                    if (methodSelectors.Any())
-                    {
-                        MethodNode<T> node = new PipelineExecutorDelegateFactory().CreateNode<T>(provider, method, selectors.Concat(methodSelectors).ToArray());
-                        nodes.Add(node);
-                    }
-                }
-                groups.Add(new ClassNode<T>(nodes));
-            }
-            return groups;
+        public PipelineHandlerCollection(IPipelineHandler[] providers)
+        {
+            this.providers = OrderHandlers(providers);
         }
 
-        private IEnumerable<T> OrderHandlers<T>(T[] steps)
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public IEnumerator<IPipelineHandler> GetEnumerator()
+        {
+            return providers.GetEnumerator();
+        }
+
+        private List<T> OrderHandlers<T>(T[] steps)
         {
             Queue<T> queue = new(steps);
             Dictionary<Type, T> map = steps.ToDictionary(h => h.GetType());
-            var ordered = new HashSet<Type>();
+            HashSet<Type> ordered = new();
             while (queue.Count > 0)
             {
                 T handler = queue.Dequeue();
@@ -65,7 +59,38 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
                     queue.Enqueue(handler);
                 }
             }
-            return ordered.Select(type => map[type]).ToArray();
+            return ordered.Select(type => map[type]).ToList();
+        }
+    }
+
+    public interface IPipelineGraphFactory
+    {
+        List<IClassNode<T>> BuildHandlerGraph<T>(IPipelineHandlerCollection providers);
+    }
+
+    public class PipelineGraphFactory : IPipelineGraphFactory
+    {
+        public List<IClassNode<T>> BuildHandlerGraph<T>(IPipelineHandlerCollection providers)
+        {
+            List<IClassNode<T>> groups = new();
+            foreach (IPipelineHandler provider in providers)
+            {
+                Type type = provider.GetType();
+                PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+
+                List<MethodNode<T>> nodes = new();
+                foreach (MethodInfo method in type.GetMethods())
+                {
+                    PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
+                    if (methodSelectors.Any())
+                    {
+                        MethodNode<T> node = new PipelineExecutorDelegateFactory().CreateNode<T>(provider, method, selectors.Concat(methodSelectors).ToArray());
+                        nodes.Add(node);
+                    }
+                }
+                groups.Add(new ClassNode<T>(nodes));
+            }
+            return groups;
         }
     }
 }

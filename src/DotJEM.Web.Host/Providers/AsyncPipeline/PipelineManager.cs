@@ -20,8 +20,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     public class PipelineManager : IPipelines
     {
         private readonly ILogger performance;
-        private readonly IPipelineHandler[] providers;
-        //private readonly List<IClassNode<JObject>> nodes;
+        private readonly IPipelineHandlerCollection providers;
 
         private readonly ConcurrentDictionary<string, object> cache = new();
         //private readonly Func<IPipelineContext, string> keyGenerator;
@@ -29,19 +28,10 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         //TODO: Only relevant if performance is enabled, so the "strategy devide" needs to be pulled up.
         //private readonly Func<IPipelineContext, JObject> perfGenerator;
 
-        public PipelineManager(ILogger performance, IPipelineHandler[] providers)
+        public PipelineManager(ILogger performance, IPipelineHandlerCollection providers)
         {
             this.performance = performance;
             this.providers = providers;
-            //this.nodes = new PipelineGraphFactory().BuildHandlerGraph<JObject>(providers);
-
-            //TODO: Make key generator, by running over all nodes and seeing which properties they interact with, we know which properties to use to generate our key.
-            //      We need to make sure we pass all the nodes to ensure everything has been accounted for.
-
-            //SpyingContext context = new ();
-           // nodes.SelectMany(n => n.For(context)).Enumerate();
-           // keyGenerator = context.CreateKeyGenerator();
-           // perfGenerator = context.CreatePerfGenerator();
         }
 
         public ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
@@ -71,7 +61,6 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             private readonly HashSet<string> parameters = new();
             private readonly SHA256CryptoServiceProvider provider = new ();
             private readonly Encoding encoding = Encoding.UTF8;
-
 
             public bool TryGetValue(string key, out object value)
             {
@@ -109,16 +98,8 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 set => throw new NotImplementedException();
             }
 
-            public object GetParameter(string key)
-            {
-                throw new NotImplementedException();
-            }
-
-            public IPipelineContext Replace(params (string key, object value)[] values)
-            {
-                throw new NotImplementedException();
-            }
-
+            public object GetParameter(string key) => throw new NotImplementedException();
+            public IPipelineContext Replace(params (string key, object value)[] values) => throw new NotImplementedException();
             public IPipelineContext Add(string key, object value)
             {
                 throw new NotImplementedException();

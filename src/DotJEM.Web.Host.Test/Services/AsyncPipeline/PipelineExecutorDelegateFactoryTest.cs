@@ -54,12 +54,12 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         public void Manager_ReturnsDelegat2e()
         {
 
-            PipelineManager manager = new PipelineManager(new FakeLogger(), new IPipelineHandler[]
+            PipelineManager manager = new PipelineManager(new FakeLogger(), new PipelineHandlerCollection(new IPipelineHandler[]
             {
                 new FakeFirstTarget(),
                 new FakeSecondTarget(),
                 new FakeThirdTarget()
-            });
+            }));
             FakeContext context = new FakeContext(new Dictionary<string, object>()
             {
                 {"id", 42},
