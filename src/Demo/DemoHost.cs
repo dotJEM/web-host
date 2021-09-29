@@ -59,6 +59,14 @@ namespace Demo
         }
 
         [HttpMethodFilter("GET")]
+        public async Task<JObject> Get(string contentType, Guid id, IPipelineContext context, INext<JObject, string, Guid> next)
+        {
+            JObject entity = await next.Invoke().ConfigureAwait(false);
+            entity["foo2"] = "HAHA3";
+            return entity;
+        }
+
+        [HttpMethodFilter("GET")]
         public async Task<JObject> Get2(Guid id, IPipelineContext context, INext<JObject, Guid> next)
         {
             JObject entity = await next.Invoke().ConfigureAwait(false);

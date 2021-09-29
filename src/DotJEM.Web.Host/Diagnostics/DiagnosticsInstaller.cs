@@ -14,7 +14,10 @@ namespace DotJEM.Web.Host.Diagnostics
     {
         public void Install(IWindsorContainer container, IConfigurationStore store)
         {
-            //container.Register(Component.Null<ILogWriterFactory>().ImplementedBy<LogWriterFactory>().LifestyleSingleton());
+            container.Register(Component.For<ILogWriterFactory>().ImplementedBy<LogWriterFactory>().LifestyleSingleton());
+            container.Register(Component.For<IPerformanceLogAspectSignatureCache>().ImplementedBy<DefaultPerformanceLogAspectSignatureCache>().LifestyleSingleton());
+            
+
             container.Register(Component.For<IDiagnosticsLogger>().ImplementedBy<DiagnosticsLogger>().LifestyleTransient());
             container.Register(Component.For<IExceptionLogger>().ImplementedBy<DiagnosticsExceptionLogger>().LifestyleTransient());
             container.Register(Component.For<IExceptionHandler>().ImplementedBy<WebHostExceptionHandler>().LifestyleTransient());
