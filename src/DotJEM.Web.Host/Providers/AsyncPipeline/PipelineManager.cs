@@ -55,7 +55,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             // Don't compute the graph over and over again, we can cache it!!!
             List<IClassNode<T>> nodes = new PipelineGraphFactory().BuildHandlerGraph<T>(providers);
             SpyingContext spy = new();
-            nodes.SelectMany(n => n.For(context)).Enumerate();
+            nodes.SelectMany(n => n.For(spy)).Enumerate();
             Func<IPipelineContext, string> keyGenerator = spy.CreateKeyGenerator();
             Func<IPipelineContext, JObject> perfGenerator = spy.CreatePerfGenerator();
 

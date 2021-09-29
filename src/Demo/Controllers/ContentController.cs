@@ -20,7 +20,8 @@ namespace Demo.Controllers
         [HttpGet]
         public async Task<object> Get([FromUri] string area, [FromUri] string contentType, [FromUri] Guid id)
         {
-            JObject entity = await provider.Create(area).GetAsync(id, contentType);
+            IContentService service = provider.Create(area);
+            JObject entity = await service.GetAsync(id, contentType);
             if (entity == null)
             {
                 return NotFound($"Could not find content of type '{contentType}' with id [{id}] in area 'content'.");

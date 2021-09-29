@@ -73,5 +73,13 @@ namespace Demo
             entity["foo2"] = "HAHA2";
             return entity;
         }
+
+        [HttpPutMethodFilter]
+        public async Task<JObject> Put(string contentType, Guid id, JObject entity, JObject previous, IPipelineContext context, INext<JObject, string, Guid, JObject, JObject> next)
+        {
+            entity = await next.Invoke().ConfigureAwait(false);
+            entity["put"] = "HAHA2";
+            return entity;
+        }
     }
 }
