@@ -339,6 +339,7 @@
     <Compile Include="Providers\AsyncPipeline\CompiledPipeline.cs" />
     <Compile Include="Providers\AsyncPipeline\Factories\NextFactoryDelegate.cs" />
     <Compile Include="Providers\AsyncPipeline\Factories\PipelineExecutorDelegate.cs" />
+    <Compile Include="Providers\AsyncPipeline\Factories\PipelineHandlerCollection.cs" />
     <Compile Include="Providers\AsyncPipeline\IPipelineContext.cs" />
     <Compile Include="Providers\AsyncPipeline\IPipelineHandler.cs" />
     <Compile Include="Providers\AsyncPipeline\Nodes\Nodes.cs" />

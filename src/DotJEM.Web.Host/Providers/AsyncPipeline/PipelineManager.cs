@@ -20,7 +20,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     public class PipelineManager : IPipelines
     {
         private readonly ILogger performance;
-        private readonly IPipelineHandlerCollection providers;
+        private readonly IPipelineGraphFactory factory;
 
         private readonly ConcurrentDictionary<string, object> cache = new();
         //private readonly Func<IPipelineContext, string> keyGenerator;
@@ -28,10 +28,10 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         //TODO: Only relevant if performance is enabled, so the "strategy devide" needs to be pulled up.
         //private readonly Func<IPipelineContext, JObject> perfGenerator;
 
-        public PipelineManager(ILogger performance, IPipelineHandlerCollection providers)
+        public PipelineManager(ILogger performance, IPipelineGraphFactory factory)
         {
             this.performance = performance;
-            this.providers = providers;
+            this.factory = factory;
         }
 
         public ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
@@ -43,7 +43,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public IUnboundPipeline<TContext, T> LookupPipeline<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
         {
             // Don't compute the graph over and over again, we can cache it!!!
-            List<IClassNode<T>> nodes = new PipelineGraphFactory().BuildHandlerGraph<T>(providers);
+            IList<IClassNode<T>> nodes = factory.GetHandlers<T>();
             SpyingContext spy = new();
             nodes.SelectMany(n => n.For(spy)).Enumerate();
             Func<IPipelineContext, string> keyGenerator = spy.CreateKeyGenerator();
