@@ -16,10 +16,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
     {
         private readonly ConcurrentDictionary<Type, object> graphs = new();
         private readonly IPipelineHandlerCollection handlers;
+        private readonly IPipelineExecutorDelegateFactory factory;
 
-        public PipelineGraphFactory(IPipelineHandlerCollection handlers)
+        public PipelineGraphFactory(IPipelineHandlerCollection handlers, IPipelineExecutorDelegateFactory factory)
         {
             this.handlers = handlers;
+            this.factory = factory;
         }
 
         public IList<IClassNode<T>> GetHandlers<T>()
@@ -30,7 +32,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
         private List<IClassNode<T>> BuildGraph<T>(IPipelineHandlerCollection providers)
         {
             List<IClassNode<T>> groups = new();
-            foreach (IPipelineHandler provider in providers)
+            foreach (IPipelineHandlerProvider provider in providers)
             {
                 Type type = provider.GetType();
                 PipelineFilterAttribute[] selectors = type.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
@@ -41,7 +43,8 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
                     PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
                     if (methodSelectors.Any())
                     {
-                        MethodNode<T> node = new PipelineExecutorDelegateFactory().CreateNode<T>(provider, method, selectors.Concat(methodSelectors).ToArray());
+
+                        MethodNode<T> node = factory.CreateNode<T>(provider, method, selectors.Concat(methodSelectors).ToArray());
                         nodes.Add(node);
                     }
                 }

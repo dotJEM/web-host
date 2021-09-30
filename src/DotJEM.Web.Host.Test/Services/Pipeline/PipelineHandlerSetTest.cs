@@ -75,23 +75,23 @@ namespace DotJEM.Web.Host.Test.Services.Pipeline
     }
 
 
-    public class First : IPipelineHandler { }
+    public class First : IPipelineHandlerProvider { }
 
     [PipelineDepencency(typeof(First))]
-    public class Second : IPipelineHandler { }
+    public class Second : IPipelineHandlerProvider { }
 
     [PipelineDepencency(typeof(First))]
     [PipelineDepencency(typeof(Third))]
-    public class NeedsFirstAndThird : IPipelineHandler { }
+    public class NeedsFirstAndThird : IPipelineHandlerProvider { }
 
     [PipelineDepencency(typeof(Second))]
-    public class Third : IPipelineHandler { }
+    public class Third : IPipelineHandlerProvider { }
 
     [PipelineDepencency(typeof(Third))]
-    public class Fourth : IPipelineHandler { }
+    public class Fourth : IPipelineHandlerProvider { }
 
     [PipelineDepencency(typeof(Fourth))]
-    public class Fifth : IPipelineHandler { }
+    public class Fifth : IPipelineHandlerProvider { }
 
 
 }

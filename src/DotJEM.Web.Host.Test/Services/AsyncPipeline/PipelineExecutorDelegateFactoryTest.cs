@@ -54,12 +54,12 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         public void Manager_ReturnsDelegat2e()
         {
 
-            PipelineManager manager = new PipelineManager(new FakeLogger(), new PipelineGraphFactory( new PipelineHandlerCollection(new IPipelineHandler[]
+            PipelineManager manager = new PipelineManager(new FakeLogger(), new PipelineGraphFactory( new PipelineHandlerCollection(new IPipelineHandlerProvider[]
             {
                 new FakeFirstTarget(),
                 new FakeSecondTarget(),
                 new FakeThirdTarget()
-            })));
+            }), new PipelineExecutorDelegateFactory()));
             FakeContext context = new FakeContext(new Dictionary<string, object>()
             {
                 {"id", 42},
@@ -85,7 +85,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         }
     }
 
-    public class FakeFirstTarget : IPipelineHandler
+    public class FakeFirstTarget : IPipelineHandlerProvider
     {
         [PropertyFilter("test", ".*")]
         public Task<JObject> Run(int id, string name, IPipelineContext context, INext<JObject, int, string> next)
@@ -96,7 +96,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
     }
 
         [PropertyFilter("name", ".*")]
-    public class FakeSecondTarget : IPipelineHandler
+    public class FakeSecondTarget : IPipelineHandlerProvider
     {
         [PropertyFilter("test", ".*")]
         public Task<JObject> Run(int id, string name, IPipelineContext context, INext<JObject, int, string> next)
@@ -107,7 +107,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
     }
 
-    public class FakeThirdTarget : IPipelineHandler
+    public class FakeThirdTarget : IPipelineHandlerProvider
     {
         [PropertyFilter("test", ".*")]
         public Task<JObject> Run(int id, string name, FakeContext context, INext<JObject, int, string> next)

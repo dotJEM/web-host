@@ -48,7 +48,7 @@ namespace Demo
     }
 
     [ContentTypeFilter(".*")]
-    public class ExampleHandler : IPipelineHandler
+    public class ExampleHandler : IPipelineHandlerProvider
     {
         [HttpMethodFilter("GET")]
         public async Task<JObject> Get(Guid id, IPipelineContext context, INext<JObject, Guid> next)

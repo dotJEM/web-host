@@ -84,42 +84,30 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 
         public Expression<NextFactoryDelegate<T>> CreateNextStuff<T>(MethodInfo method)
         {
-            try
-            {
-                ParameterInfo[] list = method.GetParameters();
-                ParameterInfo nextParameterInfo = list[list.Length - 1];
+            ParameterInfo[] list = method.GetParameters();
+            ParameterInfo nextParameterInfo = list[list.Length - 1];
+            Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
 
-                Type[] generics = nextParameterInfo.ParameterType.GetGenericArguments();
+            ParameterExpression contextParameter = Expression.Parameter(typeof(IPipelineContext), "context");
+            ParameterExpression nodeParameter = Expression.Parameter(typeof(INode<T>), "node");
 
-                ParameterExpression contextParameter = Expression.Parameter(typeof(IPipelineContext), "context");
-                ParameterExpression nodeParameter = Expression.Parameter(typeof(INode<T>), "node");
+            Expression[] arguments = list
+                .Take(list.Length - 2)
+                .Select(p => (Expression)Expression.Constant(p.Name))
+                .Prepend(nodeParameter)
+                .Prepend(contextParameter)
+                .ToArray();
+            MethodCallExpression methodCall = Expression.Call(typeof(NextFactory), nameof(NextFactory.Create), generics, arguments);
 
-                Expression[] arguments = list
-                    .Take(list.Length - 2)
-                    .Select(p => (Expression)Expression.Constant(p.Name))
-                    .Prepend(nodeParameter)
-                    .Prepend(contextParameter)
-                    .ToArray();
-                MethodCallExpression methodCall = Expression.Call(typeof(NextFactory), nameof(NextFactory.Create), generics, arguments);
-
-                return Expression.Lambda<NextFactoryDelegate<T>>(methodCall, contextParameter, nodeParameter);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidTargetMethodException("Could not resolve target Next factory to use for method", method, ex);
-            }
-            
+            return Expression.Lambda<NextFactoryDelegate<T>>(methodCall, contextParameter, nodeParameter);
         }
-    }
 
-    public class InvalidTargetMethodException : Exception
-    {
-        public MethodInfo Method { get; }
-
-        public InvalidTargetMethodException(string message, MethodInfo method, Exception exception)
-            : base(message, exception)
-        {
-            Method = method;
-        }
+        //public static class NextFactory
+        //{
+        //    public static INext<T> Create<T>(IPipelineContext context, INode next, string paramName)
+        //        => new Next<T>(context, next, paramName);
+        //    public static INext<T1, T2> Create<T1, T2>(IPipelineContext context, INode next, string paramName1, string paramName2)
+        //        => new Next<T1, T2>(context, next, paramName1, paramName2);
+        //}
     }
 }

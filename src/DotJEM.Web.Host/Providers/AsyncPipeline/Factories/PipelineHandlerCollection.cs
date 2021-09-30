@@ -7,15 +7,15 @@ using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 {
-    public interface IPipelineHandlerCollection : IEnumerable<IPipelineHandler>
+    public interface IPipelineHandlerCollection : IEnumerable<IPipelineHandlerProvider>
     {
     }
 
     public class PipelineHandlerCollection : IPipelineHandlerCollection
     {
-        private readonly List<IPipelineHandler> providers;
+        private readonly List<IPipelineHandlerProvider> providers;
 
-        public PipelineHandlerCollection(IPipelineHandler[] providers)
+        public PipelineHandlerCollection(IPipelineHandlerProvider[] providers)
         {
             this.providers = OrderHandlers(providers);
         }
@@ -25,7 +25,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
             return GetEnumerator();
         }
 
-        public IEnumerator<IPipelineHandler> GetEnumerator()
+        public IEnumerator<IPipelineHandlerProvider> GetEnumerator()
         {
             return providers.GetEnumerator();
         }

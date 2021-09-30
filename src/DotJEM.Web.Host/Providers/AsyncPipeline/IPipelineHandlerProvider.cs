@@ -3,7 +3,7 @@
     /// <summary>
     /// This is a marker interface for registering Pipeline handlers within Castle.
     /// </summary>
-    public interface IPipelineHandler
+    public interface IPipelineHandlerProvider
     {
     }
 }
