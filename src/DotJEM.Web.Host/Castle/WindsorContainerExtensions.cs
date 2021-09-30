@@ -1,4 +1,5 @@
-﻿using Castle.MicroKernel.Registration;
+﻿using System;
+using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 
@@ -6,7 +7,11 @@ namespace DotJEM.Web.Host.Castle
 {
     public static class WindsorContainerExtensions
     {
-        public static IWindsorContainer RegisterPipelineStep<T>(this IWindsorContainer self) where T : IPipelineHandlerProvider
-            => self.Register(Component.For<IPipelineHandlerProvider>().ImplementedBy<T>());
+        public static IWindsorContainer RegisterPipelineHandlerProvider<T>(this IWindsorContainer self, Func<ComponentRegistration<IPipelineHandlerProvider>, ComponentRegistration<IPipelineHandlerProvider>> postConfig = null) where T : IPipelineHandlerProvider
+        {
+            ComponentRegistration<IPipelineHandlerProvider> registration = Component.For<IPipelineHandlerProvider>().ImplementedBy<T>();
+            registration = postConfig?.Invoke(registration) ?? registration;
+            return self.Register(registration);
+        }
     }
 }

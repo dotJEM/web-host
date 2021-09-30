@@ -37,7 +37,7 @@ namespace Demo
             container.Register(Component.For<ContentController>().LifestyleTransient());
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
             
-            container.RegisterPipelineStep<ExampleHandler>();
+            container.RegisterPipelineHandlerProvider<ExampleHandler>();
 
         }
 
