@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
@@ -40,10 +41,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
                 List<MethodNode<T>> nodes = new();
                 foreach (MethodInfo method in type.GetMethods())
                 {
+                    if(method.ReturnType != typeof(Task<T>))
+                        continue;
+
                     PipelineFilterAttribute[] methodSelectors = method.GetCustomAttributes().OfType<PipelineFilterAttribute>().ToArray();
                     if (methodSelectors.Any())
                     {
-
                         MethodNode<T> node = factory.CreateNode<T>(provider, method, selectors.Concat(methodSelectors).ToArray());
                         nodes.Add(node);
                     }

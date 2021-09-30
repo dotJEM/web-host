@@ -11,11 +11,22 @@ namespace Demo.Controllers
     public class ContentController : WebHostApiController
     {
         private readonly IServiceProvider<IContentService> provider;
+        private ISearchService search;
 
-        public ContentController(IServiceProvider<IContentService> provider)
+        public ContentController(
+            IServiceProvider<IContentService> provider,
+            IServiceProvider<ISearchService> search)
         {
             this.provider = provider;
+            this.search = search.Create("");
         }
+
+        [HttpGet]
+        public async Task<object> Get([FromUri] string area, [FromUri] string contentType)
+        {
+            return await search.SearchAsync($"$area:{area} AND $contentType:{contentType}");
+        }
+
 
         [HttpGet]
         public async Task<object> Get([FromUri] string area, [FromUri] string contentType, [FromUri] Guid id)
