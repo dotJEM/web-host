@@ -8,6 +8,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Attributes
     {
         private readonly string key;
         private readonly Regex filter;
+        public override string Group => key;
 
         public PropertyFilterAttribute(string key, string regex, RegexOptions options = RegexOptions.None)
         {

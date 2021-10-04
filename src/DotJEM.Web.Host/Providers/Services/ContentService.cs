@@ -44,27 +44,6 @@ namespace DotJEM.Web.Host.Providers.Services
             this.merger = new ContentMergeService(merger, area);
         }
 
-        public class HttpPipelineContext : PipelineContext
-        {
-            public HttpPipelineContext(string method, string contentType)
-            {
-                this.Set(nameof(method), method);
-                this.Set(nameof(contentType), contentType);
-            }
-        }
-
-        public class HttpGetContext : HttpPipelineContext
-        {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid) GetParameter("id");
-
-            public HttpGetContext(string contentType, Guid id)
-                : base("GET", contentType)
-            {
-                Set(nameof(id), id);
-            }
-        }
-
         public Task<JObject> GetAsync(Guid id, string contentType)
         {
             HttpGetContext context = new (contentType, id);
@@ -72,18 +51,6 @@ namespace DotJEM.Web.Host.Providers.Services
                 .For(context, async ctx => area.Get(ctx.Id));
 
             return pipeline.Invoke();
-        }
-
-        public class HttpPostContext : HttpPipelineContext
-        {
-            public string ContentType => (string)GetParameter("contentType");
-            public JObject Entity => (JObject)GetParameter("entity");
-
-            public HttpPostContext( string contentType, JObject entity)
-                : base("POST", contentType)
-            {
-                Set(nameof(entity), entity);
-            }
         }
 
         public async Task<JObject> PostAsync(string contentType, JObject entity)
@@ -94,22 +61,6 @@ namespace DotJEM.Web.Host.Providers.Services
             entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
             return entity;
-        }
-
-        public class HttpPutContext : HttpPipelineContext
-        {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid) GetParameter("id");
-            public JObject Entity => (JObject)GetParameter("entity");
-            public JObject Previous => (JObject)GetParameter("previous");
-
-            public HttpPutContext(string contentType, Guid id, JObject entity, JObject previous)
-                : base("PUT", contentType)
-            {
-                Set(nameof(id), id);
-                Set(nameof(entity), entity);
-                Set(nameof(previous), previous);
-            }
         }
 
 
@@ -127,22 +78,6 @@ namespace DotJEM.Web.Host.Providers.Services
             return entity;
         }
 
-        public class HttpPatchContext : HttpPipelineContext
-        {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid)GetParameter("id");
-            public JObject Entity => (JObject)GetParameter("entity");
-            public JObject Previous => (JObject)GetParameter("previous");
-
-            public HttpPatchContext(string contentType, Guid id, JObject entity, JObject previous)
-                : base("PATCH", contentType)
-            {
-                Set(nameof(id), id);
-                Set(nameof(entity), entity);
-                Set(nameof(previous), previous);
-            }
-        }
-
         public async Task<JObject> PatchAsync(Guid id, string contentType, JObject entity)
         {
             JObject prev = area.Get(id);
@@ -157,26 +92,10 @@ namespace DotJEM.Web.Host.Providers.Services
             HttpPatchContext context = new (contentType, id, entity, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
-            
-            //IPutContext context = pipeline.ContextFactory.CreatePutContext(contentType, prev);
-            //entity = await pipeline.Put(id, entity, context).ConfigureAwait(false);
 
             entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
             return entity;
-        }
-
-        public class HttpDeleteContext : HttpPipelineContext
-        {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid)GetParameter("id");
-
-            public HttpDeleteContext(string contentType, Guid id, JObject previous)
-                : base("DELETE", contentType)
-            {
-                Set(nameof(id), id);
-                Set(nameof(previous), previous);
-            }
         }
 
         public async Task<JObject> DeleteAsync(Guid id, string contentType)
@@ -202,13 +121,81 @@ namespace DotJEM.Web.Host.Providers.Services
         }
     }
 
+        public class HttpPipelineContext : PipelineContext
+        {
+            public HttpPipelineContext(string method, string contentType)
+            {
+                this.Set(nameof(method), method);
+                this.Set(nameof(contentType), contentType);
+            }
+        }
 
+        public class HttpGetContext : HttpPipelineContext
+        {
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid) GetParameter("id");
 
-    //public static class PipelineExt
-    //{
-    //    public static PipelineContext CreateContext(this IPipeline self, string contentType, JObject json, [CallerMemberName] string caller = "")
-    //    {
-    //        return self.ContextFactory.Create(caller, contentType, json);
-    //    }
-    //}
+            public HttpGetContext(string contentType, Guid id)
+                : base("GET", contentType)
+            {
+                Set(nameof(id), id);
+            }
+        }
+
+        public class HttpPostContext : HttpPipelineContext
+        {
+            public string ContentType => (string)GetParameter("contentType");
+            public JObject Entity => (JObject)GetParameter("entity");
+
+            public HttpPostContext( string contentType, JObject entity)
+                : base("POST", contentType)
+            {
+                Set(nameof(entity), entity);
+            }
+        }
+
+        public class HttpPutContext : HttpPipelineContext
+        {
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid) GetParameter("id");
+            public JObject Entity => (JObject)GetParameter("entity");
+            public JObject Previous => (JObject)GetParameter("previous");
+
+            public HttpPutContext(string contentType, Guid id, JObject entity, JObject previous)
+                : base("PUT", contentType)
+            {
+                Set(nameof(id), id);
+                Set(nameof(entity), entity);
+                Set(nameof(previous), previous);
+            }
+        }
+
+        public class HttpPatchContext : HttpPipelineContext
+        {
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid)GetParameter("id");
+            public JObject Entity => (JObject)GetParameter("entity");
+            public JObject Previous => (JObject)GetParameter("previous");
+
+            public HttpPatchContext(string contentType, Guid id, JObject entity, JObject previous)
+                : base("PATCH", contentType)
+            {
+                Set(nameof(id), id);
+                Set(nameof(entity), entity);
+                Set(nameof(previous), previous);
+            }
+        }
+
+        public class HttpDeleteContext : HttpPipelineContext
+        {
+            public string ContentType => (string)GetParameter("contentType");
+            public Guid Id => (Guid)GetParameter("id");
+
+            public HttpDeleteContext(string contentType, Guid id, JObject previous)
+                : base("DELETE", contentType)
+            {
+                Set(nameof(id), id);
+                Set(nameof(previous), previous);
+            }
+        }
 }

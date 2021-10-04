@@ -56,7 +56,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
     public class MethodNode<T> : IPipelineMethod<T>
     {
-        private readonly PipelineFilterAttribute[] filters;
+        private readonly FilterGroup[] filters;
         public string Signature { get; }
 
         public PipelineExecutorDelegate<T> Target { get; }
@@ -64,7 +64,11 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 
         public MethodNode(PipelineFilterAttribute[] filters, PipelineExecutorDelegate<T> target, NextFactoryDelegate<T> nextFactory, string signature)
         {
-            this.filters = filters;
+            this.filters = filters
+                .GroupBy(f => f.Group)
+                .Select(g => new FilterGroup(g.Key, g.ToArray()))
+                .ToArray();
+
             this.Signature = signature;
             this.Target = target;
             NextFactory = nextFactory;
@@ -74,5 +78,23 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         {
             return filters.All(selector => selector.Accepts(context));
         }
+
+        private class FilterGroup
+        {
+            private readonly string key;
+            private readonly PipelineFilterAttribute[] filters;
+
+            public FilterGroup(string key, PipelineFilterAttribute[] filters)
+            {
+                this.key = key;
+                this.filters = filters;
+            }
+
+            public bool Accepts(IPipelineContext context)
+            {
+                return filters.Any(selector => selector.Accepts(context));
+            }
+        }
     }
+
 }
