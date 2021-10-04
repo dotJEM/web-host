@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
@@ -20,5 +22,10 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         }
         
         public Task<T> Invoke() => pipeline.Invoke(context);
+
+        public override string ToString()
+        {
+            return $"{context}{Environment.NewLine}{pipeline}";
+        }
     }
 }

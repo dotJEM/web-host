@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
@@ -15,7 +16,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     }
     public class UnboundPipeline<TContext, T> : IUnboundPipeline<TContext, T> where TContext : IPipelineContext
     {
-        private readonly INode<T> target;
+        private readonly IPrivateNode<T> target;
 
         public UnboundPipeline(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
         {
@@ -23,14 +24,14 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (INode<T>)new PerformanceNode<T>(performance,perfGenerator, new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (IPrivateNode<T>)new PerformanceNode<T>(performance,perfGenerator, new TerminationMethod<T>((context, _) => final((TContext)context)), null),
                         (node, methodNode) => new PerformanceNode<T>(performance,perfGenerator, methodNode, node));
             }
             else
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (INode<T>)new Node<T>(new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (IPrivateNode<T>)new Node<T>(new TerminationMethod<T>((context, _) => final((TContext)context)), null),
                         (node, methodNode) => new Node<T>(methodNode, node));
             }
         }
@@ -40,16 +41,33 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             return target.Invoke(context);
         }
 
-        private class PerformanceNode<T> : INode<T>
+        public override string ToString()
         {
-            private readonly INode<T> next;
+            IPrivateNode<T> node = this.target;
+            StringBuilder builder = new ();
+            do
+            {
+                builder.AppendLine($" -> {node}");
+            } while ((node = node.Next) != null);
+            return builder.ToString();
+        }
+
+        private interface IPrivateNode<T> : INode<T>
+        {
+            IPrivateNode<T> Next { get; }
+        }
+
+        private class PerformanceNode<T> : IPrivateNode<T>
+        {
+            private readonly IPrivateNode<T> next;
             private readonly PipelineExecutorDelegate<T> target;
             private readonly NextFactoryDelegate<T> factory;
             private readonly ILogger performance;
             private readonly Func<IPipelineContext, JObject> perfGenerator;
             private readonly string signature;
+            public IPrivateNode<T> Next => next;
 
-            public PerformanceNode(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IPipelineMethod<T> method, INode<T> next)
+            public PerformanceNode(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IPipelineMethod<T> method, IPrivateNode<T> next)
             {
                 this.performance = performance;
                 this.perfGenerator = perfGenerator;
@@ -67,25 +85,40 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
                 using (performance.Track("pipeline", info))
                     return await target(context, factory(context, next));
             }
+
+            public override string ToString()
+            {
+                return $"{signature} (Performance)";
+            }
         }
 
-        private class Node<T> : INode<T>
+        private class Node<T> : IPrivateNode<T>
         {
-            private readonly INode<T> next;
+            private readonly IPrivateNode<T> next;
             private readonly PipelineExecutorDelegate<T> target;
             private readonly NextFactoryDelegate<T> factory;
+            private readonly string signature;
 
-            public Node(IPipelineMethod<T> method, INode<T> next)
+            public IPrivateNode<T> Next => next;
+
+            public Node(IPipelineMethod<T> method, IPrivateNode<T> next)
             {
                 this.next = next;
                 this.factory = method.NextFactory;
                 this.target = method.Target;
+                this.signature = method.Signature;
             }
 
             public Task<T> Invoke(IPipelineContext context)
             {
                 return target(context, factory(context, next));
             }
+
+            public override string ToString()
+            {
+                return $"{signature} (Normal)";
+            }
+
         }
     }
 }
