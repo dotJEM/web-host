@@ -10,33 +10,33 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
-    public interface IUnboundPipeline<in TContext, T> where TContext : IPipelineContext
+    public interface IUnboundPipeline<T>
     {
-        Task<T> Invoke(TContext context);
+        Task<T> Invoke(IPipelineContext context);
     }
-    public class UnboundPipeline<TContext, T> : IUnboundPipeline<TContext, T> where TContext : IPipelineContext
+    public class UnboundPipeline<T> : IUnboundPipeline<T>
     {
         private readonly IPrivateNode<T> target;
 
-        public UnboundPipeline(ILogger performance, IPipelineGraph graph, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
+        public UnboundPipeline(ILogger performance, IPipelineGraph graph, IEnumerable<MethodNode<T>> nodes, Func<IPipelineContext, Task<T>> final)
         {
             if (performance.IsEnabled())
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (IPrivateNode<T>)new PerformanceNode<T>(performance, graph.Performance, new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (IPrivateNode<T>)new PerformanceNode<T>(performance, graph.Performance, new TerminationMethod<T>((context, _) => final(context)), null),
                         (node, methodNode) => new PerformanceNode<T>(performance, graph.Performance, methodNode, node));
             }
             else
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (IPrivateNode<T>)new Node<T>(new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (IPrivateNode<T>)new Node<T>(new TerminationMethod<T>((context, _) => final(context)), null),
                         (node, methodNode) => new Node<T>(methodNode, node));
             }
         }
 
-        public Task<T> Invoke(TContext context)
+        public Task<T> Invoke(IPipelineContext context)
         {
             return target.Invoke(context);
         }
@@ -65,6 +65,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             private readonly ILogger performance;
             private readonly Func<IPipelineContext, JObject> perfGenerator;
             private readonly string signature;
+
             public IPrivateNode<T> Next => next;
 
             public PerformanceNode(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IPipelineMethod<T> method, IPrivateNode<T> next)

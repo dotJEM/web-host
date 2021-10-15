@@ -10,12 +10,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         Task<T> Invoke();
     }
 
-    public class CompiledPipeline<TContext, T> : ICompiledPipeline<T> where TContext : IPipelineContext
+    public class CompiledPipeline<T> : ICompiledPipeline<T>
     {
-        private readonly TContext context;
-        private readonly IUnboundPipeline<TContext, T> pipeline;
+        private readonly IPipelineContext context;
+        private readonly IUnboundPipeline<T> pipeline;
 
-        public CompiledPipeline(IUnboundPipeline<TContext, T> pipeline, TContext context)
+        public CompiledPipeline(IUnboundPipeline<T> pipeline, IPipelineContext context)
         {
             this.pipeline = pipeline;
             this.context = context;

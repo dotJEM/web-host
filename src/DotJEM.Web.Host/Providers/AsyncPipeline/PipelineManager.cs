@@ -10,7 +10,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
 {
     public interface IPipelines
     {
-        ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext;
+        ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : class, IPipelineContext;
     }
 
     public class PipelineManager : IPipelines
@@ -25,19 +25,19 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             this.factory = factory;
         }
 
-        public ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
+        public ICompiledPipeline<T> For<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : class, IPipelineContext
         {
-            IUnboundPipeline<TContext, T> unbound = LookupPipeline(context, final);
-            return new CompiledPipeline<TContext, T>(unbound, context);
+            IUnboundPipeline<T> unbound = LookupPipeline(context, final);
+            return new CompiledPipeline<T>(unbound, context);
         }
 
-        public IUnboundPipeline<TContext, T> LookupPipeline<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : IPipelineContext
+        public IUnboundPipeline<T> LookupPipeline<TContext, T>(TContext context, Func<TContext, Task<T>> final) where TContext : class, IPipelineContext
         {
             IPipelineGraph<T> graph = factory.GetGraph<T>();
-            return (IUnboundPipeline<TContext, T>)cache.GetOrAdd(graph.Key(context), key =>
+            return (IUnboundPipeline<T>)cache.GetOrAdd(graph.Key(context), key =>
             {
                 IEnumerable<MethodNode<T>> matchingNodes = graph.Nodes(context);
-                return new UnboundPipeline<TContext, T>(performance, graph, matchingNodes, final);
+                return new UnboundPipeline<T>(performance, graph, matchingNodes, ctx => final(ctx as TContext));
             });
         }
     }

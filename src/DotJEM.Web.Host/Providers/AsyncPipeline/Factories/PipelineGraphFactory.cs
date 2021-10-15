@@ -62,10 +62,11 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
             {
                 return context =>
                 {
+                    if (context == null) throw new ArgumentNullException(nameof(context));
                     //TODO: This looks expensive. Perhaps we could cut some corners?
                     IEnumerable<byte> bytes = parameters
                         .SelectMany(key => context.TryGetValue(key, out object value) ? encoding.GetBytes(value.ToString()) : Array.Empty<byte>());
-                    byte[] hash = provider.ComputeHash(bytes.ToArray());
+                    byte[] hash = provider.ComputeHash(bytes.Concat(encoding.GetBytes(context.GetType().FullName)).ToArray());
                     return string.Join("", hash.Select(b => b.ToString("X2")));
                 };
             }
@@ -74,7 +75,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
             {
                 return context =>
                 {
-                    return parameters.Aggregate(new JObject(), (obj, key) =>
+                    return parameters.Aggregate(new JObject() { ["$$context"] = context.GetType().FullName }, (obj, key) =>
                     {
                         if (context.TryGetValue(key, out object value))
                             obj[key] = value.ToString();
