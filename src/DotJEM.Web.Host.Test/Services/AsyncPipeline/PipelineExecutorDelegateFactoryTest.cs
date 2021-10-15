@@ -162,11 +162,6 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
         public bool TryGetValue(string key, out object value) => values.TryGetValue(key, out value);
 
-        public object GetParameter(string key)
-        {
-            return values[key];
-        }
-
         public IPipelineContext Replace(params (string key, object value)[] values)
         {
             foreach ((string key, object value)  in values)
@@ -186,7 +181,7 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
 
         public object Get(string key)
         {
-            throw new NotImplementedException();
+            return values[key];
         }
 
         public IPipelineContext Remove(string key)
