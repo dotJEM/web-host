@@ -21,7 +21,7 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 
     public class PipelineExecutorDelegateFactory : IPipelineExecutorDelegateFactory
     {
-        private static readonly MethodInfo contextParameterGetter = typeof(IPipelineContext).GetMethod("GetParameter");
+        private static readonly MethodInfo contextParameterGetter = typeof(IPipelineContext).GetMethod("Get");
 
         public MethodNode<T> CreateNode<T>(object target, MethodInfo method, PipelineFilterAttribute[] filters)
         {
@@ -101,13 +101,5 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline.Factories
 
             return Expression.Lambda<NextFactoryDelegate<T>>(methodCall, contextParameter, nodeParameter);
         }
-
-        //public static class NextFactory
-        //{
-        //    public static INext<T> Create<T>(IPipelineContext context, INode next, string paramName)
-        //        => new Next<T>(context, next, paramName);
-        //    public static INext<T1, T2> Create<T1, T2>(IPipelineContext context, INode next, string paramName1, string paramName2)
-        //        => new Next<T1, T2>(context, next, paramName1, paramName2);
-        //}
     }
 }

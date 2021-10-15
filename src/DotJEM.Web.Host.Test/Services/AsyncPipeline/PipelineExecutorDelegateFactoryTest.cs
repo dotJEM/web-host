@@ -183,5 +183,15 @@ namespace DotJEM.Web.Host.Test.Services.AsyncPipeline
         {
             throw new NotImplementedException();
         }
+
+        public object Get(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IPipelineContext Remove(string key)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

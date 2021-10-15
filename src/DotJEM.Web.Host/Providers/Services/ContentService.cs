@@ -132,8 +132,8 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public class HttpGetContext : HttpPipelineContext
         {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid) GetParameter("id");
+            public string ContentType => (string)Get("contentType");
+            public Guid Id => (Guid) Get("id");
 
             public HttpGetContext(string contentType, Guid id)
                 : base("GET", contentType)
@@ -144,8 +144,8 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public class HttpPostContext : HttpPipelineContext
         {
-            public string ContentType => (string)GetParameter("contentType");
-            public JObject Entity => (JObject)GetParameter("entity");
+            public string ContentType => (string)Get("contentType");
+            public JObject Entity => (JObject)Get("entity");
 
             public HttpPostContext( string contentType, JObject entity)
                 : base("POST", contentType)
@@ -156,10 +156,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public class HttpPutContext : HttpPipelineContext
         {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid) GetParameter("id");
-            public JObject Entity => (JObject)GetParameter("entity");
-            public JObject Previous => (JObject)GetParameter("previous");
+            public string ContentType => (string)Get("contentType");
+            public Guid Id => (Guid) Get("id");
+            public JObject Entity => (JObject)Get("entity");
+            public JObject Previous => (JObject)Get("previous");
 
             public HttpPutContext(string contentType, Guid id, JObject entity, JObject previous)
                 : base("PUT", contentType)
@@ -172,10 +172,10 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public class HttpPatchContext : HttpPipelineContext
         {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid)GetParameter("id");
-            public JObject Entity => (JObject)GetParameter("entity");
-            public JObject Previous => (JObject)GetParameter("previous");
+            public string ContentType => (string)Get("contentType");
+            public Guid Id => (Guid)Get("id");
+            public JObject Entity => (JObject)Get("entity");
+            public JObject Previous => (JObject)Get("previous");
 
             public HttpPatchContext(string contentType, Guid id, JObject entity, JObject previous)
                 : base("PATCH", contentType)
@@ -188,8 +188,8 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public class HttpDeleteContext : HttpPipelineContext
         {
-            public string ContentType => (string)GetParameter("contentType");
-            public Guid Id => (Guid)GetParameter("id");
+            public string ContentType => (string)Get("contentType");
+            public Guid Id => (Guid)Get("id");
 
             public HttpDeleteContext(string contentType, Guid id, JObject previous)
                 : base("DELETE", contentType)

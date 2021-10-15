@@ -39,6 +39,10 @@ using Newtonsoft.Json.Linq;
 
     public class SearchContext : PipelineContext
     {
+        public string Query => (string)Get("query");
+        public int Skip => (int)Get("skip");
+        public int Take => (int)Get("take");
+
         public SearchContext(string query, int take, int skip)
         {
             Set("type", "SEARCH");
@@ -63,16 +67,8 @@ using Newtonsoft.Json.Linq;
 
         public async Task<SearchResult> SearchAsync(string query, int skip = 0, int take = 20)
         {
-            //TODO: Throw exception on invalid query.
-            //if (string.IsNullOrWhiteSpace(query))
-            //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-            //ISearchResult result = index
-            //    .Search(query)
-            //    .Skip(skip)
-            //    .Take(take);
-
-            SearchContext context = new SearchContext(query, take, skip);
+            SearchContext context = new(query, take, skip);
             ICompiledPipeline<SearchResult> pipeline = pipelines
                 .For(context, async ctx =>
                 {
@@ -95,6 +91,15 @@ using Newtonsoft.Json.Linq;
                     return resolved;
                 });
             return await pipeline.Invoke();
+            
+            //TODO: Throw exception on invalid query.
+            //if (string.IsNullOrWhiteSpace(query))
+            //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
+
+            //ISearchResult result = index
+            //    .Search(query)
+            //    .Skip(skip)
+            //    .Take(take);
 
             //TODO: extract contenttype based on configuration.
             //SearchResult searchResult = new SearchResult(result

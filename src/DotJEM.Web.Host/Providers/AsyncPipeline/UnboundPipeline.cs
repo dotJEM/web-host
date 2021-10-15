@@ -18,14 +18,14 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         private readonly IPrivateNode<T> target;
 
-        public UnboundPipeline(ILogger performance, Func<IPipelineContext, JObject> perfGenerator, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
+        public UnboundPipeline(ILogger performance, IPipelineGraph graph, IEnumerable<MethodNode<T>> nodes, Func<TContext, Task<T>> final)
         {
             if (performance.IsEnabled())
             {
                 this.target = nodes.Reverse()
                     .Aggregate(
-                        (IPrivateNode<T>)new PerformanceNode<T>(performance,perfGenerator, new TerminationMethod<T>((context, _) => final((TContext)context)), null),
-                        (node, methodNode) => new PerformanceNode<T>(performance,perfGenerator, methodNode, node));
+                        (IPrivateNode<T>)new PerformanceNode<T>(performance, graph.Performance, new TerminationMethod<T>((context, _) => final((TContext)context)), null),
+                        (node, methodNode) => new PerformanceNode<T>(performance, graph.Performance, methodNode, node));
             }
             else
             {

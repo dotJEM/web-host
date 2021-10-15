@@ -7,14 +7,13 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
     {
         object this[string key] { get; set; }
 
+        object Get(string key);
         bool TryGetValue(string key, out object value);
 
-        object GetParameter(string key);
-
         IPipelineContext Replace(params (string key, object value)[] values);
-
         IPipelineContext Add(string key, object value);
         IPipelineContext Set(string key, object value);
+        IPipelineContext Remove(string key);
     }
 
     public class PipelineContext : IPipelineContext
@@ -27,19 +26,25 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
             set => parameters[key] = value;
         }
 
+        public PipelineContext(params (string key, object value)[] values)
+        {
+            foreach ((string key, object value) in values)
+                parameters[key] = value;
+        }
+
         public virtual bool TryGetValue(string key, out object value) => parameters.TryGetValue(key, out value);
 
-        public virtual object GetParameter(string key)
+        public object Get(string key)
         {
             return parameters.TryGetValue(key, out object value) ? value : null;
         }
 
-        public virtual IPipelineContext Replace(params (string key, object value)[] values)
+        public IPipelineContext Replace(params (string key, object value)[] values)
         {
             foreach ((string key, object value) in values)
             {
                 if (!parameters.ContainsKey(key))
-                    throw new MissingMemberException("");
+                    throw new MissingMemberException($"The given key '{key}' was not found in the context.");
                 parameters[key] = value;
             }
             return this;
@@ -54,6 +59,12 @@ namespace DotJEM.Web.Host.Providers.AsyncPipeline
         public IPipelineContext Set(string key, object value)
         {
             parameters[key] = value;
+            return this;
+        }
+
+        public IPipelineContext Remove(string key)
+        {
+            parameters.Remove(key);
             return this;
         }
     }

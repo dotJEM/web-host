@@ -84,11 +84,11 @@ namespace DotJEM.Web.Host.Providers.Services
 
     public class RevertContext : PipelineContext
     {
-        public string ContentType => (string)GetParameter("contentType");
-        public Guid Id => (Guid)GetParameter("id");
-        public int Version => (int)GetParameter("version");
-        public JObject Target => (JObject)GetParameter("target");
-        public JObject Current => (JObject)GetParameter("current");
+        public string ContentType => (string)Get("contentType");
+        public Guid Id => (Guid)Get("id");
+        public int Version => (int)Get("version");
+        public JObject Target => (JObject)Get("target");
+        public JObject Current => (JObject)Get("current");
 
         public RevertContext(string contentType, Guid id, int version, JObject target, JObject current)
         {
