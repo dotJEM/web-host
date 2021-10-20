@@ -50,7 +50,7 @@
       <HintPath>..\packages\DotJEM.AdvParsers.1.1.7\lib\netstandard1.3\DotJEM.AdvParsers.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Diagnostic.1.1.43-beta.1\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
+      <HintPath>..\packages\DotJEM.Diagnostic.1.1.46-beta.1\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.NUnit.Json, Version=0.0.9.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.NUnit.Json.0.0.9\lib\net45\DotJEM.NUnit.Json.dll</HintPath>
@@ -203,12 +203,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\AsyncPipeline\PipelineExecutorDelegateFactoryTest.cs" />
     <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\AbstractJTokenMergeVisitorTest.cs" />
     <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleArrayHandling.cs" />
     <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleConflictedMerges.cs" />
     <Compile Include="Services\DiffMerge\JTokenMergeVisitorTest\JTokenMergeVisitorTest_SimpleNonConflictedMerges.cs" />
-    <Compile Include="Services\Pipeline\PipelineHandlerSetTest.cs" />
     <Compile Include="Writers\RollingStreamWriterTest.cs" />
   </ItemGroup>
   <ItemGroup>

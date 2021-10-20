@@ -300,6 +300,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
+
+            
+
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 

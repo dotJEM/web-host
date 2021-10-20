@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using DotJEM.Diagnostic;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Pipelines;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.Concurrency;

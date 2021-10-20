@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Castle.Core;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Pipelines;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -48,7 +49,7 @@ namespace DotJEM.Web.Host.Providers.Services
         {
             HttpGetContext context = new (contentType, id);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context, async ctx => area.Get(ctx.Id));
+                .For(context, ctx => Task.Run(() => area.Get(ctx.Id)));
 
             return pipeline.Invoke();
         }
@@ -57,13 +58,11 @@ namespace DotJEM.Web.Host.Providers.Services
         {
             HttpPostContext context = new (contentType, entity);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context, async ctx => area.Insert(ctx.ContentType, ctx.Entity));
+                .For(context, ctx => Task.Run(() => area.Insert(ctx.ContentType, ctx.Entity)));
             entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
             return entity;
         }
-
-
         public async Task<JObject> PutAsync(Guid id, string contentType, JObject entity)
         {
             JObject prev = area.Get(id);
@@ -71,7 +70,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             HttpPutContext context = new (contentType, id, entity, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
+                .For(context, ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
 
             entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
@@ -91,7 +90,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             HttpPatchContext context = new (contentType, id, entity, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context, async ctx => area.Update(ctx.Id, ctx.Entity));
+                .For(context,  ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
 
             entity = await pipeline.Invoke();
             manager.QueueUpdate(entity);
@@ -106,7 +105,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             HttpDeleteContext context = new (contentType, id, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context, async ctx => area.Delete(ctx.Id));
+                .For(context, ctx => Task.Run(() => area.Delete(ctx.Id)));
             
             JObject deleted = await pipeline.Invoke();
             
