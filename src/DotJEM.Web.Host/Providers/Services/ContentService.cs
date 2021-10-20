@@ -59,7 +59,7 @@ namespace DotJEM.Web.Host.Providers.Services
             HttpPostContext context = new (contentType, entity);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Insert(ctx.ContentType, ctx.Entity)));
-            entity = await pipeline.Invoke();
+            entity = await pipeline.Invoke().ConfigureAwait(false);
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -72,7 +72,7 @@ namespace DotJEM.Web.Host.Providers.Services
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
 
-            entity = await pipeline.Invoke();
+            entity = await pipeline.Invoke().ConfigureAwait(false);
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -92,7 +92,7 @@ namespace DotJEM.Web.Host.Providers.Services
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context,  ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
 
-            entity = await pipeline.Invoke();
+            entity = await pipeline.Invoke().ConfigureAwait(false);
             manager.QueueUpdate(entity);
             return entity;
         }
@@ -107,7 +107,7 @@ namespace DotJEM.Web.Host.Providers.Services
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Delete(ctx.Id)));
             
-            JObject deleted = await pipeline.Invoke();
+            JObject deleted = await pipeline.Invoke().ConfigureAwait(false);
             
             //Note: This may pose a bit of a problem, because we don't lock so far out (performance),
             //      this can theoretically happen if two threads or two nodes are trying to delete the
