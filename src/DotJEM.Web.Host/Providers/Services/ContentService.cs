@@ -6,7 +6,6 @@ using Castle.Core;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Pipelines;
 using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using Newtonsoft.Json.Linq;
