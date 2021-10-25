@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using DotJEM.Pipelines.Attributes;
 
 namespace DotJEM.Web.Host.Providers.AsyncPipeline.Attributes
 {

@@ -1,6 +1,7 @@
 ﻿using System;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
+using DotJEM.Pipelines;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 
 namespace DotJEM.Web.Host.Castle

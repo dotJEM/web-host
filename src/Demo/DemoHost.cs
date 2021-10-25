@@ -4,13 +4,13 @@ using System.Web.Http;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using Demo.Controllers;
+using DotJEM.Pipelines;
+using DotJEM.Pipelines.NextHandlers;
 using DotJEM.Web.Host;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
-using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.AsyncPipeline.Attributes;
-using DotJEM.Web.Host.Providers.AsyncPipeline.NextHandlers;
 using Newtonsoft.Json.Linq;
 
 namespace Demo

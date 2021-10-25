@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Pipelines;
 using DotJEM.Web.Host.Providers.AsyncPipeline;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Tasks;
@@ -74,7 +75,7 @@ namespace DotJEM.Web.Host.Providers.Services
 
             RevertContext context = new RevertContext(contentType, id, version, target, current);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context, async ctx => area.Update(ctx.Id, context.Target));
+                .For(context, ctx => Task.Run(() => area.Update(ctx.Id, context.Target)));
 
             JObject result = await pipeline.Invoke();
             manager.QueueUpdate(result);
@@ -84,11 +85,11 @@ namespace DotJEM.Web.Host.Providers.Services
 
     public class RevertContext : PipelineContext
     {
-        public string ContentType => (string)GetParameter("contentType");
-        public Guid Id => (Guid)GetParameter("id");
-        public int Version => (int)GetParameter("version");
-        public JObject Target => (JObject)GetParameter("target");
-        public JObject Current => (JObject)GetParameter("current");
+        public string ContentType => (string)Get("contentType");
+        public Guid Id => (Guid)Get("id");
+        public int Version => (int)Get("version");
+        public JObject Target => (JObject)Get("target");
+        public JObject Current => (JObject)Get("current");
 
         public RevertContext(string contentType, Guid id, int version, JObject target, JObject current)
         {

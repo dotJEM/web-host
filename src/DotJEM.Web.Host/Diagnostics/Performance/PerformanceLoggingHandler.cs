@@ -181,11 +181,6 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
         }
     }
 
-    public class NullLogger : ILogger
-    {
-        public Task LogAsync(string type, object customData) => Task.CompletedTask;
-    }
-
     public class PerformanceLoggingHandler : DelegatingHandler
     {
         private readonly ILogger logger;
