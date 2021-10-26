@@ -343,6 +343,7 @@
     <Compile Include="Providers\Concurrency\IStorageIndexChangeLogWatcher.cs" />
     <Compile Include="Providers\Concurrency\IStorageIndexManager.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
+    <Compile Include="Providers\Concurrency\Snapshots\SnapshotManager.cs" />
     <Compile Include="Providers\Concurrency\StorageIndexChangeLogWatcherInitializationProgress.cs" />
     <Compile Include="Providers\ContentServiceProvider.cs" />
     <Compile Include="Providers\FileServiceProvider.cs" />

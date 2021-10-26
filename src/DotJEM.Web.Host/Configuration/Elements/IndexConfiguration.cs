@@ -57,6 +57,9 @@ namespace DotJEM.Web.Host.Configuration.Elements
 
         [ConfigurationProperty("max-snapshots", IsRequired = false, DefaultValue = 0)]
         public int MaxSnapshots => (int)this["max-snapshots"];
+
+        [ConfigurationProperty("cron-time", IsRequired = false, DefaultValue = "")]
+        public string CronTime => (string)this["cron-time"];
     }
 
     public enum IndexStorageType { Memory, File, CachedMemory }

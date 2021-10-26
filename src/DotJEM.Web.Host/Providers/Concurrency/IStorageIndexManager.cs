@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,10 +16,13 @@ using DotJEM.Json.Storage.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Initialization;
+using DotJEM.Web.Host.Providers.Concurrency.Snapshots;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
+using NCrontab;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency
@@ -218,44 +222,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         }
     }
 
-    public interface ISnapshotStrategy
-    {
-        void TakeSnapshot(IStorageIndex index);
-    }
-
-    public class EnabledSnapshotStrategy : ISnapshotStrategy
-    {
-        private readonly int maxSnapshots;
-        private readonly string snapshotsPath;
-        private readonly string indexPath;
-
-        public EnabledSnapshotStrategy(IWebHostConfiguration snapshots, IPathResolver path)
-        {
-            //TODO: Only file storage is supported in this version.
-            this.maxSnapshots = snapshots.Index.Snapshots.MaxSnapshots;
-            this.snapshotsPath = path.MapPath(snapshots.Index.Snapshots.Path);
-            this.indexPath = path.MapPath(snapshots.Index.Storage.Path);
-        }
-
-        public void TakeSnapshot(IStorageIndex index)
-        {
-            index.Flush();
-            index.Close();
-            var dir = Directory.CreateDirectory(Path.Combine(snapshotsPath, DateTime.Now.ToString("yyyy-MM-ddTHH")));
-            foreach (string file in Directory.GetFiles(indexPath))
-            {
-                File.Copy(file, Path.Combine(dir.FullName, Path.GetFileName(file)));
-            }
-
-        }
-    }
-    public class DisabledSnapshotStrategy : ISnapshotStrategy
-    {
-        public void TakeSnapshot(IStorageIndex index)
-        {
-            
-        }
-    }
 
     public class StorageIndexManager : IStorageIndexManager
     {
@@ -278,10 +244,18 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private IScheduledTask task;
         private readonly bool debugging;
-        private readonly ISnapshotStrategy snapshot;
+        private readonly IIndexSnapshotManager snapshot;
 
         //TODO: To many dependencies, refactor!
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IPathResolver path, IWebScheduler scheduler, IInitializationTracker tracker, IDiagnosticsLogger logger)
+        public StorageIndexManager(
+            IStorageIndex index, 
+            IStorageContext storage,
+            IWebHostConfiguration configuration,
+            IPathResolver path,
+            IWebScheduler scheduler, 
+            IInitializationTracker tracker,
+            IIndexSnapshotManager snapshot,
+            IDiagnosticsLogger logger)
         {
             this.index = index;
             this.debugging = configuration.Index.Debugging.Enabled;
@@ -295,13 +269,22 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
                 buffer = (int)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
 
-            watchers = configuration.Index.Watch.Items
-                .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
-                new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, logger, InfoStream));
+            WatchElement starWatch = configuration.Index.Watch.Items.FirstOrDefault(w => w.Area == "*");
+            if (starWatch != null)
+            {
+                watchers = storage.AreaInfos
+                    .ToDictionary(info => info.Name, info => (IStorageIndexChangeLogWatcher) 
+                        new StorageChangeLogWatcher(info.Name, storage.Area(info.Name).Log, starWatch.BatchSize < 1 ? configuration.Index.Watch.BatchSize : starWatch.BatchSize, logger, InfoStream));
+            }
+            else
+            {
+                watchers = configuration.Index.Watch.Items
+                    .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
+                        new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, logger, InfoStream));
 
-            this.snapshot = configuration.Index.Snapshots.MaxSnapshots > 0 
-                ? new EnabledSnapshotStrategy(configuration, path) 
-                : new DisabledSnapshotStrategy();
+            }
+
+            this.snapshot = snapshot;
         }
 
         public async Task ResetIndex()
@@ -318,6 +301,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 await Task.WhenAll(watchers.Values.Select(watcher => watcher.Reset(writer,0, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
+            this.snapshot.TakeSnapshot();
             OnIndexReset(new IndexResetEventArgs());
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
         }
@@ -332,7 +316,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
-            //IndexWriter w = index.Storage.GetWriter(index.Analyzer);
+            this.snapshot.RestoreSnapshot();
+            
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
@@ -344,8 +329,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
 
-            this.snapshot.TakeSnapshot(index);
-
+            this.snapshot.Initialize();
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 
