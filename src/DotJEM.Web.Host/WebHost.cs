@@ -263,7 +263,6 @@ namespace DotJEM.Web.Host
             return container.Resolve<T>();
         }
 
-
         protected virtual void BeforeStart() { }
         protected virtual void BeforeConfigure() { }
         protected virtual void Configure(IWindsorContainer container) { }

@@ -1,9 +1,25 @@
-﻿using System.Configuration;
+﻿using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
 
 namespace DotJEM.Web.Host.Configuration.Elements
 {
-    public class IndexConfiguration : ConfigurationElement
+    [ConfigurationCollection(typeof(IndexShardConfiguration), AddItemName = "shard")]
+
+    public class IndexConfiguration : ConfigurationElementCollection
     {
+        public IEnumerable<IndexShardConfiguration> Items => this.OfType<IndexShardConfiguration>();
+
+        protected override ConfigurationElement CreateNewElement() => new IndexShardConfiguration();
+
+        protected override object GetElementKey(ConfigurationElement element) => ((IndexShardConfiguration)element).Name;
+    }
+
+    public class IndexShardConfiguration : ConfigurationElement
+    {
+        [ConfigurationProperty("name", IsRequired = true)]
+        public string Name => this["name"] as string;
+
         [ConfigurationProperty("debug", IsRequired = false)]
         public IndexDebuggingConfiguration Debugging => this["debug"] as IndexDebuggingConfiguration;
 

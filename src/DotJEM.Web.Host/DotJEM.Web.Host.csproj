@@ -339,6 +339,7 @@
     <Compile Include="Providers\AsyncPipeline\Attributes\HttpMethodFilterAttribute.cs" />
     <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
     <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
+    <Compile Include="Providers\Concurrency\Index\IndexFactory.cs" />
     <Compile Include="Providers\Concurrency\Installer.cs" />
     <Compile Include="Providers\Concurrency\IStorageIndexChangeLogWatcher.cs" />
     <Compile Include="Providers\Concurrency\IStorageIndexManager.cs" />

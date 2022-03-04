@@ -257,30 +257,31 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IIndexSnapshotManager snapshot,
             IDiagnosticsLogger logger)
         {
+            IndexShardConfiguration config = configuration.Index.Items.First();
             this.index = index;
-            this.debugging = configuration.Index.Debugging.Enabled;
+            this.debugging = config.Debugging.Enabled;
             if (this.debugging)
                 this.index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
             this.scheduler = scheduler;
             this.tracker = tracker;
             this.logger = logger;
-            interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
+            interval = TimeSpan.FromSeconds(config.Watch.Interval);
 
-            if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
-                buffer = (int)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
+            if (!string.IsNullOrEmpty(config.Watch.RamBuffer))
+                buffer = (int)AdvConvert.ConvertToByteCount(config.Watch.RamBuffer) / (1024 * 1024);
 
-            WatchElement starWatch = configuration.Index.Watch.Items.FirstOrDefault(w => w.Area == "*");
+            WatchElement starWatch = config.Watch.Items.FirstOrDefault(w => w.Area == "*");
             if (starWatch != null)
             {
                 watchers = storage.AreaInfos
                     .ToDictionary(info => info.Name, info => (IStorageIndexChangeLogWatcher) 
-                        new StorageChangeLogWatcher(info.Name, storage.Area(info.Name).Log, starWatch.BatchSize < 1 ? configuration.Index.Watch.BatchSize : starWatch.BatchSize, logger, InfoStream));
+                        new StorageChangeLogWatcher(info.Name, storage.Area(info.Name).Log, starWatch.BatchSize < 1 ? config.Watch.BatchSize : starWatch.BatchSize, logger, InfoStream));
             }
             else
             {
-                watchers = configuration.Index.Watch.Items
+                watchers = config.Watch.Items
                     .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
-                        new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, logger, InfoStream));
+                        new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? config.Watch.BatchSize : we.BatchSize, logger, InfoStream));
 
             }
 
