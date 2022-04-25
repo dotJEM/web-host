@@ -36,13 +36,13 @@ deploy:
   - provider: NuGet
     name: Master
     api_key:
-      secure: ahs8uNUo4+SV91Fury7y5vlrMNkyxo7d0U+cqRMQIFtAXkqL4ZCW4BAtvaYcWaoh
+      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
     on:
       branch: master 
       
   - provider: NuGet
     name: Beta
     api_key:
-      secure: ahs8uNUo4+SV91Fury7y5vlrMNkyxo7d0U+cqRMQIFtAXkqL4ZCW4BAtvaYcWaoh
+      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
     on:
       branch: beta 
