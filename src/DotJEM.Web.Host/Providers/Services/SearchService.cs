@@ -38,7 +38,14 @@ using Newtonsoft.Json.Linq;
         SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
     }
 
-    public class SearchContext : PipelineContext
+    public interface ISearchContext : IPipelineContext
+    {
+        string Query { get; }
+        int Skip { get; }
+        int Take { get; }
+    }
+
+    public class SearchContext : PipelineContext, ISearchContext
     {
         public string Query => (string)Get("query");
         public int Skip => (int)Get("skip");
@@ -58,18 +65,20 @@ using Newtonsoft.Json.Linq;
         private readonly IStorageIndex index;
         private readonly IPipelines pipelines;
         private readonly ILogger performance;
+        private readonly IPipelineContextFactory contextFactory;
 
-        public SearchService(IStorageIndex index, IPipelines pipelines, ILogger performance)
+        public SearchService(IStorageIndex index, IPipelines pipelines, ILogger performance, IPipelineContextFactory contextFactory = null)
         {
             this.index = index;
             this.pipelines = pipelines;
             this.performance = performance;
+            this.contextFactory = contextFactory ?? new DefaultPipelineContextFactory();
         }
 
         public async Task<SearchResult> SearchAsync(string query, int skip = 0, int take = 20)
         {
 
-            SearchContext context = new(query, take, skip);
+            ISearchContext context = contextFactory.CreateSearchContext(query, take, skip);
             ICompiledPipeline<SearchResult> pipeline = pipelines
                 .For(context, async ctx =>
                 {

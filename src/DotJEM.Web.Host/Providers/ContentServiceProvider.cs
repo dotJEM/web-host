@@ -17,8 +17,15 @@ namespace DotJEM.Web.Host.Providers
     {
         private readonly IStorageContext context;
 
-        public ContentServiceProvider(IStorageContext context, IStorageIndexManager manager, IPipelines pipelines, IJsonMergeVisitor merger, ILogger logger, IPerformanceLogAspectSignatureCache cache = null)
-            : base(name => new ContentService(context.Area(name), manager, pipelines, merger), logger, cache)
+        public ContentServiceProvider(
+            IStorageContext context,
+            IStorageIndexManager manager,
+            IPipelines pipelines,
+            IJsonMergeVisitor merger,
+            ILogger logger, 
+            IPerformanceLogAspectSignatureCache cache = null,
+            IPipelineContextFactory contextFactory = null)
+            : base(name => new ContentService(context.Area(name), manager, pipelines, merger, contextFactory), logger, cache)
         {
             this.context = context;
         }

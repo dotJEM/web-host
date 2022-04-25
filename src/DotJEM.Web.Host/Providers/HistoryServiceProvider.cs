@@ -12,8 +12,10 @@ namespace DotJEM.Web.Host.Providers
     {
         private readonly IStorageContext context;
 
-        public HistoryServiceProvider(IStorageContext context, IStorageIndexManager manager, IPipelines pipelines, ILogger logger, IPerformanceLogAspectSignatureCache cache = null)
-            : base(name => new HistoryService(context.Area(name), manager, pipelines), logger, cache)
+        public HistoryServiceProvider(IStorageContext context, IStorageIndexManager manager, IPipelines pipelines, ILogger logger,
+            IPerformanceLogAspectSignatureCache cache = null,
+            IPipelineContextFactory contextFactory = null)
+            : base(name => new HistoryService(context.Area(name), manager, pipelines, contextFactory), logger, cache)
         {
             this.context = context;
         }

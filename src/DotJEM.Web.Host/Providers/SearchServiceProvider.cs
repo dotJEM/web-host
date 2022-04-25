@@ -11,8 +11,9 @@ namespace DotJEM.Web.Host.Providers
     {
         //TODO: Currently there is only one index, in the future we might wan't to make a mapping between areas and multiple indexes.
         //      or alternatively switch to a 1:1 strategy where we then just have to perform multiple searches if we wish to lookup across.
-        public SearchServiceProvider(IStorageIndex index, IPipelines pipelines, ILogger logger, IPerformanceLogAspectSignatureCache cache)
-            : base(name => new SearchService(index, pipelines, logger), logger, cache)
+        public SearchServiceProvider(IStorageIndex index, IPipelines pipelines, ILogger logger, IPerformanceLogAspectSignatureCache cache,
+            IPipelineContextFactory contextFactory = null)
+            : base(name => new SearchService(index, pipelines, logger, contextFactory), logger, cache)
         {
         }
     }

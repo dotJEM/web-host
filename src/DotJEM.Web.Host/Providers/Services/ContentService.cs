@@ -22,6 +22,29 @@ namespace DotJEM.Web.Host.Providers.Services
         Task<JObject> DeleteAsync(Guid id, string contentType);
     }
 
+    public interface IPipelineContextFactory
+    {
+        IHttpGetContext CrateGetContext(string contentType, Guid id);
+        IHttpPostContext CreatePostContext(string contentType, JObject entity);
+        IHttpPutContext CreatePutContext(string contentType, Guid id, JObject entity, JObject prev);
+        IHttpPatchContext CreatePatchContext(string contentType, Guid id, JObject entity, JObject prev);
+        IHttpDeleteContext CreateDeleteContext(string contentType, Guid id, JObject prev);
+        IRevertContext CrateRevertContext(string contentType, Guid id, int version, JObject target, JObject current);
+        ISearchContext CreateSearchContext(string query, int take, int skip);
+    }
+
+    public class DefaultPipelineContextFactory : IPipelineContextFactory
+    {
+        public IHttpGetContext CrateGetContext(string contentType, Guid id) => new HttpGetContext(contentType, id);
+        public IHttpPostContext CreatePostContext(string contentType, JObject entity) => new HttpPostContext(contentType, entity);
+        public IHttpPutContext CreatePutContext(string contentType, Guid id, JObject entity, JObject prev) => new HttpPutContext(contentType, id, entity, prev);
+        public IHttpPatchContext CreatePatchContext(string contentType, Guid id, JObject entity, JObject prev) => new HttpPatchContext(contentType, id, entity, prev);
+        public IHttpDeleteContext CreateDeleteContext(string contentType, Guid id, JObject prev) => new HttpDeleteContext(contentType, id, prev);
+        public IRevertContext CrateRevertContext(string contentType, Guid id, int version, JObject target, JObject current) => new RevertContext(contentType, id, version, target, current);
+        public ISearchContext CreateSearchContext(string query, int take, int skip) => new SearchContext(query, take, skip);
+    }
+
+
     //TODO: Apply Pipeline for all requests.
     [Interceptor(typeof(PerformanceLogAspect))]
     public class ContentService : IContentService
@@ -29,24 +52,23 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
         private readonly IPipelines pipelines;
+        private readonly IPipelineContextFactory contextFactory;
         private readonly IContentMergeService merger;
 
         public IStorageArea StorageArea => area;
 
-        public ContentService(IStorageArea area,
-            IStorageIndexManager manager,
-            IPipelines pipelines, 
-            IJsonMergeVisitor merger)
+        public ContentService(IStorageArea area, IStorageIndexManager manager, IPipelines pipelines, IJsonMergeVisitor merger, IPipelineContextFactory contextFactory = null)
         {
             this.area = area;
             this.manager = manager;
             this.pipelines = pipelines;
+            this.contextFactory = contextFactory ?? new DefaultPipelineContextFactory();
             this.merger = new ContentMergeService(merger, area);
         }
 
         public Task<JObject> GetAsync(Guid id, string contentType)
         {
-            HttpGetContext context = new (contentType, id);
+            HttpGetContext context = contextFactory.CrateGetContext(contentType, id);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Get(ctx.Id)));
 
@@ -55,7 +77,8 @@ namespace DotJEM.Web.Host.Providers.Services
 
         public async Task<JObject> PostAsync(string contentType, JObject entity)
         {
-            HttpPostContext context = new (contentType, entity);
+            //HttpPostContext context = new(contentType, entity);
+            HttpPostContext context = contextFactory.CreatePostContext(contentType, entity);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Insert(ctx.ContentType, ctx.Entity)));
             entity = await pipeline.Invoke().ConfigureAwait(false);
@@ -67,7 +90,8 @@ namespace DotJEM.Web.Host.Providers.Services
             JObject prev = area.Get(id);
             entity = merger.EnsureMerge(id, entity, prev);
 
-            HttpPutContext context = new (contentType, id, entity, prev);
+            //HttpPutContext context = new(contentType, id, entity, prev);
+            HttpPutContext context = contextFactory.CreatePutContext(contentType, id, entity, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
 
@@ -87,9 +111,10 @@ namespace DotJEM.Web.Host.Providers.Services
             entity = clone;
             entity = merger.EnsureMerge(id, entity, prev);
 
-            HttpPatchContext context = new (contentType, id, entity, prev);
+            //HttpPatchContext context = new(contentType, id, entity, prev);
+            HttpPatchContext context = contextFactory.CreatePatchContext(contentType, id, entity, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
-                .For(context,  ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
+                .For(context, ctx => Task.Run(() => area.Update(ctx.Id, ctx.Entity)));
 
             entity = await pipeline.Invoke().ConfigureAwait(false);
             manager.QueueUpdate(entity);
@@ -102,12 +127,12 @@ namespace DotJEM.Web.Host.Providers.Services
             if (prev == null)
                 return null;
 
-            HttpDeleteContext context = new (contentType, id, prev);
+            HttpDeleteContext context = contextFactory.CreateDeleteContext(contentType, id, prev);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Delete(ctx.Id)));
-            
+
             JObject deleted = await pipeline.Invoke().ConfigureAwait(false);
-            
+
             //Note: This may pose a bit of a problem, because we don't lock so far out (performance),
             //      this can theoretically happen if two threads or two nodes are trying to delete the
             //      same object at the same time.
@@ -119,81 +144,115 @@ namespace DotJEM.Web.Host.Providers.Services
         }
     }
 
-        public class HttpPipelineContext : PipelineContext
+    public class HttpPipelineContext : PipelineContext
+    {
+        public HttpPipelineContext(string method, string contentType)
         {
-            public HttpPipelineContext(string method, string contentType)
-            {
-                this.Set(nameof(method), method);
-                this.Set(nameof(contentType), contentType);
-            }
+            this.Set(nameof(method), method);
+            this.Set(nameof(contentType), contentType);
         }
+    }
 
-        public class HttpGetContext : HttpPipelineContext
+    public interface IHttpGetContext:IPipelineContext
+    {
+        string ContentType { get; }
+        Guid Id { get; }
+    }
+
+    public class HttpGetContext : HttpPipelineContext, IHttpGetContext
+    {
+        public string ContentType => (string)Get("contentType");
+        public Guid Id => (Guid)Get("id");
+
+        public HttpGetContext(string contentType, Guid id)
+            : base("GET", contentType)
         {
-            public string ContentType => (string)Get("contentType");
-            public Guid Id => (Guid) Get("id");
-
-            public HttpGetContext(string contentType, Guid id)
-                : base("GET", contentType)
-            {
-                Set(nameof(id), id);
-            }
+            Set(nameof(id), id);
         }
+    }
 
-        public class HttpPostContext : HttpPipelineContext
+    public interface IHttpPostContext:IPipelineContext
+    {
+        string ContentType { get; }
+        JObject Entity { get; }
+    }
+
+    public class HttpPostContext : HttpPipelineContext, IHttpPostContext
+    {
+        public string ContentType => (string)Get("contentType");
+        public JObject Entity => (JObject)Get("entity");
+
+        public HttpPostContext(string contentType, JObject entity)
+            : base("POST", contentType)
         {
-            public string ContentType => (string)Get("contentType");
-            public JObject Entity => (JObject)Get("entity");
-
-            public HttpPostContext( string contentType, JObject entity)
-                : base("POST", contentType)
-            {
-                Set(nameof(entity), entity);
-            }
+            Set(nameof(entity), entity);
         }
+    }
 
-        public class HttpPutContext : HttpPipelineContext
+    public interface IHttpPutContext:IPipelineContext
+    {
+        string ContentType { get; }
+        Guid Id { get; }
+        JObject Entity { get; }
+        JObject Previous { get; }
+    }
+
+    public class HttpPutContext : HttpPipelineContext, IHttpPutContext
+    {
+        public string ContentType => (string)Get("contentType");
+        public Guid Id => (Guid)Get("id");
+        public JObject Entity => (JObject)Get("entity");
+        public JObject Previous => (JObject)Get("previous");
+
+        public HttpPutContext(string contentType, Guid id, JObject entity, JObject previous)
+            : base("PUT", contentType)
         {
-            public string ContentType => (string)Get("contentType");
-            public Guid Id => (Guid) Get("id");
-            public JObject Entity => (JObject)Get("entity");
-            public JObject Previous => (JObject)Get("previous");
-
-            public HttpPutContext(string contentType, Guid id, JObject entity, JObject previous)
-                : base("PUT", contentType)
-            {
-                Set(nameof(id), id);
-                Set(nameof(entity), entity);
-                Set(nameof(previous), previous);
-            }
+            Set(nameof(id), id);
+            Set(nameof(entity), entity);
+            Set(nameof(previous), previous);
         }
+    }
 
-        public class HttpPatchContext : HttpPipelineContext
+    public interface IHttpPatchContext:IPipelineContext
+    {
+        string ContentType { get; }
+        Guid Id { get; }
+        JObject Entity { get; }
+        JObject Previous { get; }
+    }
+
+    public class HttpPatchContext : HttpPipelineContext, IHttpPatchContext
+    {
+        public string ContentType => (string)Get("contentType");
+        public Guid Id => (Guid)Get("id");
+        public JObject Entity => (JObject)Get("entity");
+        public JObject Previous => (JObject)Get("previous");
+
+        public HttpPatchContext(string contentType, Guid id, JObject entity, JObject previous)
+            : base("PATCH", contentType)
         {
-            public string ContentType => (string)Get("contentType");
-            public Guid Id => (Guid)Get("id");
-            public JObject Entity => (JObject)Get("entity");
-            public JObject Previous => (JObject)Get("previous");
-
-            public HttpPatchContext(string contentType, Guid id, JObject entity, JObject previous)
-                : base("PATCH", contentType)
-            {
-                Set(nameof(id), id);
-                Set(nameof(entity), entity);
-                Set(nameof(previous), previous);
-            }
+            Set(nameof(id), id);
+            Set(nameof(entity), entity);
+            Set(nameof(previous), previous);
         }
+    }
 
-        public class HttpDeleteContext : HttpPipelineContext
+    public interface IHttpDeleteContext:IPipelineContext
+    {
+        string ContentType { get; }
+        Guid Id { get; }
+    }
+
+    public class HttpDeleteContext : HttpPipelineContext, IHttpDeleteContext
+    {
+        public string ContentType => (string)Get("contentType");
+        public Guid Id => (Guid)Get("id");
+
+        public HttpDeleteContext(string contentType, Guid id, JObject previous)
+            : base("DELETE", contentType)
         {
-            public string ContentType => (string)Get("contentType");
-            public Guid Id => (Guid)Get("id");
-
-            public HttpDeleteContext(string contentType, Guid id, JObject previous)
-                : base("DELETE", contentType)
-            {
-                Set(nameof(id), id);
-                Set(nameof(previous), previous);
-            }
+            Set(nameof(id), id);
+            Set(nameof(previous), previous);
         }
+    }
 }

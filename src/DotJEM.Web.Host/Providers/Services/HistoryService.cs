@@ -27,14 +27,16 @@ namespace DotJEM.Web.Host.Providers.Services
         private readonly IPipelines pipelines;
         private readonly IStorageArea area;
         private readonly IStorageIndexManager manager;
+        private readonly IPipelineContextFactory contextFactory;
 
         public IStorageArea StorageArea => area;
 
-        public HistoryService(IStorageArea area, IStorageIndexManager manager, IPipelines pipelines)
+        public HistoryService(IStorageArea area, IStorageIndexManager manager, IPipelines pipelines, IPipelineContextFactory contextFactory = null)
         {
             this.area = area;
             this.manager = manager;
             this.pipelines = pipelines;
+            this.contextFactory = contextFactory ?? new DefaultPipelineContextFactory(); 
         }
 
         public Task<JObject> HistoryAsync(Guid id, string contentType, int version)
@@ -73,7 +75,7 @@ namespace DotJEM.Web.Host.Providers.Services
             JObject current = area.Get(id);
             JObject target = area.History.Get(id, version);
 
-            RevertContext context = new RevertContext(contentType, id, version, target, current);
+            IRevertContext context = contextFactory.CrateRevertContext(contentType, id, version, target, current);
             ICompiledPipeline<JObject> pipeline = pipelines
                 .For(context, ctx => Task.Run(() => area.Update(ctx.Id, context.Target)));
 
@@ -83,7 +85,17 @@ namespace DotJEM.Web.Host.Providers.Services
         }
     }
 
-    public class RevertContext : PipelineContext
+
+    public interface IRevertContext : IPipelineContext
+    {
+        string ContentType { get; }
+        Guid Id { get; }
+        int Version { get; }
+        JObject Target { get; }
+        JObject Current { get; }
+    }
+
+    public class RevertContext : PipelineContext, IRevertContext
     {
         public string ContentType => (string)Get("contentType");
         public Guid Id => (Guid)Get("id");
