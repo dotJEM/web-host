@@ -195,6 +195,32 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
     }
 
+    public interface IStorageCutoffFilter
+    {
+        IEnumerable<Change> Filter(IEnumerable<Change> changes);
+    }
+
+    public interface IStorageCutoff
+    {
+        IEnumerable<Change> Filter(IEnumerable<Change> changes);
+    }
+
+    public class StorageCutoff : IStorageCutoff
+    {
+        private readonly List<IStorageCutoffFilter> filters;
+        public StorageCutoff(List<IStorageCutoffFilter> filters)
+        {
+            this.filters = filters;
+        }
+
+        public IEnumerable<Change> Filter(IEnumerable<Change> changes)
+        {
+            if (filters.Count < 1)
+                return changes;
+            return filters.Aggregate(changes, (items, filter) => filter.Filter(items));
+        }
+    }
+
     public interface IStorageHistoryCleaner
     {
         void Execute();
@@ -242,7 +268,14 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly bool debugging;
 
         //TODO: To many dependencies, refactor!
-        public StorageIndexManager(IStorageIndex index, IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler, IInitializationTracker tracker, IDiagnosticsLogger logger)
+        public StorageIndexManager(
+            IStorageIndex index, 
+            IStorageContext storage,
+            IStorageCutoff cutoff,
+            IWebHostConfiguration configuration, 
+            IWebScheduler scheduler, 
+            IInitializationTracker tracker,
+            IDiagnosticsLogger logger)
         {
             this.index = index;
             this.debugging = configuration.Index.Debugging.Enabled;
@@ -258,7 +291,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
             watchers = configuration.Index.Watch.Items
                 .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
-                new StorageChangeLogWatcher(we.Area, storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, logger, InfoStream));
+                new StorageChangeLogWatcher(we.Area,
+                    storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, we.InitialGeneration, cutoff, logger, InfoStream));
         }
 
         public async Task ResetIndex()
@@ -272,8 +306,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 if (debugging)
                     writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
 
-                await Task.WhenAll(watchers.Values.Select(watcher => watcher.Reset(writer,0, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
-                    progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
+                await Task.WhenAll(watchers.Values.Select(watcher => watcher
+                    .Reset(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(progress => tracker
+                        .SetProgress($"{initTracker.Capture(progress)}")))));
             }
             OnIndexReset(new IndexResetEventArgs());
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);

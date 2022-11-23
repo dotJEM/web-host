@@ -10,6 +10,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             container.Register(Component.For<IStorageIndexManager>().ImplementedBy<StorageIndexManager>().LifestyleSingleton());
             container.Register(Component.For<IStorageManager>().ImplementedBy<StorageManager>().LifestyleSingleton());
+            container.Register(Component.For<IStorageCutoff>().ImplementedBy<StorageCutoff>().LifestyleSingleton());
+
         }
     }
 }
