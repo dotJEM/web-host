@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.Remoting.MetadataServices;
 using System.Text;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
+using DotJEM.Json.Index.Storage.Snapshot;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Providers.Scheduler;
+using Lucene.Net.Index;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -17,8 +20,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
     public interface IIndexSnapshotManager
     {
         void ReplaceStrategy(ISnapshotStrategy strategy);
-
-        void Initialize();
         void TakeSnapshot();
         void RestoreSnapshot();
     }
@@ -28,12 +29,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
         private readonly IStorageIndex index;
         private readonly IStorageContext storage;
 
-        private readonly string indexPath;
-        private readonly string snapshotsPath;
         private readonly int maxSnapshots;
         private ISnapshotStrategy strategy;
-
-        private bool initialized;
 
         public IndexSnapshotManager(
             IStorageIndex index,
@@ -45,18 +42,10 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
             this.index = index;
             this.storage = storage;
             this.maxSnapshots = configuration.Index.Snapshots.MaxSnapshots;
-            this.snapshotsPath = path.MapPath(configuration.Index.Snapshots.Path);
-            this.indexPath = path.MapPath(configuration.Index.Storage.Path);
-            this.strategy = maxSnapshots > 0 ? new DefaultSnapshotStrategy() : null;
+            this.strategy = maxSnapshots > 0 ? new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path)) : null;
             
             if (!string.IsNullOrEmpty(configuration.Index.Snapshots.CronTime))
                 scheduler.ScheduleCron("Snapshot-Schedule", _ => TakeSnapshot(), configuration.Index.Snapshots.CronTime);
-        }
-
-        public void Initialize()
-        {
-            initialized = true;
-            TakeSnapshot();
         }
 
         public void ReplaceStrategy(ISnapshotStrategy strategy)
@@ -66,100 +55,237 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
 
         public void TakeSnapshot()
         {
-            if(!initialized || maxSnapshots <= 0 || strategy == null) return;
+            if(maxSnapshots <= 0 || strategy == null) return;
             
-            index.Flush();
-            index.Close();
-
-            JObject json = storage.AreaInfos
+            JObject generations = storage.AreaInfos
                 .Aggregate(new JObject(), (x, info) =>
                 {
                     x[info.Name] = storage.Area(info.Name).Log.CurrentGeneration;
                     return x;
                 });
-            strategy.TakeSnapshot(snapshotsPath, indexPath, maxSnapshots, json);
+
+            ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = generations });
+            index.Storage.Snapshot(target);
+
+            strategy.CleanOldSnapshots(maxSnapshots);
         }
 
         public void RestoreSnapshot()
         {
-            if(!initialized || maxSnapshots <= 0 || strategy == null) return;
+            if(maxSnapshots <= 0 || strategy == null) return;
 
-            JObject metadata = strategy.RestoreSnapshot(snapshotsPath, indexPath);
-            if(metadata == null) return;
-            
-            foreach (JProperty property in metadata.Properties())
+            int offset = 0;
+            while (true)
             {
-                storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
+
+                try
+                {
+                    ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
+                    if (source == null)
+                        return;
+
+                    index.Storage.Restore(source);
+                    if (source.Metadata["storageGenerations"] is not JObject metadata) continue;
+                    
+                    foreach (JProperty property in metadata.Properties())
+                    {
+                        storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
+                    }
+                }
+                catch
+                {
+                    //IGNORE for now.
+                }
             }
+
+
         }
     }
     
-    public interface ISnapshotStrategy
+
+
+    public interface ISnapshotStrategy 
     {
-        void TakeSnapshot(string snapshotsDirectory, string sourceDirectory, int maxSnapshots, JObject metadata);
-        JObject RestoreSnapshot(string snapshotsDirectory, string indexDirectory);
+        ISnapshotTarget CreateTarget(JObject metaData);
+        ISnapshotSourceWithMetadata CreateSource(int offset);
+        void CleanOldSnapshots(int maxSnapshots);
     }
 
-    public class DefaultSnapshotStrategy : ISnapshotStrategy
+    public interface ISnapshotSourceWithMetadata : ISnapshotSource
     {
-        public void TakeSnapshot(string snapshotsDirectory, string sourceDirectory, int maxSnapshots, JObject metadata)
+        JObject Metadata { get; }
+    }
+
+    public class ZipSnapshotTarget : ISnapshotTarget
+    {
+        private readonly string path;
+        private readonly JObject metaData;
+
+        public ZipSnapshotTarget(string path, JObject metaData)
         {
-            Directory.CreateDirectory(snapshotsDirectory);
+            this.path = path;
+            this.metaData = metaData;
+        }
 
-            string targetPath = Path.Combine(snapshotsDirectory, $"{DateTime.Now:yyyy-MM-ddTHHmmss}.zip");
+        public ISnapshotWriter Open(IndexCommit commit)
+        {
+            return new ZipSnapshotWriter(metaData, Path.Combine(path, $"{DateTime.Now:yyyy-MM-ddTHHmmss}.{commit.Generation:D8}.zip"))
+                .WriteMetaData(commit);
+        }
+    }
 
-            //IF the directory exists, ignore this cycle.
-            if(File.Exists(targetPath))
-                return;
+    public class ZipSnapshotStrategy : ISnapshotStrategy
+    {
+        private readonly string path;
 
-            foreach (string oldSnapshot in Directory
-                .GetFiles(snapshotsDirectory, "*.zip")
-                .OrderByDescending(dir => dir)
-                .Skip(maxSnapshots - 1))
+        public ZipSnapshotStrategy(string path)
+        {
+            this.path = path;
+        }
+
+        public ISnapshotTarget CreateTarget(JObject metaData)
+        {
+            return new ZipSnapshotTarget(path, metaData);
+        }
+
+        public ISnapshotSourceWithMetadata CreateSource(int offset)
+        {
+            string[] files = Directory.GetFiles(path, "*.zip")
+                .OrderByDescending(file => file)
+                .ToArray();
+            return files.Length > offset ? new ZipSnapshotSource(files[offset]) : null;
+        }
+
+        public void CleanOldSnapshots(int maxSnapshots)
+        {
+            foreach (string file in Directory.GetFiles(path, "*.zip")
+                         .OrderByDescending(file => file)
+                         .Skip(maxSnapshots))
             {
                 try
                 {
-                    File.Delete(oldSnapshot);
+                    File.Delete(file);
                 }
-                catch (Exception exception)
+                catch 
                 {
-                    //IGNORE for now.
+                    //Ignore, try again next time.
                 }
             }
-
-            ZipFile.CreateFromDirectory(sourceDirectory, targetPath, CompressionLevel.Optimal, false);
-            using ZipArchive archive = ZipFile.Open(targetPath, ZipArchiveMode.Update);
-            ZipArchiveEntry entry = archive.CreateEntry("storage-generation.log");
-            using JsonTextWriter writer = new JsonTextWriter(new StreamWriter(entry.Open()));
-            metadata.WriteTo(writer);
         }
 
-        public JObject RestoreSnapshot(string snapshotsDirectory, string indexDirectory)
+    }
+
+    public class ZipSnapshotWriter : ISnapshotWriter
+    {
+        private readonly ZipArchive archive;
+        private readonly JObject metadata;
+
+        public ZipSnapshotWriter(JObject metadata, string file)
         {
-            foreach (string file in Directory.GetFiles(indexDirectory))
-                File.Delete(file);
+            if (metadata["files"] is not JArray)
+                metadata["files"] = new JArray();
+            this.metadata = metadata;
 
-            foreach (string snapshot in Directory
-                .GetFiles(snapshotsDirectory, "*.zip")
-                .OrderByDescending(dir => dir))
+            archive = ZipFile.Open(file, ZipArchiveMode.Create);
+        }
+
+        public void WriteFile(IndexInputStream stream)
+        {
+            using Stream target = archive.CreateEntry(stream.FileName).Open();
+            stream.CopyTo(target);
+
+            JArray filesArr = (JArray)metadata["files"];
+            filesArr.Add(JToken.FromObject(stream.FileName));
+        }
+
+        public void WriteSegmentsFile(IndexInputStream stream)
+        {
+            using Stream target = archive.CreateEntry(stream.FileName).Open();
+            stream.CopyTo(target);
+            metadata["segmentsFile"] = stream.FileName;
+        }
+
+        public ZipSnapshotWriter WriteMetaData(IndexCommit commit)
+        {
+            metadata["generation"] = commit.Generation;
+            metadata["version"] = commit.Version;
+            return this;
+        }
+
+        public void Dispose()
+        {
+            using (Stream metaStream = archive.CreateEntry("metadata.json").Open())
             {
-                try
-                {
-                    ZipFile.ExtractToDirectory(snapshot, indexDirectory);
-
-                    JObject metadata;
-                    using (JsonTextReader reader = new (new StreamReader(Path.Combine(indexDirectory, "storage-generation.log"))))
-                        metadata = JObject.Load(reader);
-                    File.Delete(Path.Combine(indexDirectory, "storage-generation.log"));
-                    return metadata;
-                }
-                catch (Exception exception)
-                {
-                    //IGNORE for now.
-                }
+                using JsonWriter writer = new JsonTextWriter(new StreamWriter(metaStream));
+                metadata.WriteTo(writer);
             }
-
-            return null;
+            archive?.Dispose();
         }
     }
+
+    public class ZipSnapshotSource : ISnapshotSourceWithMetadata
+    {
+        private readonly ZipArchive archive;
+
+        public JObject Metadata { get; }
+
+        public ZipSnapshotSource(string file)
+        {
+            archive = ZipFile.Open(file, ZipArchiveMode.Read);
+            using Stream metaStream = archive.GetEntry("metadata.json")?.Open();
+            using JsonReader reader = new JsonTextReader(new StreamReader(metaStream));
+            Metadata = JObject.Load(reader);
+        }
+
+        public ISnapshot Open()
+        {
+            return new ZipSnapshot(archive, Metadata);
+        }
+    }
+
+    public class ZipSnapshot : ISnapshot
+    {
+        private readonly ZipArchive archive;
+        private readonly JObject metadata;
+
+        public long Generation { get; }
+        public ILuceneFile SegmentsFile { get; }
+        public IEnumerable<ILuceneFile> Files { get; }
+
+        public ZipSnapshot(ZipArchive archive, JObject metadata)
+        {
+            this.archive = archive;
+            this.metadata = metadata;
+
+            Files = new List<ILuceneFile>();
+            if (metadata["files"] is JArray arr)
+                Files = arr.Select(fileName => new ZipLuceneFile((string)fileName, archive));
+            SegmentsFile = new ZipLuceneFile((string)metadata["segmentsFile"], archive);
+            Generation = (long)metadata["generation"];
+        }
+        
+        public void Dispose()
+        {
+            archive.Dispose();
+        }
+
+        private class ZipLuceneFile : ILuceneFile
+        {
+            private readonly ZipArchive archive;
+            public string Name { get; }
+
+            public ZipLuceneFile(string fileName, ZipArchive archive)
+            {
+                this.Name = fileName;
+                this.archive = archive;
+            }
+
+            public Stream Open()
+            {
+                return archive.GetEntry(Name)?.Open();
+            }
+
+        }
+    }
+
 }

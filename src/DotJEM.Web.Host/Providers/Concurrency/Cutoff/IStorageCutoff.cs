@@ -12,9 +12,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     public class StorageCutoff : IStorageCutoff
     {
         private readonly List<IStorageCutoffFilter> filters;
-        public StorageCutoff(List<IStorageCutoffFilter> filters)
+        public StorageCutoff(params IStorageCutoffFilter[] filters)
         {
-            this.filters = filters;
+            this.filters = filters.ToList();
         }
 
         public IEnumerable<Change> Filter(IEnumerable<Change> changes)

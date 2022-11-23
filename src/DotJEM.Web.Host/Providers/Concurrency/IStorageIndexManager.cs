@@ -90,7 +90,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
                 buffer = (int)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
-
             
             WatchElement starWatch = configuration.Index.Watch.Items.FirstOrDefault(w => w.Area == "*");
             if (starWatch != null)
@@ -116,10 +115,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 return new StorageChangeLogWatcher(area, storage.Area(area).Log, batchSize, we.InitialGeneration, cutoff, logger, InfoStream);
             }
         }
-
-
         
-
         public async Task ResetIndex()
         {
             Stop();
@@ -152,7 +148,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private void InitializeIndex()
         {
             this.snapshot.RestoreSnapshot();
-            
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
@@ -163,8 +158,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
-
-            this.snapshot.Initialize();
+            this.snapshot.TakeSnapshot();
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 

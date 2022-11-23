@@ -11,7 +11,7 @@ namespace DotJEM.Web.Host.Configuration.Elements
         [ConfigurationProperty("batch-size", IsRequired = false, DefaultValue = -1)]
         public int BatchSize => (int)this["batch-size"];
 
-        [ConfigurationProperty("initial-generation", IsRequired = false, DefaultValue = 0)]
+        [ConfigurationProperty("initial-generation", IsRequired = false, DefaultValue = 0L)]
         public long InitialGeneration  => (long)this["initial-generation"];
     }
 }
