@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/lj72kp8ldr5wuu2t?svg=true)](https://ci.appveyor.com/project/jeme/web-host)
+[![Build status](https://ci.appveyor.com/api/projects/status/lj72kp8ldr5wuu2t/branch/master?svg=true)](https://ci.appveyor.com/project/jeme/web-host/branch/nsw)
 
 web-host
 ========
