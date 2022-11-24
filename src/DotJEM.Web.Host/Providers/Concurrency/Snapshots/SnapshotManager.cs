@@ -20,8 +20,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
     public interface IIndexSnapshotManager
     {
         void ReplaceStrategy(ISnapshotStrategy strategy);
-        void TakeSnapshot();
-        void RestoreSnapshot();
+        bool TakeSnapshot();
+        bool RestoreSnapshot();
     }
 
     public class IndexSnapshotManager : IIndexSnapshotManager
@@ -53,9 +53,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
             this.strategy = strategy;
         }
 
-        public void TakeSnapshot()
+        public bool TakeSnapshot()
         {
-            if(maxSnapshots <= 0 || strategy == null) return;
+            if(maxSnapshots <= 0 || strategy == null) return false;
             
             JObject generations = storage.AreaInfos
                 .Aggregate(new JObject(), (x, info) =>
@@ -68,11 +68,12 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
             index.Storage.Snapshot(target);
 
             strategy.CleanOldSnapshots(maxSnapshots);
+            return true;
         }
 
-        public void RestoreSnapshot()
+        public bool RestoreSnapshot()
         {
-            if(maxSnapshots <= 0 || strategy == null) return;
+            if(maxSnapshots <= 0 || strategy == null) return false;
 
             int offset = 0;
             while (true)
@@ -82,7 +83,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
                 {
                     ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
                     if (source == null)
-                        return;
+                        return false;
 
                     index.Storage.Restore(source);
                     if (source.Metadata["storageGenerations"] is not JObject metadata) continue;
@@ -91,6 +92,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
                     {
                         storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
                     }
+
+                    return true;
                 }
                 catch
                 {

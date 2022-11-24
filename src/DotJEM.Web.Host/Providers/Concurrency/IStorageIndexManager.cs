@@ -147,7 +147,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
-            this.snapshot.RestoreSnapshot();
+            bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
@@ -158,7 +158,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
-            this.snapshot.TakeSnapshot();
+            if(!restoredFromSnapshot) this.snapshot.TakeSnapshot();
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 
