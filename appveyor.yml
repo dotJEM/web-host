@@ -37,21 +37,24 @@ on_success:
 - bash copilot
 
 deploy:
-  provider: NuGet
-  api_key:
-    secure: xjk5tz3Tcq/JnadrTWPZ2YOjggaN9yV7ulLn0+v7bqvukNNeO/TPCzamWxZOmax6
-  on:
-    branch: master 
-
-for:
--
-  branches:
-    only:
-      - nsw
-
-  deploy:
-    provider: NuGet
+  - provider: NuGet
+    name: Master
     api_key:
-      secure: xjk5tz3Tcq/JnadrTWPZ2YOjggaN9yV7ulLn0+v7bqvukNNeO/TPCzamWxZOmax6
+      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
     on:
+      branch: master 
+      
+  - provider: NuGet
+    name: Beta
+    api_key:
+      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+    on:
+      branch: beta  
+      
+  - provider: NuGet
+    name: Nsw
+    api_key:
+      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+    on:
+      branch: nsw 
       branch: nsw 
