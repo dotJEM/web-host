@@ -9,11 +9,12 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DotJEM.Web.Host</RootNamespace>
     <AssemblyName>DotJEM.Web.Host</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -23,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,6 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Castle.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
@@ -45,8 +48,8 @@
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Diagnostic.1.0.30\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index, Version=0.0.111.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index.0.0.111\lib\net45\DotJEM.Json.Index.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index, Version=1.0.236.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index.1.0.236\lib\net48\DotJEM.Json.Index.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Json.Storage, Version=0.3.12.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Storage.0.3.12\lib\net45\DotJEM.Json.Storage.dll</HintPath>
@@ -326,13 +329,21 @@
     <Compile Include="PathResolver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\AppConfigurationProvider.cs" />
+    <Compile Include="Providers\Concurrency\Cutoff\IStorageCutoffFilter.cs" />
     <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
     <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
     <Compile Include="Providers\Concurrency\Installer.cs" />
+    <Compile Include="Providers\Concurrency\Cutoff\IStorageCutoff.cs" />
+    <Compile Include="Providers\Concurrency\IStorageHistoryCleaner.cs" />
     <Compile Include="Providers\Concurrency\IStorageIndexChangeLogWatcher.cs" />
     <Compile Include="Providers\Concurrency\IStorageIndexManager.cs" />
+    <Compile Include="Providers\Concurrency\Info\IStorageIndexManagerInfoStream.cs" />
+    <Compile Include="Providers\Concurrency\IStorageManager.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
+    <Compile Include="Providers\Concurrency\Snapshots\SnapshotManager.cs" />
+    <Compile Include="Providers\Concurrency\StorageHistoryCleaner.cs" />
     <Compile Include="Providers\Concurrency\StorageIndexChangeLogWatcherInitializationProgress.cs" />
+    <Compile Include="Providers\Concurrency\Info\StorageIndexManagerInfoStream.cs" />
     <Compile Include="Providers\ContentServiceProvider.cs" />
     <Compile Include="Providers\FileServiceProvider.cs" />
     <Compile Include="Providers\Pipeline\ContentTypeFilterAttribute.cs" />

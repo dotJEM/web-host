@@ -12,6 +12,9 @@ namespace DotJEM.Web.Host.Configuration.Elements
 
         [ConfigurationProperty("watch", IsRequired = true)]
         public WatchElementCollection Watch => this["watch"] as WatchElementCollection;
+
+        [ConfigurationProperty("snapshots", IsRequired = false, DefaultValue = null)]
+        public IndexSnapshotsConfiguration Snapshots => this["snapshots"] as IndexSnapshotsConfiguration;
     }
 
     public class IndexDebuggingConfiguration : ConfigurationElement
@@ -45,6 +48,17 @@ namespace DotJEM.Web.Host.Configuration.Elements
 
         [ConfigurationProperty("type", IsRequired = true)]
         public IndexStorageType Type => (IndexStorageType)this["type"];
+    }
+    public class IndexSnapshotsConfiguration : ConfigurationElement
+    {
+        [ConfigurationProperty("path", IsRequired = false)]
+        public string Path => this["path"] as string;
+
+        [ConfigurationProperty("max-snapshots", IsRequired = false, DefaultValue = 0)]
+        public int MaxSnapshots => (int)this["max-snapshots"];
+
+        [ConfigurationProperty("cron-time", IsRequired = false, DefaultValue = "")]
+        public string CronTime => (string)this["cron-time"];
     }
 
     public enum IndexStorageType { Memory, File, CachedMemory }

@@ -2,12 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Util;
 using DotJEM.Json.Storage;
-using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
 using DotJEM.Json.Storage.Adapter.Materialize.Log;
 using DotJEM.Json.Storage.Configuration;
@@ -15,10 +13,10 @@ using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
+using DotJEM.Web.Host.Providers.Concurrency.Snapshots;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 using DotJEM.Web.Host.Tasks;
-using DotJEM.Web.Host.Util;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
@@ -43,208 +41,9 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         void QueueDelete(JObject entity);
 
         Task ResetIndex();
+        JObject CheckIndex(string area, string contentType, Guid id, Func<string, Guid, JObject> ghostFactory);
     }
-
-    public interface IStorageIndexManagerInfoStream
-    {
-        void Track(string area, int creates, int updates, int deletes, int faults);
-        void Record(string area, IList<FaultyChange> faults);
-        void Publish(IStorageChangeCollection changes);
-    }
-
-    //TODO: Not really a stream, but we need some info for now, then we can make it into a true info stream later.
-    public class StorageIndexManagerInfoStream : IStorageIndexManagerInfoStream
-    {
-        private readonly ConcurrentDictionary<string, AreaInfo> areas = new ConcurrentDictionary<string, AreaInfo>();
-
-        public void Track(string area, int creates, int updates, int deletes, int faults)
-        {
-            AreaInfo info = areas.GetOrAdd(area, s => new AreaInfo(s));
-            info.Track(creates, updates, deletes, faults);
-        }
-
-        public void Record(string area, IList<FaultyChange> faults)
-        {
-            AreaInfo info = areas.GetOrAdd(area, s => new AreaInfo(s));
-            info.Record(faults);
-        }
-
-        public virtual void Publish(IStorageChangeCollection changes)
-        {
-        }
-
-        public JObject ToJObject()
-        {
-            JObject json = new JObject();
-            long creates = 0, updates = 0, deletes = 0, faults = 0;
-            //NOTE: This places them at top which is nice for human readability, machines don't care.
-            json["creates"] = creates;
-            json["updates"] = updates;
-            json["deletes"] = deletes;
-            json["faults"] = faults;
-            foreach (AreaInfo area in areas.Values)
-            {
-                creates += area.Creates;
-                updates += area.Updates;
-                deletes += area.Deletes;
-                faults += area.Faults;
-
-                json[area.Area] = area.ToJObject();
-            }
-            json["creates"] = creates;
-            json["updates"] = updates;
-            json["deletes"] = deletes;
-            json["faults"] = faults;
-            return json;
-        }
-
-        private class AreaInfo
-        {
-            private long creates = 0, updates = 0, deletes = 0, faults = 0;
-            private readonly ConcurrentBag<FaultyChange> faultyChanges = new ConcurrentBag<FaultyChange>();
-
-            public string Area { get; }
-
-            public long Creates => creates;
-            public long Updates => updates;
-            public long Deletes => deletes;
-            public long Faults => faults;
-            public FaultyChange[] FaultyChanges => faultyChanges.ToArray();
-
-            public AreaInfo(string area)
-            {
-                Area = area;
-            }
-
-            public void Track(int creates, int updates, int deletes, int faults)
-            {
-                Interlocked.Add(ref this.creates, creates);
-                Interlocked.Add(ref this.updates, updates);
-                Interlocked.Add(ref this.deletes, deletes);
-                Interlocked.Add(ref this.faults, faults);
-            }
-
-            public void Record(IList<FaultyChange> faults)
-            {
-                faults.ForEach(faultyChanges.Add);
-            }
-
-            public JObject ToJObject()
-            {
-                JObject json = new JObject();
-                json["creates"] = creates;
-                json["updates"] = updates;
-                json["deletes"] = deletes;
-                json["faults"] = faults;
-                if (faultyChanges.Any())
-                    json["faultyChanges"] = JArray.FromObject(FaultyChanges.Select(c => c.CreateEntity()));
-                return json;
-            }
-        }
-    }
-    public interface IStorageManager
-    {
-        void Start();
-        void Stop();
-    }
-
-    public class StorageManager : IStorageManager
-    {
-        private IScheduledTask task;
-        private readonly IWebScheduler scheduler;
-        private readonly Dictionary<string, IStorageHistoryCleaner> cleaners = new Dictionary<string, IStorageHistoryCleaner>();
-        private readonly TimeSpan interval;
-
-        public StorageManager(IStorageContext storage, IWebHostConfiguration configuration, IWebScheduler scheduler)
-        {
-            this.scheduler = scheduler;
-            this.interval = AdvConvert.ConvertToTimeSpan(configuration.Storage.Interval);
-            foreach (StorageAreaElement areaConfig in configuration.Storage.Items)
-            {
-                IStorageAreaConfigurator areaConfigurator = storage.Configure.Area(areaConfig.Name);
-                if (!areaConfig.History)
-                    continue;
-
-                areaConfigurator.EnableHistory();
-                if (string.IsNullOrEmpty(areaConfig.HistoryAge))
-                    continue;
-
-                TimeSpan historyAge = AdvConvert.ConvertToTimeSpan(areaConfig.HistoryAge);
-                if(historyAge <= TimeSpan.Zero)
-                    continue;
-
-                cleaners.Add(areaConfig.Name, new StorageHistoryCleaner(
-                    new Lazy<IStorageAreaHistory>(() => storage.Area(areaConfig.Name).History),
-                    historyAge));
-            }
-        }
-        public void Start()
-        {
-            task = scheduler.ScheduleTask("StorageManager.CleanHistory", b => CleanHistory(), interval);
-        }
-
-        private void CleanHistory()
-        {
-            foreach (IStorageHistoryCleaner cleaner in cleaners.Values)
-            {
-                cleaner.Execute();
-            }
-        }
-
-        public void Stop() => task.Dispose();
-
-    }
-
-    public interface IStorageCutoffFilter
-    {
-        IEnumerable<Change> Filter(IEnumerable<Change> changes);
-    }
-
-    public interface IStorageCutoff
-    {
-        IEnumerable<Change> Filter(IEnumerable<Change> changes);
-    }
-
-    public class StorageCutoff : IStorageCutoff
-    {
-        private readonly List<IStorageCutoffFilter> filters;
-        public StorageCutoff(List<IStorageCutoffFilter> filters)
-        {
-            this.filters = filters;
-        }
-
-        public IEnumerable<Change> Filter(IEnumerable<Change> changes)
-        {
-            if (filters.Count < 1)
-                return changes;
-            return filters.Aggregate(changes, (items, filter) => filter.Filter(items));
-        }
-    }
-
-    public interface IStorageHistoryCleaner
-    {
-        void Execute();
-    }
-
-    public class StorageHistoryCleaner : IStorageHistoryCleaner
-    {
-        private readonly TimeSpan maxAge;
-        private readonly Lazy<IStorageAreaHistory> serviceProvider;
-
-        private IStorageAreaHistory History => serviceProvider.Value;
-
-        public StorageHistoryCleaner(Lazy<IStorageAreaHistory> serviceProvider, TimeSpan maxAge)
-        {
-            this.serviceProvider = serviceProvider;
-            this.maxAge = maxAge;
-        }
-
-        public void Execute()
-        {
-            History.Delete(maxAge);
-        }
-    }
-
+    
     public class StorageIndexManager : IStorageIndexManager
     {
         public event EventHandler<IndexResetEventArgs> IndexReset;
@@ -252,6 +51,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
 
         private readonly IStorageIndex index;
+        private readonly IStorageContext storage;
         private readonly IWebScheduler scheduler;
         private readonly IInitializationTracker tracker;
         private readonly IDiagnosticsLogger logger;
@@ -266,6 +66,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private IScheduledTask task;
         private readonly bool debugging;
+        private readonly IIndexSnapshotManager snapshot;
 
         //TODO: To many dependencies, refactor!
         public StorageIndexManager(
@@ -275,26 +76,46 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IWebHostConfiguration configuration, 
             IWebScheduler scheduler, 
             IInitializationTracker tracker,
+            IIndexSnapshotManager snapshot,
             IDiagnosticsLogger logger)
         {
             this.index = index;
+            this.storage = storage;
             this.debugging = configuration.Index.Debugging.Enabled;
             if (this.debugging)
                 this.index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
             this.scheduler = scheduler;
             this.tracker = tracker;
+            this.snapshot = snapshot;
             this.logger = logger;
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
                 buffer = (int)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
+            
+            WatchElement starWatch = configuration.Index.Watch.Items.FirstOrDefault(w => w.Area == "*");
+            if (starWatch != null)
+            {
+                watchers = storage.AreaInfos
+                    .ToDictionary(info => info.Name, info => CreateChangeLogWatcher(info.Name, starWatch));
+            }
+            else
+            {
+                watchers = configuration.Index.Watch.Items
+                        .ToDictionary(we => we.Area, we => CreateChangeLogWatcher(we.Area, we));
+            }
 
-            watchers = configuration.Index.Watch.Items
-                .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
-                new StorageChangeLogWatcher(we.Area,
-                    storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, we.InitialGeneration, cutoff, logger, InfoStream));
+            //watchers = configuration.Index.Watch.Items
+            //    .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
+            //    new StorageChangeLogWatcher(we.Area,
+            //        storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, we.InitialGeneration, cutoff, logger, InfoStream));
+
+            IStorageIndexChangeLogWatcher CreateChangeLogWatcher(string area, WatchElement we) {
+                int batchSize = we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize;
+                return new StorageChangeLogWatcher(area, storage.Area(area).Log, batchSize, we.InitialGeneration, cutoff, logger, InfoStream);
+            }
         }
-
+        
         public async Task ResetIndex()
         {
             Stop();
@@ -310,6 +131,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .Reset(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(progress => tracker
                         .SetProgress($"{initTracker.Capture(progress)}")))));
             }
+            this.snapshot.TakeSnapshot();
+
             OnIndexReset(new IndexResetEventArgs());
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
         }
@@ -324,7 +147,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
-            //IndexWriter w = index.Storage.GetWriter(index.Analyzer);
+            bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
             {
@@ -335,6 +158,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                     .Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
+            if(!restoredFromSnapshot) this.snapshot.TakeSnapshot();
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 
@@ -358,6 +182,23 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
             OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
             index.Flush();
+        }
+
+        public JObject CheckIndex(string area, string contentType, Guid id, Func<string, Guid, JObject> ghostFactory)
+        {
+            JObject json = storage.Area(area).Get(id);
+            if (json == null)
+            {
+                JObject ghost = ghostFactory(contentType, id);
+                QueueDelete(ghost);
+                return new JObject { ["message"] = "Requested object did not exist in the database, queues delete in index." };
+            }
+            else
+            {
+                QueueUpdate(json);
+                return new JObject { ["message"] = "Requested object force queued for update." };
+
+            }
         }
 
         public void QueueUpdate(JObject entity)

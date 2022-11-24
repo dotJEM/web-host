@@ -191,7 +191,7 @@ namespace DotJEM.Web.Host
                     dump.Dump(ticket, dumpMessage);
                 }
 
-                await Task.Delay(10.Minutes())
+                await Task.Delay(5.Minutes())
                     .ContinueWith(t =>
                     {
                         //NOTE: (jmd 2019-11-04) This restarts the application.
