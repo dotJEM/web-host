@@ -57,4 +57,3 @@ deploy:
       secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
     on:
       branch: nsw 
-      branch: nsw 
