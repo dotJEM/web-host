@@ -41,6 +41,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         void QueueDelete(JObject entity);
 
         Task ResetIndex();
+        JObject CheckIndex(string area, string contentType, Guid id, Func<string, Guid, JObject> ghostFactory);
     }
     
     public class StorageIndexManager : IStorageIndexManager
@@ -50,6 +51,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
 
         private readonly IStorageIndex index;
+        private readonly IStorageContext storage;
         private readonly IWebScheduler scheduler;
         private readonly IInitializationTracker tracker;
         private readonly IDiagnosticsLogger logger;
@@ -72,13 +74,13 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IStorageContext storage,
             IStorageCutoff cutoff,
             IWebHostConfiguration configuration, 
-            IPathResolver path,
             IWebScheduler scheduler, 
             IInitializationTracker tracker,
             IIndexSnapshotManager snapshot,
             IDiagnosticsLogger logger)
         {
             this.index = index;
+            this.storage = storage;
             this.debugging = configuration.Index.Debugging.Enabled;
             if (this.debugging)
                 this.index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
@@ -108,9 +110,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             //    new StorageChangeLogWatcher(we.Area,
             //        storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, we.InitialGeneration, cutoff, logger, InfoStream));
 
-
-            IStorageIndexChangeLogWatcher CreateChangeLogWatcher(string area, WatchElement we)
-            {
+            IStorageIndexChangeLogWatcher CreateChangeLogWatcher(string area, WatchElement we) {
                 int batchSize = we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize;
                 return new StorageChangeLogWatcher(area, storage.Area(area).Log, batchSize, we.InitialGeneration, cutoff, logger, InfoStream);
             }
@@ -182,6 +182,23 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 .Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
             OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
             index.Flush();
+        }
+
+        public JObject CheckIndex(string area, string contentType, Guid id, Func<string, Guid, JObject> ghostFactory)
+        {
+            JObject json = storage.Area(area).Get(id);
+            if (json == null)
+            {
+                JObject ghost = ghostFactory(contentType, id);
+                QueueDelete(ghost);
+                return new JObject { ["message"] = "Requested object did not exist in the database, queues delete in index." };
+            }
+            else
+            {
+                QueueUpdate(json);
+                return new JObject { ["message"] = "Requested object force queued for update." };
+
+            }
         }
 
         public void QueueUpdate(JObject entity)
