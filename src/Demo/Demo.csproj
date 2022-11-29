@@ -323,6 +323,7 @@
     <Compile Include="Controllers\ExceptionController.cs" />
     <Compile Include="Controllers\IndexController.cs" />
     <Compile Include="Controllers\SearchController.cs" />
+    <Compile Include="Controllers\StatusController.cs" />
     <Compile Include="Controllers\StorageController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

@@ -22,10 +22,14 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
         void ReplaceStrategy(ISnapshotStrategy strategy);
         bool TakeSnapshot();
         bool RestoreSnapshot();
+
+        void Pause();
+        void Resume();
     }
 
     public class IndexSnapshotManager : IIndexSnapshotManager
     {
+        private bool paused = false;
         private readonly IStorageIndex index;
         private readonly IStorageContext storage;
 
@@ -43,10 +47,11 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
             this.storage = storage;
             this.maxSnapshots = configuration.Index.Snapshots.MaxSnapshots;
             this.strategy = maxSnapshots > 0 ? new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path)) : null;
-            
             if (!string.IsNullOrEmpty(configuration.Index.Snapshots.CronTime))
                 scheduler.ScheduleCron("Snapshot-Schedule", _ => TakeSnapshot(), configuration.Index.Snapshots.CronTime);
         }
+
+        
 
         public void ReplaceStrategy(ISnapshotStrategy strategy)
         {
@@ -55,7 +60,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
 
         public bool TakeSnapshot()
         {
-            if(maxSnapshots <= 0 || strategy == null) return false;
+            if(paused || maxSnapshots <= 0 || strategy == null) return false;
             
             JObject generations = storage.AreaInfos
                 .Aggregate(new JObject(), (x, info) =>
@@ -102,6 +107,16 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots
             }
 
 
+        }
+
+        public void Pause()
+        {
+            paused = true;
+        }
+
+        public void Resume()
+        {
+            paused = false;
         }
     }
     

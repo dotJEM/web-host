@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using DotJEM.AdvParsers;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Util;
 using DotJEM.Json.Storage;
@@ -92,7 +94,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
             if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
-                buffer = (int)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / (1024 * 1024);
+                buffer = (int)((long)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / 1.MegaBytes());
             
             WatchElement starWatch = configuration.Index.Watch.Items.FirstOrDefault(w => w.Area == "*");
             if (starWatch != null)
@@ -106,11 +108,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                         .ToDictionary(we => we.Area, we => CreateChangeLogWatcher(we.Area, we));
             }
 
-            //watchers = configuration.Index.Watch.Items
-            //    .ToDictionary(we => we.Area, we => (IStorageIndexChangeLogWatcher) 
-            //    new StorageChangeLogWatcher(we.Area,
-            //        storage.Area(we.Area).Log, we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize, we.InitialGeneration, cutoff, logger, InfoStream));
-
             IStorageIndexChangeLogWatcher CreateChangeLogWatcher(string area, WatchElement we) {
                 int batchSize = we.BatchSize < 1 ? configuration.Index.Watch.BatchSize : we.BatchSize;
                 return new StorageChangeLogWatcher(area, storage.Area(area).Log, batchSize, we.InitialGeneration, cutoff, logger, InfoStream);
@@ -121,18 +118,20 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             Stop();
             index.Storage.Purge();
+            snapshot.Pause();
 
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
             using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
             {
                 if (debugging)
-                    writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
+                    writer.InfoEvent += (_, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
 
                 await Task.WhenAll(watchers.Values.Select(watcher => watcher
                     .Reset(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(progress => tracker
                         .SetProgress($"{initTracker.Capture(progress)}")))));
             }
             this.snapshot.TakeSnapshot();
+            snapshot.Resume();
 
             OnIndexReset(new IndexResetEventArgs());
             task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
@@ -148,18 +147,21 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
         private void InitializeIndex()
         {
+            snapshot.Pause();
             bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
+            
             using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
             {
-                if(debugging)
-                    writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new {args});
+                if (debugging)
+                    writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
 
                 Sync.Await(watchers.Values.Select(watcher => watcher
                     .Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
                     progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
             }
-            if(!restoredFromSnapshot) this.snapshot.TakeSnapshot();
+            if (!restoredFromSnapshot) this.snapshot.TakeSnapshot();
+            snapshot.Resume();
             OnIndexInitialized(new IndexInitializedEventArgs());
         }
 
@@ -282,6 +284,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 private long token;
                 private long latest;
                 private string done;
+                private readonly Stopwatch stopwatch = Stopwatch.StartNew();
 
                 public InitializationState(string area)
                 {
@@ -290,14 +293,17 @@ namespace DotJEM.Web.Host.Providers.Concurrency
 
                 public InitializationState Add(long token, long latest, ChangeCount count, bool done)
                 {
-                    this.done = done ? "Completed" : "Indexing";
                     this.count += count;
+                    this.done = done ? "Completed" : "Indexing";
                     this.token = token;
                     this.latest = latest;
+                    if (done) stopwatch.Stop();
                     return this;
                 }
 
-                public override string ToString() => $" -> {area}: {token} / {latest} changes processed, {count.Total} objects indexed. {done}";
+                public override string ToString() 
+                    => $" -> {area}: {token} / {latest} changes processed, {count.Total} objects indexed. {done} " +
+                       $"({ (int)(count.Total / stopwatch.Elapsed.TotalSeconds) }/sec)";
             }
         }
 

@@ -32,6 +32,7 @@ namespace Demo
             router.Route("api/storage/{area}/{contentType}/{id}")
                 .To<StorageController>(x => x.Set.Defaults(new { id = RouteParameter.Optional }));
             router.Route("api/search").To<SearchController>();
+            router.Route("api/status").To<StatusController>();
             router.Default("Index").To<IndexController>();
         }
 
@@ -41,6 +42,7 @@ namespace Demo
             container.Register(Component.For<IndexController>().LifestyleTransient());
             container.Register(Component.For<SearchController>().LifestyleTransient());
             container.Register(Component.For<StorageController>().LifestyleTransient());
+            container.Register(Component.For<StatusController>().LifestyleTransient());
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
         }
     }

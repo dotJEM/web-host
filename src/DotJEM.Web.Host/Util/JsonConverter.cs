@@ -20,12 +20,12 @@ namespace DotJEM.Web.Host.Util
         public DotjemJsonConverter()
         {
             serializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
-            serializer.Converters.Add(new StringEnumConverter { CamelCaseText = true });
+            serializer.Converters.Add(new StringEnumConverter { NamingStrategy = new CamelCaseNamingStrategy() });
             serializer.Converters.Add(new IsoDateTimeConverter());
             serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
 
             JObject.FromObject(new {}, serializer);
-            JArray.FromObject(new int[0], serializer);
+            JArray.FromObject(Array.Empty<int>(), serializer);
         }
 
         public JToken FromObject(object obj)
