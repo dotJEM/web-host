@@ -56,6 +56,8 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             await Task.Run(async () =>
             {
                 SetInitialGeneration();
+                progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(), 0, 0, false));
+
                 long latest = log.LatestGeneration;
                 long writeCount = 0;
                 while (true)

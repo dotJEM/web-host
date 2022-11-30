@@ -48,8 +48,8 @@
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Diagnostic.1.0.30\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index, Version=1.1.245.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index.1.1.245\lib\net48\DotJEM.Json.Index.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index, Version=1.1.246.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index.1.1.246\lib\net48\DotJEM.Json.Index.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Json.Storage, Version=0.3.12.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Storage.0.3.12\lib\net45\DotJEM.Json.Storage.dll</HintPath>
