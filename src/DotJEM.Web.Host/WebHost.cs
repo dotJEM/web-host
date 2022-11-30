@@ -234,18 +234,18 @@ namespace DotJEM.Web.Host
             IndexStorageConfiguration storage = Configuration.Index.Storage;
 
             if (storage == null)
-                return new LuceneStorageIndex();
+                return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
 
             switch (storage.Type)
             {
                 case IndexStorageType.File:
-                    return new LuceneStorageIndex(new LuceneFileIndexStorage(HostingEnvironment.MapPath(storage.Path)), analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneFileIndexStorage(HostingEnvironment.MapPath(storage.Path), analyzer));
                 case IndexStorageType.CachedMemory:
-                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(HostingEnvironment.MapPath(storage.Path)), analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(HostingEnvironment.MapPath(storage.Path), analyzer));
                 case IndexStorageType.Memory:
-                    return new LuceneStorageIndex(analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
                 default:
-                    return new LuceneStorageIndex(analyzer: analyzer);
+                    return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
             }
         }
 

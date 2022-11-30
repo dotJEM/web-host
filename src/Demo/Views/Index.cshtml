@@ -1,4 +1,5 @@
-﻿@inherits System.Web.Mvc.WebViewPage
+﻿@using DotJEM.Web.Host
+@inherits System.Web.Mvc.WebViewPage
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,5 +9,38 @@
 <body>
     HELLO WORLD
     <a href="/exception">EXCEPTION</a>
+
+
+
+    <div class="maintbox row">
+        <div class="col-sm-2 text-center"><i class="miant-badge text-orange icon icon-cogs"></i></div>
+        <div class="col-sm-8">
+            <h2>SafeSeaNet is currently down for maintenance.</h2>
+            <p>Services should be up again shortly, we apologize for the inconvenience.</p>
+            <p><small class="text-muted" id="time">[@WebHost.Initialization.Duration.ToString("hh\\:mm\\:ss\\.fff")]</small></p>
+            <p><small class="text-muted" id="status">@Html.Raw(WebHost.Initialization.Message.Replace("\n", "<br/>").Replace("\r", ""))</small></p>
+        </div>
+
+    </div>
+
+    <script type="text/javascript">
+
+        setInterval(updateStatus, 5000);
+
+        async function updateStatus() {
+            const response = await fetch("api/status");
+            const data = await response.json();
+
+            document
+                .getElementById("time")
+                .innerHTML = data.duration;
+
+            document
+                .getElementById("status")
+                .innerHTML = data.message.replace(/\n/g, '<br/>').replace(/\r/, "");
+        }
+
+
+    </script>
 </body>
 </html>

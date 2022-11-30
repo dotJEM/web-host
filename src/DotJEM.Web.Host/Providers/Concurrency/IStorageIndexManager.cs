@@ -46,6 +46,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     
     public class StorageIndexManager : IStorageIndexManager
     {
+
         public event EventHandler<IndexResetEventArgs> IndexReset;
         public event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
@@ -122,7 +123,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             index.Storage.Purge();
 
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
-            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
             {
                 if (debugging)
                     writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
@@ -149,7 +150,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         {
             bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
             StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
-            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
             {
                 if(debugging)
                     writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new {args});
@@ -167,7 +168,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             if(!watchers.ContainsKey(area))
                 return;
             
-            using (ILuceneWriteContext writer = index.Writer.WriteContext(buffer))
+            using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
             {
                 if (debugging)
                     writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
@@ -175,6 +176,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency
                 await watchers[area].Reset(writer, gen, progress);
             }
         }
+
 
         public void UpdateIndex()
         {
@@ -232,6 +234,31 @@ namespace DotJEM.Web.Host.Providers.Concurrency
             IndexReset?.Invoke(this, e);
         }
 
+        private class StorageIndexManagerLuceneWriteContextSettings : ILuceneWriteContextSettings
+        {
+            public double BufferSize { get; }
+
+            public StorageIndexManagerLuceneWriteContextSettings(double bufferSize)
+            {
+                BufferSize = bufferSize;
+            }
+
+            private int offset = 0;
+
+            public void AfterWrite(IndexWriter writer, LuceneStorageIndex index, int counterValue)
+            {
+                bool callCommit = false;
+                lock (this)
+                {
+                    // ReSharper disable once AssignmentInConditionalExpression - Done intentionally
+                    if (callCommit = (offset += counterValue) > 50000)
+                        offset = 0;
+                }
+
+                if(callCommit) writer.Commit();
+            }
+
+        }
         public class StorageIndexManagerInitializationProgressTracker
         {
             private readonly ConcurrentDictionary<string, InitializationState> states;
