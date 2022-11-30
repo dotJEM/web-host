@@ -281,7 +281,6 @@ namespace DotJEM.Web.Host
         public void Shutdown()
         {
             Resolve<IWebScheduler>().Stop();
-
             Index.Close();
         }
     }

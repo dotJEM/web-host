@@ -8,10 +8,6 @@ namespace DotJEM.Web.Host.Common
 
         protected virtual void Dispose(bool disposing)
         {
-            if (Disposed)
-            {
-                throw new ObjectDisposedException(GetType().Name);
-            }
             Disposed = true;
         }
 
