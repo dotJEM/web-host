@@ -48,7 +48,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
     
     public class StorageIndexManager : IStorageIndexManager
     {
-
         public event EventHandler<IndexResetEventArgs> IndexReset;
         public event EventHandler<IndexInitializedEventArgs> IndexInitialized;
         public event EventHandler<IndexChangesEventArgs> IndexChanged;
@@ -59,7 +58,6 @@ namespace DotJEM.Web.Host.Providers.Concurrency
         private readonly IInitializationTracker tracker;
         private readonly IDiagnosticsLogger logger;
 
-        //private readonly Dictionary<string, IStorageAreaLog> logs = new Dictionary<string, IStorageAreaLog>();
         private readonly Dictionary<string, IStorageIndexChangeLogWatcher> watchers;
         private readonly TimeSpan interval;
         private readonly int buffer = 512;
