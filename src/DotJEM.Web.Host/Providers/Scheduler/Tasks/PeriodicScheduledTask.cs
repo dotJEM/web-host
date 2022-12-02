@@ -2,29 +2,28 @@ using System;
 using DotJEM.Diagnostic;
 using DotJEM.Web.Host.Diagnostics.Performance;
 
-namespace DotJEM.Web.Host.Providers.Scheduler.Tasks
+namespace DotJEM.Web.Host.Providers.Scheduler.Tasks;
+
+public class PeriodicScheduledTask : ScheduledTask
 {
-    public class PeriodicScheduledTask : ScheduledTask
+    private readonly TimeSpan delay;
+
+    public PeriodicScheduledTask(string name, Action<bool> callback, TimeSpan delay, ILogger perf)
+        : base(name, callback, perf)
     {
-        private readonly TimeSpan delay;
+        this.delay = delay;
+    }
 
-        public PeriodicScheduledTask(string name, Action<bool> callback, TimeSpan delay, ILogger perf)
-            : base(name, callback, perf)
-        {
-            this.delay = delay;
-        }
+    public override IScheduledTask Start()
+    {
+        return RegisterWait(delay);
+    }
 
-        public override IScheduledTask Start()
-        {
-            return RegisterWait(delay);
-        }
-
-        protected override bool ExecuteCallback(bool timedout)
-        {
-            bool success = base.ExecuteCallback(timedout);
-            //TODO: Count exceptions, increase callback time if reoccurences.                
-            RegisterWait(delay);
-            return success;
-        }
+    protected override bool ExecuteCallback(bool timedout)
+    {
+        bool success = base.ExecuteCallback(timedout);
+        //TODO: Count exceptions, increase callback time if reoccurences.                
+        RegisterWait(delay);
+        return success;
     }
 }

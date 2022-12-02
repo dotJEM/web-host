@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 
-namespace DotJEM.Web.Host.Providers.Pipeline
+namespace DotJEM.Web.Host.Providers.Pipeline;
+
+public interface IPipelineHandlerSet : IEnumerable<IPipelineHandler>
 {
-    public interface IPipelineHandlerSet : IEnumerable<IPipelineHandler>
-    {
-    }
 }

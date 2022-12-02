@@ -4,56 +4,55 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-namespace DotJEM.Web.Host.Util
+namespace DotJEM.Web.Host.Util;
+
+public interface IJsonConverter
 {
-    public interface IJsonConverter
+    JToken FromObject(object obj);
+    JObject ToJObject(object obj);
+    JArray ToJArray(object obj);
+}
+
+public class DotjemJsonConverter : IJsonConverter
+{
+    private readonly JsonSerializer serializer = new JsonSerializer();
+
+    public DotjemJsonConverter()
     {
-        JToken FromObject(object obj);
-        JObject ToJObject(object obj);
-        JArray ToJArray(object obj);
+        serializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
+        serializer.Converters.Add(new StringEnumConverter { NamingStrategy = new CamelCaseNamingStrategy() });
+        serializer.Converters.Add(new IsoDateTimeConverter());
+        serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+
+        JObject.FromObject(new {}, serializer);
+        JArray.FromObject(Array.Empty<int>(), serializer);
     }
 
-    public class DotjemJsonConverter : IJsonConverter
+    public JToken FromObject(object obj)
     {
-        private readonly JsonSerializer serializer = new JsonSerializer();
-
-        public DotjemJsonConverter()
+        using (JTokenWriter writer = new JTokenWriter())
         {
-            serializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
-            serializer.Converters.Add(new StringEnumConverter { NamingStrategy = new CamelCaseNamingStrategy() });
-            serializer.Converters.Add(new IsoDateTimeConverter());
-            serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-
-            JObject.FromObject(new {}, serializer);
-            JArray.FromObject(Array.Empty<int>(), serializer);
+            serializer.Serialize(writer, obj);
+            return writer.Token;
         }
-
-        public JToken FromObject(object obj)
+    }
+    public JObject ToJObject(object obj)
+    {
+        JToken jtoken = FromObject(obj);
+        if (jtoken != null && jtoken.Type != JTokenType.Object)
         {
-            using (JTokenWriter writer = new JTokenWriter())
-            {
-                serializer.Serialize(writer, obj);
-                return writer.Token;
-            }
+            throw new ArgumentException(string.Format("Object serialized to {0}. JObject instance expected.", jtoken.Type));
         }
-        public JObject ToJObject(object obj)
-        {
-            JToken jtoken = FromObject(obj);
-            if (jtoken != null && jtoken.Type != JTokenType.Object)
-            {
-                throw new ArgumentException(string.Format("Object serialized to {0}. JObject instance expected.", jtoken.Type));
-            }
-            return (JObject)jtoken;
-        }
+        return (JObject)jtoken;
+    }
 
-        public JArray ToJArray(object obj)
+    public JArray ToJArray(object obj)
+    {
+        JToken jtoken = FromObject(obj);
+        if (jtoken.Type != JTokenType.Array)
         {
-            JToken jtoken = FromObject(obj);
-            if (jtoken.Type != JTokenType.Array)
-            {
-                throw new ArgumentException(string.Format("Object serialized to {0}. JArray instance expected.", jtoken.Type));
-            }
-            return (JArray)jtoken;
+            throw new ArgumentException(string.Format("Object serialized to {0}. JArray instance expected.", jtoken.Type));
         }
+        return (JArray)jtoken;
     }
 }

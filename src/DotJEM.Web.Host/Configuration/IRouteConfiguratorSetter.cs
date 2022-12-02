@@ -1,8 +1,7 @@
-namespace DotJEM.Web.Host.Configuration
+namespace DotJEM.Web.Host.Configuration;
+
+public interface IRouteConfiguratorSetter
 {
-    public interface IRouteConfiguratorSetter
-    {
-        IRouteConfiguratorAnd Defaults(object value);
-        IRouteConfiguratorAnd Constraints(object value);
-    }
+    IRouteConfiguratorAnd Defaults(object value);
+    IRouteConfiguratorAnd Constraints(object value);
 }

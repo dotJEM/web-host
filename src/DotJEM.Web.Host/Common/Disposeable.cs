@@ -1,25 +1,24 @@
 using System;
 
-namespace DotJEM.Web.Host.Common
+namespace DotJEM.Web.Host.Common;
+
+public abstract class Disposeable : IDisposable
 {
-    public abstract class Disposeable : IDisposable
+    protected volatile bool Disposed;
+
+    protected virtual void Dispose(bool disposing)
     {
-        protected volatile bool Disposed;
+        Disposed = true;
+    }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            Disposed = true;
-        }
+    ~Disposeable()
+    {
+        Dispose(false);
+    }
 
-        ~Disposeable()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

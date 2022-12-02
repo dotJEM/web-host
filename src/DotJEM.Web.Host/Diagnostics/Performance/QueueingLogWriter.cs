@@ -6,221 +6,220 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 
-namespace DotJEM.Web.Host.Diagnostics.Performance
+namespace DotJEM.Web.Host.Diagnostics.Performance;
+
+public interface ILogWriter : IDisposable
 {
-    public interface ILogWriter : IDisposable
+    void Write(string message);
+    void Close();
+}
+
+public class QueueingLogWriter : ILogWriter
+{
+    private readonly string path;
+    private readonly long maxSize;
+    private readonly int maxFiles;
+    private readonly bool compress;
+    private readonly string name;
+    private readonly string directory;
+    private readonly string extention;
+
+    private readonly object padLock = new object();
+    private readonly Queue<string> logQueue = new Queue<string>();
+    private readonly Thread thread;
+
+    private bool disposed;
+    private StreamWriter current;
+    private FileInfo file;
+
+    public QueueingLogWriter(string path, long maxSize, int maxFiles, bool compress)
     {
-        void Write(string message);
-        void Close();
+        this.file = new FileInfo(path);
+        this.path = path;
+        this.maxSize = maxSize;
+        this.maxFiles = maxFiles;
+        this.compress = compress;
+        this.name = Path.GetFileNameWithoutExtension(path);
+        this.extention = Path.GetExtension(path);
+        this.directory = Path.GetDirectoryName(path);
+
+        this.current = SafeOpen(path);
+
+        thread = new Thread(WriteLoop);
+        thread.Start();
     }
 
-    public class QueueingLogWriter : ILogWriter
+    public void Write(string message)
     {
-        private readonly string path;
-        private readonly long maxSize;
-        private readonly int maxFiles;
-        private readonly bool compress;
-        private readonly string name;
-        private readonly string directory;
-        private readonly string extention;
+        if (disposed)
+            return;
 
-        private readonly object padLock = new object();
-        private readonly Queue<string> logQueue = new Queue<string>();
-        private readonly Thread thread;
-
-        private bool disposed;
-        private StreamWriter current;
-        private FileInfo file;
-
-        public QueueingLogWriter(string path, long maxSize, int maxFiles, bool compress)
+        lock (padLock)
         {
-            this.file = new FileInfo(path);
-            this.path = path;
-            this.maxSize = maxSize;
-            this.maxFiles = maxFiles;
-            this.compress = compress;
-            this.name = Path.GetFileNameWithoutExtension(path);
-            this.extention = Path.GetExtension(path);
-            this.directory = Path.GetDirectoryName(path);
-
-            this.current = SafeOpen(path);
-
-            thread = new Thread(WriteLoop);
-            thread.Start();
+            logQueue.Enqueue(message);
+            if (logQueue.Count > 32)
+            {
+                Monitor.PulseAll(padLock);
+            }
         }
+    }
 
-        public void Write(string message)
+    private static StreamWriter SafeOpen(string path)
+    {
+        int count = 0;
+        while (true)
         {
-            if (disposed)
-                return;
+            try
+            {
+                return new StreamWriter(path, true);
+            }
+            catch (Exception)
+            {
+                if (count > 100)
+                    throw;
 
+                if (count > 10)
+                    Thread.Sleep(count*10);
+
+                path = MorphPath(path, count++);
+            }
+                
+        }
+    }
+
+    private static string MorphPath(string path, int retry)
+    {
+        string dir = Path.GetDirectoryName(path);
+        string fileName = Path.GetFileNameWithoutExtension(path);
+        string ext = Path.GetExtension(path);
+        return Path.Combine(dir, $"{fileName}-{retry:x}{ext}");
+    }
+
+    private void WriteLoop()
+    {
+        try
+        {
             lock (padLock)
             {
-                logQueue.Enqueue(message);
-                if (logQueue.Count > 32)
+                while (true)
                 {
-                    Monitor.PulseAll(padLock);
+                    if (logQueue.Count < 1)
+                        Monitor.Wait(padLock);
+                    Flush(32);
                 }
             }
         }
-
-        private static StreamWriter SafeOpen(string path)
+        catch (ThreadAbortException)
         {
-            int count = 0;
-            while (true)
-            {
-                try
-                {
-                    return new StreamWriter(path, true);
-                }
-                catch (Exception)
-                {
-                    if (count > 100)
-                        throw;
-
-                    if (count > 10)
-                        Thread.Sleep(count*10);
-
-                    path = MorphPath(path, count++);
-                }
-                
-            }
+            Flush(logQueue.Count);
         }
-
-        private static string MorphPath(string path, int retry)
+        catch (Exception)
         {
-            string dir = Path.GetDirectoryName(path);
-            string fileName = Path.GetFileNameWithoutExtension(path);
-            string ext = Path.GetExtension(path);
-            return Path.Combine(dir, $"{fileName}-{retry:x}{ext}");
+            //TODO: Ignore for now, but we need an idea of how to deal with this.
         }
+    }
 
-        private void WriteLoop()
+    private StreamWriter NextWriter()
+    {
+        file.Refresh();
+        if (file.Length <= maxSize) return current;
+
+        if (current != null)
+            current.Close();
+
+        Archive();
+
+        return current = SafeOpen(path);
+    }
+
+    private void Archive()
+    {
+        file.MoveTo(Path.Combine(directory, GenerateUniqueLogName()));
+        file = new FileInfo(path);
+
+        DirectoryInfo dir = new DirectoryInfo(directory);
+        var logFiles = dir.GetFiles(name + "-*" + extention);
+        if (logFiles.Length < maxFiles)
+            return;
+
+        if (compress)
         {
-            try
+            string zipname = Path.Combine(directory, GenerateUniqueArchiveName());
+            using (ZipArchive archive = ZipFile.Open(zipname, ZipArchiveMode.Create))
             {
-                lock (padLock)
+                foreach (FileInfo f in logFiles)
                 {
-                    while (true)
+                    try
                     {
-                        if (logQueue.Count < 1)
-                            Monitor.Wait(padLock);
-                        Flush(32);
+                        archive.CreateEntryFromFile(f.FullName, f.Name);
+                        f.Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
                     }
                 }
             }
-            catch (ThreadAbortException)
-            {
-                Flush(logQueue.Count);
-            }
-            catch (Exception)
-            {
-                //TODO: Ignore for now, but we need an idea of how to deal with this.
-            }
-        }
 
-        private StreamWriter NextWriter()
+            var zipfiles = dir.GetFiles("*.zip");
+            if (zipfiles.Length > maxFiles)
+                DeleteOldest(zipfiles);
+        }
+        else
         {
-            file.Refresh();
-            if (file.Length <= maxSize) return current;
-
-            if (current != null)
-                current.Close();
-
-            Archive();
-
-            return current = SafeOpen(path);
+            DeleteOldest(logFiles);
         }
+    }
 
-        private void Archive()
+    private void DeleteOldest(FileInfo[] files)
+    {
+        try
         {
-            file.MoveTo(Path.Combine(directory, GenerateUniqueLogName()));
-            file = new FileInfo(path);
-
-            DirectoryInfo dir = new DirectoryInfo(directory);
-            var logFiles = dir.GetFiles(name + "-*" + extention);
-            if (logFiles.Length < maxFiles)
-                return;
-
-            if (compress)
-            {
-                string zipname = Path.Combine(directory, GenerateUniqueArchiveName());
-                using (ZipArchive archive = ZipFile.Open(zipname, ZipArchiveMode.Create))
-                {
-                    foreach (FileInfo f in logFiles)
-                    {
-                        try
-                        {
-                            archive.CreateEntryFromFile(f.FullName, f.Name);
-                            f.Delete();
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine(ex);
-                        }
-                    }
-                }
-
-                var zipfiles = dir.GetFiles("*.zip");
-                if (zipfiles.Length > maxFiles)
-                    DeleteOldest(zipfiles);
-            }
-            else
-            {
-                DeleteOldest(logFiles);
-            }
+            FileInfo oldest = files.OrderByDescending(f => f.CreationTime).First();
+            oldest.Delete();
         }
-
-        private void DeleteOldest(FileInfo[] files)
+        catch (Exception)
         {
-            try
-            {
-                FileInfo oldest = files.OrderByDescending(f => f.CreationTime).First();
-                oldest.Delete();
-            }
-            catch (Exception)
-            {
-                //TODO: Report
-            }
+            //TODO: Report
         }
+    }
 
-        private string GenerateUniqueArchiveName()
+    private string GenerateUniqueArchiveName()
+    {
+        return name + "-" + Guid.NewGuid().ToString("N") + ".zip";
+    }
+
+    private string GenerateUniqueLogName()
+    {
+        return name + "-" + Guid.NewGuid().ToString("N") + extention;
+    }
+
+    private void Flush(int count)
+    {
+        StreamWriter writer = NextWriter();
+        while (logQueue.Count > 0 && count-- > 0)
         {
-            return name + "-" + Guid.NewGuid().ToString("N") + ".zip";
+            writer.WriteLine(logQueue.Dequeue());
         }
 
-        private string GenerateUniqueLogName()
+        if (logQueue.Count > 0)
         {
-            return name + "-" + Guid.NewGuid().ToString("N") + extention;
+            Flush(32);
+            return;
         }
 
-        private void Flush(int count)
-        {
-            StreamWriter writer = NextWriter();
-            while (logQueue.Count > 0 && count-- > 0)
-            {
-                writer.WriteLine(logQueue.Dequeue());
-            }
+        writer.Flush();
+    }
 
-            if (logQueue.Count > 0)
-            {
-                Flush(32);
-                return;
-            }
+    public void Dispose()
+    {
+        disposed = true;
+        thread.Abort();
+        thread.Join();
+    }
 
-            writer.Flush();
-        }
-
-        public void Dispose()
-        {
-            disposed = true;
-            thread.Abort();
-            thread.Join();
-        }
-
-        public void Close()
-        {
-            Dispose();
-        }
+    public void Close()
+    {
+        Dispose();
     }
 }

@@ -5,7 +5,7 @@ using Lucene.Net.Index;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots;
+namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots.Zip;
 
 public class ZipSnapshotWriter : ISnapshotWriter
 {
