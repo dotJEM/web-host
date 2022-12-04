@@ -30,7 +30,7 @@ public interface IStorageIndexManager
     IDictionary<string, long> Generations { get; }
     IInfoStream InfoStream { get; }
 
-    Task Generation(string area, long gen, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
+    Task Generation(string area, long gen);
 
     event EventHandler<IndexInitializedEventArgs> IndexInitialized;
     event EventHandler<IndexChangesEventArgs> IndexChanged;
@@ -92,6 +92,8 @@ public class StorageIndexManager : IStorageIndexManager
         this.logger = logger;
         interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
 
+        snapshot.InfoStream.Forward(InfoStream);
+
         if (!string.IsNullOrEmpty(configuration.Index.Watch.RamBuffer))
             buffer = (int)((long)AdvConvert.ConvertToByteCount(configuration.Index.Watch.RamBuffer) / 1.MegaBytes());
             
@@ -120,16 +122,11 @@ public class StorageIndexManager : IStorageIndexManager
         Stop();
         index.Storage.Purge();
         snapshot.Pause();
-
-        StorageIndexManagerInitializationProgressTracker initTracker = new StorageIndexManagerInitializationProgressTracker(watchers.Keys.Select(k => k));
         using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
         {
-            if (debugging)
-                writer.InfoEvent += (_, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
-
-            await Task.WhenAll(watchers.Values.Select(watcher => watcher
-                .Reset(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(progress => tracker
-                    .SetProgress($"{initTracker.Capture(progress)}")))));
+            if (debugging) writer.InfoEvent += (_, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
+            // ReSharper disable once AccessToDisposedClosure - We are awaiting all so Initialize has done its thing when we continue.
+            await Task.WhenAll(watchers.Values.Select(x => x.Initialize(writer, false))).ConfigureAwait(false);
         }
         this.snapshot.TakeSnapshot();
         snapshot.Resume();
@@ -150,34 +147,28 @@ public class StorageIndexManager : IStorageIndexManager
     {
         snapshot.Pause();
         bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
-        StorageIndexManagerInitializationProgressTracker initTracker = new(watchers.Keys.Select(k => k));
-            
         using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
         {
             if (debugging)
                 writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
 
-            Sync.Await(watchers.Values.Select(watcher => watcher
-                .Initialize(writer, new Progress<StorageIndexChangeLogWatcherInitializationProgress>(
-                    progress => tracker.SetProgress($"{initTracker.Capture(progress)}")))));
+            // ReSharper disable once AccessToDisposedClosure - Sync blocks until these are done.
+            Sync.Await(watchers.Values.Select(x => x.Initialize(writer, restoredFromSnapshot)));
         }
         if (!restoredFromSnapshot) this.snapshot.TakeSnapshot();
         snapshot.Resume();
         OnIndexInitialized(new IndexInitializedEventArgs());
     }
 
-    public async Task Generation(string area, long gen, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
+    public async Task Generation(string area, long gen)
     {
         if(!watchers.ContainsKey(area))
             return;
-            
-        using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
-        {
-            if (debugging)
-                writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
 
-            await watchers[area].Reset(writer, gen, progress);
-        }
+        using ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer));
+        if (debugging)
+            writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
+        await watchers[area].Reset(writer, gen);
     }
 
 
@@ -262,49 +253,4 @@ public class StorageIndexManager : IStorageIndexManager
         }
 
     }
-    public class StorageIndexManagerInitializationProgressTracker
-    {
-        private readonly ConcurrentDictionary<string, InitializationState> states;
-
-        public StorageIndexManagerInitializationProgressTracker(IEnumerable<string> areas)
-        {
-            states = new ConcurrentDictionary<string, InitializationState>(areas.ToDictionary(v => v, v => new InitializationState(v)));
-        }
-
-        public string Capture(StorageIndexChangeLogWatcherInitializationProgress progress)
-        {
-            states.AddOrUpdate(progress.Area, s => new InitializationState(s), (s, state) => state.Add(progress.Token, progress.Latest, progress.Count,  progress.Done));
-            return string.Join(Environment.NewLine, states.Values);
-        }
-
-        private class InitializationState
-        {
-            private readonly string area;
-            private ChangeCount count;
-            private long token;
-            private long latest;
-            private string done;
-            private readonly Stopwatch stopwatch = Stopwatch.StartNew();
-
-            public InitializationState(string area)
-            {
-                this.area = area;
-            }
-
-            public InitializationState Add(long token, long latest, ChangeCount count, bool done)
-            {
-                this.count += count;
-                this.done = done ? "Completed" : "Indexing";
-                this.token = token;
-                this.latest = latest;
-                if (done) stopwatch.Stop();
-                return this;
-            }
-
-            public override string ToString() 
-                => $" -> {area}: {token} / {latest} changes processed, {count.Total} objects indexed. {done} " +
-                   $"({ (int)(count.Total / stopwatch.Elapsed.TotalSeconds) }/sec)";
-        }
-    }
-
 }

@@ -26,7 +26,9 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
     public ISnapshotSourceWithMetadata CreateSource(int offset)
     {
         string[] files = GetSnapshots();
-        return files.Length > offset ? new ZipSnapshotSource(files[offset]) : null;
+        ZipSnapshotSource source= files.Length > offset ? new ZipSnapshotSource(files[offset]) : null;
+        source?.InfoStream.Forward(InfoStream);
+        return source;
     }
 
     public void CleanOldSnapshots(int maxSnapshots)

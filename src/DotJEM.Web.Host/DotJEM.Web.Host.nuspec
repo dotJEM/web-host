@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
 <package >
-  <metadata>
-    <id>$id$</id>
-    <version>$version$</version>
-    <title>$title$</title>
-    <authors>jeme</authors>
-    <owners>jeme</owners>
-    <licenseUrl>https://github.com/dotJEM/web-host/blob/master/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/dotJEM/web-host</projectUrl>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
-    <releaseNotes>https://github.com/dotJEM/web-host/releases</releaseNotes>
-    <copyright>Copyright 2016</copyright>
-    <tags>WebAPI SPA</tags>
-  </metadata>
+	<metadata>
+		<id>$id$</id>
+		<version>$version$</version>
+		<title>$title$</title>
+		<authors>jeme</authors>
+		<owners>jeme</owners>
+		<licenseUrl>https://github.com/dotJEM/web-host/blob/master/LICENSE</licenseUrl>
+		<projectUrl>https://github.com/dotJEM/web-host</projectUrl>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>$description$</description>
+		<releaseNotes>https://github.com/dotJEM/web-host/releases</releaseNotes>
+		<copyright>Copyright 2016</copyright>
+		<tags>WebAPI SPA</tags>
+		<icon>images\avatar.png</icon>
+	</metadata>
+	<files>
+		<file src="..\..\avatar.png" target="images\" />
+	</files>
 </package>

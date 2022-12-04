@@ -15,7 +15,16 @@ public class DefaultInfoStream<TOwner> : IInfoStream
     public void WriteEvent(IInfoStreamEvent evt)
     {
         foreach (IObserver<IInfoStreamEvent> observer in subscribers.Values)
-            observer.OnNext(evt);
+        {
+            try
+            {
+                observer.OnNext(evt);
+            }
+            catch (Exception e)
+            {
+                observer.OnError(e);
+            }
+        }
     }
 
     public IDisposable Subscribe(IObserver<IInfoStreamEvent> observer)

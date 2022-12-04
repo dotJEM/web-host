@@ -4,7 +4,7 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots.Zip;
 
 public class ZipSnapshotEvent : IInfoStreamEvent
 {
-    private LuceneZipSnapshot snapshot;
+    public LuceneZipSnapshot Snapshot { get; }
 
     public string Level { get; }
     public string Message { get; }
@@ -12,6 +12,6 @@ public class ZipSnapshotEvent : IInfoStreamEvent
     public ZipSnapshotEvent(LuceneZipSnapshot snapshot, string level)
     {
         Level = level;
-        this.snapshot = snapshot;
+        this.Snapshot = snapshot;
     }
 }

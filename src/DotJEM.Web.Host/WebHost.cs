@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -153,7 +151,8 @@ public abstract class WebHost : IWebHost
             indexManager = container.Resolve<IStorageIndexManager>();
             Initialization.SetProgress("Loading index.");
 
- 
+            indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
+            
             perf.TrackAction(storageManager.Start);
             perf.TrackAction(indexManager.Start);
             perf.TrackAction(AfterStart);
@@ -225,7 +224,7 @@ public abstract class WebHost : IWebHost
         configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<ILogger>()));
         container
             .ResolveAll<IDataMigrator>()
-            .ForEach(migrator => Storage.MigrationManager.Add(migrator));
+            .ForEach(Storage.MigrationManager.Add);
     }
 
 
@@ -250,16 +249,8 @@ public abstract class WebHost : IWebHost
     }
 
 
-    protected virtual IStorageContext CreateStorage()
-    {
-        var context = new SqlServerStorageContext(Configuration.Storage.ConnectionString);
-        return context;
-    }
-
-    public T Resolve<T>()
-    {
-        return container.Resolve<T>();
-    }
+    protected virtual IStorageContext CreateStorage() => new SqlServerStorageContext(Configuration.Storage.ConnectionString);
+    public T Resolve<T>() => container.Resolve<T>();
 
 
     protected virtual void BeforeStart() { }

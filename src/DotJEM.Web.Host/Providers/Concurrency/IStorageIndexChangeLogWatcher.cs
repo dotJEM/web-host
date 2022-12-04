@@ -20,10 +20,10 @@ public interface IStorageIndexChangeLogWatcher
 {
     IInfoStream InfoStream { get; }
     long Generation { get; }
-    Task Initialize(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
+    Task Initialize(ILuceneWriteContext writer, bool restoredFromSnapshot);
     Task<IStorageChangeCollection> Update(ILuceneWriter writer);
-    Task Reset(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
-    Task Reset(ILuceneWriteContext writer, long generation, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null);
+    Task Reset(ILuceneWriteContext writer);
+    Task Reset(ILuceneWriteContext writer, long generation);
 }
 
 public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
@@ -45,19 +45,21 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
         this.cufoff = cufoff;
     }
 
-    private void SetInitialGeneration()
+    private void SetInitialGeneration(bool restoredFromSnapshot)
     {
+        if (restoredFromSnapshot)
+            return;
+
         log.Get(initialGeneration, true, 0);
     }
 
-    public Task Initialize(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
+    public Task Initialize(ILuceneWriteContext writer, bool restoredFromSnapshot)
     {
-        progress ??= new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
         return Task.Run(async () =>
         {
-            SetInitialGeneration();
+            SetInitialGeneration(restoredFromSnapshot);
             long latest = log.LatestGeneration;
-            progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(), 0, latest, false));
+            //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(), 0, latest, false));
             InfoStream.WriteIndexStarting(area, initialGeneration, latest);
 
             IStorageChangeCollection changes;
@@ -65,9 +67,9 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
             {
                 await writer.WriteAll(cufoff.Filter(changes.Partitioned).Select(change => change.CreateEntity()));
                 InfoStream.WriteIndexIngest(changes);
-                progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
+                //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
             }
-            progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
+            //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
             InfoStream.WriteIndexInitialized(area, changes.Generation);
 
             //while (true)
@@ -86,21 +88,17 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
         });
     }
 
-    public async Task Reset(ILuceneWriteContext writer, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
-    {
-        await Reset(writer, initialGeneration, progress);
-    }
+    public  Task Reset(ILuceneWriteContext writer) => Reset(writer, initialGeneration);
 
-    public Task Reset(ILuceneWriteContext writer, long generation, IProgress<StorageIndexChangeLogWatcherInitializationProgress> progress = null)
+    public Task Reset(ILuceneWriteContext writer, long generation)
     {
         //TODO: This method is almost identical to the one above except for a few things that could be parameterized.
-        progress = progress ?? new Progress<StorageIndexChangeLogWatcherInitializationProgress>();
 
         return Task.Run(async () =>
         {
             log.Get(generation, true, 0); //NOTE: Reset to the generation but don't fetch any changes yet.
             long latest = log.LatestGeneration;
-            progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(0, 0, 0), generation, latest, false));
+            //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(0, 0, 0), generation, latest, false));
             InfoStream.WriteIndexStarting(area, initialGeneration, latest);
 
             while (true)
@@ -108,7 +106,7 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
                 IStorageChangeCollection changes = log.Get(true, batch);
                 if (changes.Count < 1)
                 {
-                    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
+                    //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
                     InfoStream.WriteIndexInitialized(area, changes.Generation);
                     return;
                 }
@@ -117,7 +115,7 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
                 await writer.WriteAll(cufoff.Filter(changes.Updated).Select(change => change.CreateEntity())).ConfigureAwait(false);
                 await writer.DeleteAll(cufoff.Filter(changes.Deleted).Select(change => change.CreateEntity())).ConfigureAwait(false);
                 InfoStream.WriteIndexIngest(changes);
-                progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
+                //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
             }
         });
     }
@@ -154,30 +152,39 @@ public static class StorageChangeLogWatcherExtensions
 
 public class IndexStartingEvent : IInfoStreamEvent
 {
+    public string Area { get; }
+    public long InitialGeneration { get; }
+    public long LatestGeneration { get; }
     public string Level => "START";
     public string Message { get; }
     public IndexStartingEvent(string area, long initialGeneration, long latestGeneration)
     {
+        Area = area;
+        InitialGeneration = initialGeneration;
+        LatestGeneration = latestGeneration;
     }
 }
 public class IndexInitializedEvent : IInfoStreamEvent
 {
+    public string Area { get; }
+    public long Generation { get; }
     public string Level => "INITIALIZED";
     public string Message { get; }
     public IndexInitializedEvent(string area, long generation)
     {
+        Area = area;
+        Generation = generation;
     }
 }
 
 public class IndexIngestEvent : IInfoStreamEvent
 {
-    private readonly IStorageChangeCollection changes;
-
+    public IStorageChangeCollection Changes { get; }
     public string Level => "INGEST";
     public string Message { get; }
 
     public IndexIngestEvent(IStorageChangeCollection changes)
     {
-        this.changes = changes;
+        this.Changes = changes;
     }
 }

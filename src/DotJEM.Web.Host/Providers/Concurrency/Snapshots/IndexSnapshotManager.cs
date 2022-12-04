@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Remoting.MetadataServices;
 using System.Text;
@@ -7,6 +8,7 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Index.Storage.Snapshot;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
 using DotJEM.Web.Host.Providers.Concurrency.Snapshots.Zip;
 using DotJEM.Web.Host.Providers.Scheduler;
@@ -19,6 +21,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
     private bool paused = false;
     private readonly IStorageIndex index;
     private readonly IStorageContext storage;
+    private readonly IDiagnosticsLogger logger;
 
     private readonly int maxSnapshots;
     private ISnapshotStrategy strategy;
@@ -30,10 +33,12 @@ public class IndexSnapshotManager : IIndexSnapshotManager
         IStorageContext storage,
         IWebHostConfiguration configuration, 
         IPathResolver path,
-        IWebScheduler scheduler)
+        IWebScheduler scheduler,
+        IDiagnosticsLogger logger)
     {
         this.index = index;
         this.storage = storage;
+        this.logger = logger;
         this.maxSnapshots = configuration.Index.Snapshots.MaxSnapshots;
         this.strategy = maxSnapshots > 0 ? new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path)) : null;
         this.strategy?.InfoStream.Forward(this.InfoStream);
@@ -60,10 +65,16 @@ public class IndexSnapshotManager : IIndexSnapshotManager
                 return x;
             });
 
-        ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = generations });
-        index.Storage.Snapshot(target);
-        InfoStream.WriteInfo($"Created snapshot");
-
+        try
+        {
+            ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = generations });
+            index.Storage.Snapshot(target);
+            InfoStream.WriteInfo($"Created snapshot");
+        }
+        catch (Exception exception)
+        {
+            logger.Log("failure", Severity.Error, "Failed to take snapshot.", new { exception });
+        }
         strategy.CleanOldSnapshots(maxSnapshots);
         return true;
     }
