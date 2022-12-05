@@ -1,7 +1,6 @@
-namespace DotJEM.Web.Host.Providers.Concurrency
+namespace DotJEM.Web.Host.Providers.Concurrency;
+
+public interface IStorageHistoryCleaner
 {
-    public interface IStorageHistoryCleaner
-    {
-        void Execute();
-    }
+    void Execute();
 }

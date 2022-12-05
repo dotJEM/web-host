@@ -1,7 +1,6 @@
-namespace DotJEM.Web.Host.Configuration
+namespace DotJEM.Web.Host.Configuration;
+
+public interface IRouteConfiguratorExtras
 {
-    public interface IRouteConfiguratorExtras
-    {
-        IRouteConfiguratorSetter Set { get; }
-    }
+    IRouteConfiguratorSetter Set { get; }
 }

@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
 
-namespace DotJEM.Web.Host.Providers.Concurrency
+namespace DotJEM.Web.Host.Providers.Concurrency;
+
+public interface IStorageCutoffFilter
 {
-    public interface IStorageCutoffFilter
-    {
-        IEnumerable<Change> Filter(IEnumerable<Change> changes);
-    }
+    IEnumerable<Change> Filter(IEnumerable<Change> changes);
 }

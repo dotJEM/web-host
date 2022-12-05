@@ -10,65 +10,64 @@ using System.Web.Http.ExceptionHandling;
 using System.Web.Http.Results;
 using DotJEM.Web.Host.Providers.Pipeline;
 
-namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers
+namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
+
+public class WebHostExceptionHandler : ExceptionHandler
 {
-    public class WebHostExceptionHandler : ExceptionHandler
+    private readonly Dictionary<Type, IWebHostExceptionHandler> map;
+
+    public event EventHandler<WebHostUnhandledExceptionArgs> UnhandledException;
+
+    public WebHostExceptionHandler(IWebHostExceptionHandler[] handlers)
     {
-        private readonly Dictionary<Type, IWebHostExceptionHandler> map;
+        map = handlers.ToDictionary(handler => handler.ExceptionType);
+    }
 
-        public event EventHandler<WebHostUnhandledExceptionArgs> UnhandledException;
+    private IWebHostExceptionHandler LookupHandler(Type exceptionType)
+    {
+        IWebHostExceptionHandler handler;
+        if (map.TryGetValue(exceptionType, out handler))
+            return handler;
 
-        public WebHostExceptionHandler(IWebHostExceptionHandler[] handlers)
+        return exceptionType != typeof(Exception)
+            ? LookupHandler(exceptionType.BaseType) 
+            : null;
+    }
+
+    private IHttpActionResult ByHandlers(ExceptionHandlerContext context)
+    {
+        IWebHostExceptionHandler handler = LookupHandler(context.Exception.GetType());
+        return handler?.Handle(context);
+    }
+
+    private IHttpActionResult ByDefault(ExceptionHandlerContext context)
+    {
+        HttpResponseMessage message = context.Request.CreateErrorResponse(HttpStatusCode.InternalServerError,context.Exception.Message, context.Exception);
+        return new ExceptionMessageResult(message);
+    }
+
+    private IHttpActionResult ByEvent(ExceptionHandlerContext context)
+    {
+        WebHostUnhandledExceptionArgs args = OnUnhandledException(new WebHostUnhandledExceptionArgs(context));
+        return args.Result;
+    }
+
+    public override Task HandleAsync(ExceptionHandlerContext context, CancellationToken cancellationToken)
+    {
+        return Task.Factory.StartNew(() =>
         {
-            map = handlers.ToDictionary(handler => handler.ExceptionType);
-        }
+            context.Result = ByHandlers(context) ?? ByEvent(context) ?? ByDefault(context);
+        }, cancellationToken);
+    }
 
-        private IWebHostExceptionHandler LookupHandler(Type exceptionType)
-        {
-            IWebHostExceptionHandler handler;
-            if (map.TryGetValue(exceptionType, out handler))
-                return handler;
+    private WebHostUnhandledExceptionArgs OnUnhandledException(WebHostUnhandledExceptionArgs args)
+    {
+        UnhandledException?.Invoke(this, args);
+        return args;
+    }
 
-            return exceptionType != typeof(Exception)
-                ? LookupHandler(exceptionType.BaseType) 
-                : null;
-        }
-
-        private IHttpActionResult ByHandlers(ExceptionHandlerContext context)
-        {
-            IWebHostExceptionHandler handler = LookupHandler(context.Exception.GetType());
-            return handler?.Handle(context);
-        }
-
-        private IHttpActionResult ByDefault(ExceptionHandlerContext context)
-        {
-            HttpResponseMessage message = context.Request.CreateErrorResponse(HttpStatusCode.InternalServerError,context.Exception.Message, context.Exception);
-            return new ExceptionMessageResult(message);
-        }
-
-        private IHttpActionResult ByEvent(ExceptionHandlerContext context)
-        {
-            WebHostUnhandledExceptionArgs args = OnUnhandledException(new WebHostUnhandledExceptionArgs(context));
-            return args.Result;
-        }
-
-        public override Task HandleAsync(ExceptionHandlerContext context, CancellationToken cancellationToken)
-        {
-            return Task.Factory.StartNew(() =>
-            {
-                context.Result = ByHandlers(context) ?? ByEvent(context) ?? ByDefault(context);
-            }, cancellationToken);
-        }
-
-        private WebHostUnhandledExceptionArgs OnUnhandledException(WebHostUnhandledExceptionArgs args)
-        {
-            UnhandledException?.Invoke(this, args);
-            return args;
-        }
-
-        public override bool ShouldHandle(ExceptionHandlerContext context)
-        {
-            return true;
-        }
+    public override bool ShouldHandle(ExceptionHandlerContext context)
+    {
+        return true;
     }
 }

@@ -1,16 +1,15 @@
-namespace DotJEM.Web.Host.Diagnostics
+namespace DotJEM.Web.Host.Diagnostics;
+
+public enum Severity
 {
-    public enum Severity
-    {
-        Debug,
-        Verbose,
-        Trace,
-        Message,
-        Information,
-        Status,
-        Warning,
-        Error,
-        Critical,
-        Fatal
-    }
+    Debug,
+    Verbose,
+    Trace,
+    Message,
+    Information,
+    Status,
+    Warning,
+    Error,
+    Critical,
+    Fatal
 }

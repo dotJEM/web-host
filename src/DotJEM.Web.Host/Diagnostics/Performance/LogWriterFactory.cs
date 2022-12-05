@@ -2,35 +2,34 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 
-namespace DotJEM.Web.Host.Diagnostics.Performance
+namespace DotJEM.Web.Host.Diagnostics.Performance;
+
+public interface ILogWriterFactory
 {
-    public interface ILogWriterFactory
+    ILogWriter Create(string path, long maxSize, int maxFiles, bool compress);
+}
+
+public class LogWriterFactory : ILogWriterFactory
+{
+    private readonly object padlock = new object();
+    private readonly IPathResolver resolver;
+    private readonly IDictionary<string, ILogWriter> writers = new Dictionary<string, ILogWriter>();
+
+    public LogWriterFactory(IPathResolver path)
     {
-        ILogWriter Create(string path, long maxSize, int maxFiles, bool compress);
+        resolver = path;
     }
 
-    public class LogWriterFactory : ILogWriterFactory
+    public ILogWriter Create(string path, long maxSize, int maxFiles, bool compress)
     {
-        private readonly object padlock = new object();
-        private readonly IPathResolver resolver;
-        private readonly IDictionary<string, ILogWriter> writers = new Dictionary<string, ILogWriter>();
-
-        public LogWriterFactory(IPathResolver path)
+        path = resolver.MapPath(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        lock (padlock)
         {
-            resolver = path;
-        }
+            if (writers.ContainsKey(path))
+                return writers[path];
 
-        public ILogWriter Create(string path, long maxSize, int maxFiles, bool compress)
-        {
-            path = resolver.MapPath(path);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            lock (padlock)
-            {
-                if (writers.ContainsKey(path))
-                    return writers[path];
-
-                return writers[path] = new QueueingLogWriter(path, maxSize, maxFiles, compress);
-            }
+            return writers[path] = new QueueingLogWriter(path, maxSize, maxFiles, compress);
         }
     }
 }

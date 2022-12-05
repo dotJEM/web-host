@@ -5,7 +5,7 @@ using DotJEM.Json.Index.Storage.Snapshot;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots;
+namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots.Zip;
 
 public class ZipSnapshotStrategy : ISnapshotStrategy
 {
@@ -26,7 +26,9 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
     public ISnapshotSourceWithMetadata CreateSource(int offset)
     {
         string[] files = GetSnapshots();
-        return files.Length > offset ? new ZipSnapshotSource(files[offset]) : null;
+        ZipSnapshotSource source= files.Length > offset ? new ZipSnapshotSource(files[offset]) : null;
+        source?.InfoStream.Forward(InfoStream);
+        return source;
     }
 
     public void CleanOldSnapshots(int maxSnapshots)
