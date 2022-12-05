@@ -78,12 +78,20 @@ public class StorageIndexStartupTracker : IObserver<IInfoStreamEvent>
 
         public void StartRestore(LuceneZipFile file)
         {
-            files.AddOrUpdate(file.Name, s => new RestoreFileState(s), (s, state) => state.Start());
+            files.AddOrUpdate(file.Name, 
+                s =>
+                {
+                    return new RestoreFileState(s).Start();
+                }, 
+                (s, state) =>
+                {
+                    return state.Start();
+                });
         }
 
         public void EndRestore(LuceneZipFile file)
         {
-            files.AddOrUpdate(file.Name, s => new RestoreFileState(s), (s, state) => state.Complete());
+            files.AddOrUpdate(file.Name, s => new RestoreFileState(s).Complete(), (s, state) => state.Complete());
         }
 
         public override string ToString()

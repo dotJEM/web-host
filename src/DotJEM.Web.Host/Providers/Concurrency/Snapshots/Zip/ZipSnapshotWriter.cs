@@ -28,7 +28,7 @@ public class ZipSnapshotWriter : ISnapshotWriter
         using Stream target = archive.CreateEntry(stream.FileName).Open();
         stream.CopyTo(target);
 
-        JArray filesArr = (JArray)metadata["files"];
+        JArray filesArr = (JArray)metadata["files"]!;
         filesArr.Add(JToken.FromObject(stream.FileName));
     }
 

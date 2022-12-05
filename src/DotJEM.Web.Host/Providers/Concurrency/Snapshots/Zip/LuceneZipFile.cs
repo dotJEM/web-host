@@ -34,13 +34,9 @@ public class LuceneZipFile : ILuceneFile
         private readonly IInfoStream info;
 
         public override bool CanRead => inner.CanRead;
-
         public override bool CanSeek => inner.CanSeek;
-
         public override bool CanTimeout => inner.CanTimeout;
-
         public override bool CanWrite => inner.CanWrite;
-
         public override long Length => inner.Length;
 
         public override long Position
@@ -75,11 +71,15 @@ public class LuceneZipFile : ILuceneFile
             inner.Dispose();
             info.WriteFileCloseEvent(file);
         }
+        public override void Close()
+        {
+            inner.Close();
+            base.Close();
+        }
 
         public override object InitializeLifetimeService() => inner.InitializeLifetimeService();
         public override ObjRef CreateObjRef(Type requestedType) => inner.CreateObjRef(requestedType);
         public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) => inner.CopyToAsync(destination, bufferSize, cancellationToken);
-        public override void Close() => inner.Close();
         public override void Flush() => inner.Flush();
         public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state) => inner.BeginRead(buffer, offset, count, callback, state);

@@ -21,7 +21,6 @@ public class LuceneZipSnapshot : ISnapshot
 
     public LuceneZipSnapshot(ZipArchive archive, JObject metadata, IInfoStream infoStream)
     {
-        infoStream.WriteSnapshotOpenEvent(this);
      
         this.archive = archive;
         this.metadata = metadata;
@@ -32,7 +31,7 @@ public class LuceneZipSnapshot : ISnapshot
             Files = arr.Select(fileName => new LuceneZipFile((string)fileName, archive, infoStream));
         SegmentsFile = new LuceneZipFile((string)metadata["segmentsFile"], archive, infoStream);
         Generation = (long)metadata["generation"];
-
+        infoStream.WriteSnapshotOpenEvent(this);
     }
         
     public void Dispose()

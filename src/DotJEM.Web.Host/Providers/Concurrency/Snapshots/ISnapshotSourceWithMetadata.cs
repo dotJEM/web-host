@@ -11,4 +11,5 @@ public interface ISnapshotSourceWithMetadata : ISnapshotSource
     JObject Metadata { get; }
 
     bool Verify();
+    bool Delete();
 }

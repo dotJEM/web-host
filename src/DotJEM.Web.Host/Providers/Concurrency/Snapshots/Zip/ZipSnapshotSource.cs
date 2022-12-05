@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using DotJEM.Json.Index.Storage.Snapshot;
@@ -10,13 +11,26 @@ namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots.Zip;
 
 public class ZipSnapshotSource : ISnapshotSourceWithMetadata
 {
+    private readonly string file;
     private readonly ZipArchive archive;
+
+    public static ISnapshotSourceWithMetadata Open(string file)
+    {
+        try
+        {
+            return new ZipSnapshotSource(file);
+        }
+        catch
+        {
+            return new CorruptZipSnapshotSource(file);
+        }
+    }
 
     public IInfoStream InfoStream { get; } = new DefaultInfoStream<ZipSnapshotSource>();
 
     public JObject Metadata { get; }
 
-    public ZipSnapshotSource(string file)
+    private ZipSnapshotSource(string file)
     {
         archive = ZipFile.Open(file, ZipArchiveMode.Read);
         using Stream metaStream = archive.GetEntry("metadata.json")?.Open();
@@ -43,8 +57,56 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
         return true;
     }
 
+    public bool Delete()
+    {
+        try {
+            archive.Dispose();
+            File.Delete(file);
+            return true;
+        }
+        catch (Exception e)
+        {
+            InfoStream.WriteError($"Failed to delete snapshot file: {file}", e);
+            return false;
+        }
+    }
+
     public ISnapshot Open()
     {
         return new LuceneZipSnapshot(archive, Metadata, InfoStream);
+    }
+
+}
+
+public class CorruptZipSnapshotSource : ISnapshotSourceWithMetadata
+{
+    private readonly string file;
+    public IInfoStream InfoStream { get; } = new DefaultInfoStream<ZipSnapshotSource>();
+    public JObject Metadata { get; } = new ();
+
+    public CorruptZipSnapshotSource(string file)
+    {
+        this.file = file;
+    }
+
+
+    public ISnapshot Open()
+    {
+        throw new InvalidOperationException("Can't open a corrupt snapshot.");
+    }
+
+    public bool Verify() => false;
+
+    public bool Delete()
+    {
+        try {
+            File.Delete(file);
+            return true;
+        }
+        catch (Exception e)
+        {
+            InfoStream.WriteError($"Failed to delete snapshot file: {file}", e);
+            return false;
+        }
     }
 }

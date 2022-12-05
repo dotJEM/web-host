@@ -16,6 +16,18 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency.Snapshots;
 
+public interface IIndexSnapshotManager
+{
+    IInfoStream InfoStream { get; }
+
+    void ReplaceStrategy(ISnapshotStrategy strategy);
+    bool TakeSnapshot();
+    bool RestoreSnapshot();
+
+    void Pause();
+    void Resume();
+}
+
 public class IndexSnapshotManager : IIndexSnapshotManager
 {
     private bool paused = false;
@@ -92,8 +104,11 @@ public class IndexSnapshotManager : IIndexSnapshotManager
                 if (source == null)
                     return false;
 
-                if(!source.Verify())
+                if (!source.Verify())
+                {
+                    source.Delete();
                     continue;
+                }
 
                 index.Storage.Restore(source);
                 if (source.Metadata["storageGenerations"] is not JObject metadata) continue;

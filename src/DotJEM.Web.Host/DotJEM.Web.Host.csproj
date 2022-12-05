@@ -362,7 +362,6 @@
     <Compile Include="Providers\Concurrency\IStorageManager.cs" />
     <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
     <Compile Include="Diagnostics\InfoStreams\IInfoStream.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\IIndexSnapshotManager.cs" />
     <Compile Include="Providers\Concurrency\Snapshots\ISnapshotSourceWithMetadata.cs" />
     <Compile Include="Providers\Concurrency\Snapshots\ISnapshotStrategy.cs" />
     <Compile Include="Providers\Concurrency\Snapshots\IndexSnapshotManager.cs" />
