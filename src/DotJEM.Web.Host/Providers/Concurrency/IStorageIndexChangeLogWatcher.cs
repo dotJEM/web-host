@@ -1,18 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
-using System.Runtime;
-using System.Threading;
 using System.Threading.Tasks;
-using DotJEM.AdvParsers;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
-using DotJEM.Json.Storage.Adapter.Materialize.Log;
-using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
-using DotJEM.Web.Host.Providers.Concurrency.Snapshots.Zip;
 
 namespace DotJEM.Web.Host.Providers.Concurrency;
 
@@ -59,7 +50,6 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
         {
             SetInitialGeneration(restoredFromSnapshot);
             long latest = log.LatestGeneration;
-            //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(), 0, latest, false));
             InfoStream.WriteIndexStarting(area, initialGeneration, latest);
 
             IStorageChangeCollection changes;
@@ -67,24 +57,8 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
             {
                 await writer.WriteAll(cufoff.Filter(changes.Partitioned).Select(change => change.CreateEntity()));
                 InfoStream.WriteIndexIngest(changes);
-                //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
             }
-            //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
             InfoStream.WriteIndexInitialized(area, changes.Generation);
-
-            //while (true)
-            //{
-            //    IStorageChangeCollection changes = log.Get(false, batch);
-            //    if (changes.Count < 1)
-            //    {
-            //        progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
-            //        InfoStream.WriteIndexInitialized(area, changes.Generation);
-            //        return;
-            //    }
-            //    await writer.WriteAll(cufoff.Filter(changes.Partitioned).Select(change => change.CreateEntity()));
-            //    InfoStream.WriteIndexIngest(changes);
-            //    progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
-            //}
         });
     }
 
@@ -98,7 +72,6 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
         {
             log.Get(generation, true, 0); //NOTE: Reset to the generation but don't fetch any changes yet.
             long latest = log.LatestGeneration;
-            //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, new ChangeCount(0, 0, 0), generation, latest, false));
             InfoStream.WriteIndexStarting(area, initialGeneration, latest);
 
             while (true)
@@ -106,7 +79,6 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
                 IStorageChangeCollection changes = log.Get(true, batch);
                 if (changes.Count < 1)
                 {
-                    //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, true));
                     InfoStream.WriteIndexInitialized(area, changes.Generation);
                     return;
                 }
@@ -115,7 +87,6 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
                 await writer.WriteAll(cufoff.Filter(changes.Updated).Select(change => change.CreateEntity())).ConfigureAwait(false);
                 await writer.DeleteAll(cufoff.Filter(changes.Deleted).Select(change => change.CreateEntity())).ConfigureAwait(false);
                 InfoStream.WriteIndexIngest(changes);
-                //progress.Report(new StorageIndexChangeLogWatcherInitializationProgress(area, changes.Count, changes.Generation, latest, false));
             }
         });
     }
