@@ -49,6 +49,9 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
 
     private string[] GetSnapshots()
     {
+        if (!Directory.Exists(path))
+            return Array.Empty<string>();
+
         return Directory.GetFiles(path, "*.zip")
             .OrderByDescending(file => file)
             .ToArray();
