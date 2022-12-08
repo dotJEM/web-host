@@ -1,14 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Threading;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Hosting;
 using System.Web.Http;
 using System.Web.Http.Dispatcher;
 using System.Web.Http.ExceptionHandling;
-using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
@@ -34,6 +34,7 @@ using Lucene.Net.Analysis;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
+using Component = Castle.MicroKernel.Registration.Component;
 
 namespace DotJEM.Web.Host;
 
@@ -100,16 +101,18 @@ public abstract class WebHost : IWebHost
         container.Install(FromAssembly.This());
 
         BeforeStart();
+        IPathResolver path = new PathResolver();
 
         AppConfigurationProvider = container.Resolve<IAppConfigurationProvider>();
         Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
+        SetupKillSignal(path);
 
         AttachIndexDebugging();
         Index = CreateIndex();
         Storage = CreateStorage();
 
         container
-            .Register(Component.For<IPathResolver>().ImplementedBy<PathResolver>())
+            .Register(Component.For<IPathResolver>().Instance(path))
             .Register(Component.For<IJsonMergeVisitor>().ImplementedBy<JsonMergeVisitor>())
             .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
             .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
@@ -198,6 +201,31 @@ public abstract class WebHost : IWebHost
                 });
         });
         return this;
+    }
+
+    protected virtual void SetupKillSignal(IPathResolver path)
+    {
+        if(string.IsNullOrEmpty(Configuration.KillSignalFile))
+            return;
+
+        string killFile = path.MapPath(Configuration.KillSignalFile);
+        byte[] time = BitConverter.GetBytes(DateTime.Now.Ticks);
+        byte[] owner = BitConverter.GetBytes(Process.GetCurrentProcess().Id);
+        byte[] signature = time.Concat(owner).ToArray();
+        File.WriteAllBytes(killFile, signature);
+
+        FileSystemWatcher watcher =  new FileSystemWatcher();
+        watcher.Path = Path.GetDirectoryName(killFile);
+        watcher.Filter = "kill.signal";
+        watcher.Changed += (sender, args) =>
+        {
+            byte[] content = File.ReadAllBytes(killFile);
+            for (int i = 0; i < content.Length; i++)
+            {
+                if (content[i] != signature[i]) Process.GetCurrentProcess().Kill();
+            }
+        };
+        watcher.EnableRaisingEvents = true;
     }
 
     private void AttachIndexDebugging()
