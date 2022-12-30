@@ -45,5 +45,7 @@ namespace Demo
             container.Register(Component.For<StatusController>().LifestyleTransient());
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
         }
+
+
     }
 }

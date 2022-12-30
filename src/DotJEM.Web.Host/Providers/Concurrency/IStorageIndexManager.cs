@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.AdvParsers;
@@ -9,13 +7,9 @@ using DotJEM.Json.Index;
 using DotJEM.Json.Index.Util;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
-using DotJEM.Json.Storage.Adapter.Materialize.Log;
-using DotJEM.Json.Storage.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
-using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers.Concurrency.Snapshots;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Scheduler.Tasks;
@@ -29,7 +23,7 @@ public interface IStorageIndexManager
 {
     IDictionary<string, long> Generations { get; }
     IInfoStream InfoStream { get; }
-
+    IStorageIndex Index { get; }
     Task Generation(string area, long gen);
 
     event EventHandler<IndexInitializedEventArgs> IndexInitialized;
@@ -53,15 +47,14 @@ public class StorageIndexManager : IStorageIndexManager
     public event EventHandler<IndexInitializedEventArgs> IndexInitialized;
     public event EventHandler<IndexChangesEventArgs> IndexChanged;
 
-    private readonly IStorageIndex index;
     private readonly IStorageContext storage;
     private readonly IWebScheduler scheduler;
-    private readonly IInitializationTracker tracker;
     private readonly IDiagnosticsLogger logger;
 
     private readonly Dictionary<string, IStorageIndexChangeLogWatcher> watchers;
     private readonly TimeSpan interval;
     private readonly int buffer = 512;
+    public IStorageIndex Index { get; }
 
     public IDictionary<string, long> Generations => watchers.ToDictionary(k => k.Key, k => k.Value.Generation);
     public IInfoStream InfoStream { get; } = new DefaultInfoStream<StorageIndexManager>();
@@ -77,17 +70,15 @@ public class StorageIndexManager : IStorageIndexManager
         IStorageCutoff cutoff,
         IWebHostConfiguration configuration, 
         IWebScheduler scheduler, 
-        IInitializationTracker tracker,
         IIndexSnapshotManager snapshot,
         IDiagnosticsLogger logger)
     {
-        this.index = index;
+        this.Index = index;
         this.storage = storage;
         this.debugging = configuration.Index.Debugging.Enabled;
         if (this.debugging)
-            this.index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
+            this.Index.Writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
         this.scheduler = scheduler;
-        this.tracker = tracker;
         this.snapshot = snapshot;
         this.logger = logger;
         interval = TimeSpan.FromSeconds(configuration.Index.Watch.Interval);
@@ -120,9 +111,9 @@ public class StorageIndexManager : IStorageIndexManager
     public async Task ResetIndex()
     {
         Stop();
-        index.Storage.Purge();
+        Index.Storage.Purge();
         snapshot.Pause();
-        using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
+        using (ILuceneWriteContext writer = Index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
         {
             if (debugging) writer.InfoEvent += (_, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
             // ReSharper disable once AccessToDisposedClosure - We are awaiting all so Initialize has done its thing when we continue.
@@ -147,7 +138,7 @@ public class StorageIndexManager : IStorageIndexManager
     {
         snapshot.Pause();
         bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
-        using (ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
+        using (ILuceneWriteContext writer = Index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
         {
             if (debugging)
                 writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
@@ -165,7 +156,7 @@ public class StorageIndexManager : IStorageIndexManager
         if(!watchers.ContainsKey(area))
             return;
 
-        using ILuceneWriteContext writer = index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer));
+        using ILuceneWriteContext writer = Index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer));
         if (debugging)
             writer.InfoEvent += (sender, args) => logger.Log("indexdebug", Severity.Critical, args.Message, new { args });
         await watchers[area].Reset(writer, gen);
@@ -175,9 +166,9 @@ public class StorageIndexManager : IStorageIndexManager
     public void UpdateIndex()
     {
         IStorageChangeCollection[] changes = Sync
-            .Await(watchers.Values.Select(watcher => watcher.Update(index.Writer)));
+            .Await(watchers.Values.Select(watcher => watcher.Update(Index.Writer)));
         OnIndexChanged(new IndexChangesEventArgs(changes.ToDictionary(c => c.StorageArea)));
-        index.Flush();
+        Index.Flush();
     }
 
     public JObject CheckIndex(string area, string contentType, Guid id, Func<string, Guid, JObject> ghostFactory)
@@ -201,7 +192,7 @@ public class StorageIndexManager : IStorageIndexManager
     {
         //Note: This will cause the entity to be updated in the index twice
         //      but it ensures that the entity is prepared for us if we query it right after this...
-        index.Write(entity);
+        Index.Write(entity);
         task?.Signal();
     }
 
@@ -209,7 +200,7 @@ public class StorageIndexManager : IStorageIndexManager
     {
         //Note: This will cause the entity to be updated in the index twice
         //      but it ensures that the entity is prepared for us if we query it right after this...
-        index.Delete(entity);
+        Index.Delete(entity);
         task?.Signal();
     }
 

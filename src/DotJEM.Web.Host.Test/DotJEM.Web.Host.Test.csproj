@@ -40,8 +40,8 @@
     <Reference Include="Castle.Windsor, Version=5.0.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
       <HintPath>..\packages\Castle.Windsor.5.0.1\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index, Version=1.1.248.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index.1.1.248\lib\net48\DotJEM.Json.Index.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index, Version=1.1.250.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index.1.1.250\lib\net48\DotJEM.Json.Index.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.NUnit.Json, Version=0.0.9.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.NUnit.Json.0.0.9\lib\net45\DotJEM.NUnit.Json.dll</HintPath>

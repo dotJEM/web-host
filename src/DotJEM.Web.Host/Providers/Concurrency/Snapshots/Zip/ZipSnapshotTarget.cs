@@ -19,6 +19,7 @@ public class ZipSnapshotTarget : ISnapshotTarget
 
     public ISnapshotWriter Open(IndexCommit commit)
     {
+        Directory.CreateDirectory(path);
         return new ZipSnapshotWriter(metaData, Path.Combine(path, $"{DateTime.Now:yyyy-MM-ddTHHmmss}.{commit.Generation:D8}.zip"))
             .WriteMetaData(commit);
     }

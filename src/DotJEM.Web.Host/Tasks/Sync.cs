@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -77,18 +78,24 @@ public static class Sync
 
     public static void Await(IEnumerable<Task> tasks)
     {
-        try
+        using (new NoSynchronizationContext())
         {
-            Task.WhenAll(tasks).Wait();
-            //Task.Run(() => Task.WhenAll(tasks)).ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-        catch (AggregateException ex)
-        {
-            ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions.First()).Throw();
-            // ReSharper disable HeuristicUnreachableCode
-            // The compiler requires either a throw or return, so even though this is unreachable, the compiler won't build unless it is there.
-            throw;
-            // ReSharper restore HeuristicUnreachableCode
+            try
+            {
+                Task[] tasks2 = tasks.ToArray();
+
+                Task.WhenAll(tasks2).Wait();
+                Debug.WriteLine("");
+                //Task.Run(() => Task.WhenAll(tasks)).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch (AggregateException ex)
+            {
+                ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions.First()).Throw();
+                // ReSharper disable HeuristicUnreachableCode
+                // The compiler requires either a throw or return, so even though this is unreachable, the compiler won't build unless it is there.
+                throw;
+                // ReSharper restore HeuristicUnreachableCode
+            }
         }
     }
 

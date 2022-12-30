@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Concurrency;
 
@@ -49,16 +51,21 @@ public class StorageChangeLogWatcher : IStorageIndexChangeLogWatcher
         return Task.Run(async () =>
         {
             SetInitialGeneration(restoredFromSnapshot);
-            long latest = log.LatestGeneration;
-            InfoStream.WriteIndexStarting(area, initialGeneration, latest);
-
-            IStorageChangeCollection changes;
-            while ((changes = log.Get(false, batch)).Count > 0)
+            long generation = log.LatestGeneration;
+            InfoStream.WriteIndexStarting(area, initialGeneration, generation);
+            
+            while (true)
             {
-                await writer.WriteAll(cufoff.Filter(changes.Partitioned).Select(change => change.CreateEntity()));
+                IStorageChangeCollection changes = log.Get(false, batch);
+                if(changes.Count == 0) 
+                    break;
+
+                IEnumerable<JObject> filtered = cufoff.Filter(changes.Partitioned).Select(change => change.CreateEntity());
+                await writer.WriteAll(filtered).ConfigureAwait(false);
                 InfoStream.WriteIndexIngest(changes);
+                generation = changes.Generation;
             }
-            InfoStream.WriteIndexInitialized(area, changes.Generation);
+            InfoStream.WriteIndexInitialized(area, generation);
         });
     }
 

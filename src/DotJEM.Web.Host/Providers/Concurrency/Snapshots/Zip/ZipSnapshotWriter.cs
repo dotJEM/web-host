@@ -39,6 +39,13 @@ public class ZipSnapshotWriter : ISnapshotWriter
         metadata["segmentsFile"] = stream.FileName;
     }
 
+    public void WriteSegmentsGenFile(IndexInputStream stream)
+    {
+        using Stream target = archive.CreateEntry(stream.FileName).Open();
+        stream.CopyTo(target);
+        metadata["segmentsGenFile"] = stream.FileName;
+    }
+
     public ZipSnapshotWriter WriteMetaData(IndexCommit commit)
     {
         metadata["generation"] = commit.Generation;

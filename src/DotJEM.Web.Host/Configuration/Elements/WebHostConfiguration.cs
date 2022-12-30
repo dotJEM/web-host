@@ -1,13 +1,17 @@
-﻿using System.Configuration;
+﻿using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
 
 namespace DotJEM.Web.Host.Configuration.Elements;
 
 public interface IWebHostConfiguration
 {
     string KillSignalFile { get; }
+
     StorageConfiguration Storage { get; }
     IndexConfiguration Index { get; }
     DiagnosticsConfiguration Diagnostics { get; }
+    DataCleanupElementCollection Cleanup { get; }
 }
 
 public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
@@ -23,4 +27,36 @@ public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
 
     [ConfigurationProperty("diagnostics", IsRequired = false)]
     public DiagnosticsConfiguration Diagnostics => this["diagnostics"] as DiagnosticsConfiguration;
+
+    [ConfigurationProperty("cleanup", IsRequired = false, DefaultValue = null)]
+    public DataCleanupElementCollection Cleanup => this["cleanup"] as DataCleanupElementCollection;
+
+}
+
+[ConfigurationCollection(typeof(CleanQueryConfigurationElement))]
+public class DataCleanupElementCollection : ConfigurationElementCollection
+{
+    [ConfigurationProperty("interval", IsRequired = true)]
+    public string Interval => (string)this["interval"];
+
+    public IEnumerable<CleanQueryConfigurationElement> Items => this.OfType<CleanQueryConfigurationElement>();
+
+    protected override ConfigurationElement CreateNewElement()
+    {
+        return new CleanQueryConfigurationElement();
+    }
+
+    protected override object GetElementKey(ConfigurationElement element)
+    {
+        return ((CleanQueryConfigurationElement)(element)).Query;
+    }
+}
+
+public class CleanQueryConfigurationElement : ConfigurationElement
+{
+    [ConfigurationProperty("query", IsRequired = true)]
+    public string Query => this["query"] as string;
+
+    [ConfigurationProperty("interval", IsRequired = false, DefaultValue = null)]
+    public string Interval => (string)this["interval"];
 }
