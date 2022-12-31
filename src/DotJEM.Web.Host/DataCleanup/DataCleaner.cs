@@ -1,79 +1,24 @@
-﻿using DotJEM.Json.Index;
-using DotJEM.Json.Storage;
-using DotJEM.Web.Host.Providers.Scheduler.Tasks;
-using DotJEM.Web.Host.Providers.Scheduler;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DotJEM.Json.Index.Searching;
-using System.Web.Http.Results;
+using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Configuration;
-using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
 using DotJEM.Web.Host.Providers.Concurrency;
+using DotJEM.Web.Host.Providers.Scheduler;
+using DotJEM.Web.Host.Providers.Scheduler.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StorageConfiguration = DotJEM.Json.Storage.Configuration.StorageConfiguration;
-using Castle.MicroKernel.Registration;
-using Castle.MicroKernel.SubSystems.Configuration;
-using Castle.Windsor;
-using DotJEM.Web.Host.Abstractions;
 
 namespace DotJEM.Web.Host.DataCleanup;
-public class AbstractionsInstaller : IWindsorInstaller
-{
-    public void Install(IWindsorContainer container, IConfigurationStore store)
-    {
-        container.Register(Component.For<IDataCleanupManager>().ImplementedBy<DataCleanupManager>().LifestyleSingleton());
-    }
-}
-
-public interface IDataCleanupManager
-{
-    void Start();
-    void Stop();
-
-}
-
-public class DataCleanupManager : IDataCleanupManager
-{
-    private readonly List<IDataCleaner> cleaners;
-
-    public DataCleanupManager(IStorageIndexManager index, IStorageContext storage, IWebScheduler scheduler, IWebHostConfiguration configuration)
-    {
-        if (configuration.Cleanup == null)
-        {
-            cleaners = new List<IDataCleaner>();
-            return;
-        }
-
-        cleaners = configuration.Cleanup.Items
-            .Select(item => (IDataCleaner)new DataCleaner(index, storage, scheduler, item.Query, item.Interval ?? configuration.Cleanup.Interval))
-            .ToList();
-    }
-
-    public void Start()
-    {
-        foreach (IDataCleaner cleaner in cleaners)
-            cleaner.Start();
-    }
-
-    public void Stop()
-    {
-        foreach (IDataCleaner cleaner in cleaners)
-            cleaner.Stop();
-    }
-}
 
 public interface IDataCleaner
 {
     void Start();
     void Stop();
 }
-
 public class DataCleaner : IDataCleaner
 {
     private readonly IStorageIndexManager indexManager;
@@ -117,11 +62,11 @@ public class DataCleaner : IDataCleaner
         {
             if(group.Key == string.Empty)
                 continue;
-
-            NewFunction(storage.Area(group.Key), group.AsEnumerable());
+            DeleteDocuments(storage.Area(group.Key), group.AsEnumerable());
         }
+        indexManager.UpdateIndex();
 
-        void NewFunction(IStorageArea area, IEnumerable<JObject> items)
+        void DeleteDocuments(IStorageArea area, IEnumerable<JObject> items)
         {
             foreach (JObject entity in items)
             {

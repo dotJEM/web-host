@@ -328,7 +328,9 @@
     <Compile Include="Configuration\IRouteConfiguratorSetter.cs" />
     <Compile Include="Configuration\IRouter.cs" />
     <Compile Include="Configuration\RouteConfiguratorExtras.cs" />
-    <Compile Include="DataCleanup\Class1.cs" />
+    <Compile Include="DataCleanup\CleanupInstaller.cs" />
+    <Compile Include="DataCleanup\DataCleaner.cs" />
+    <Compile Include="DataCleanup\DataCleanupManager.cs" />
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\ExceptionHandlerInstaller.cs" />
