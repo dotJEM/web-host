@@ -5,13 +5,6 @@ using DotJEM.AdvParsers;
 
 namespace DotJEM.Web.Host.Providers.Scheduler.Tasks;
 
-
-
-public interface ITrigger
-{
-    bool TryGetNext(bool firstExecution, out TimeSpan timeSpan);
-}
-
 public abstract class Trigger : ITrigger
 {
     public static ITrigger Parse(string value)
@@ -62,52 +55,3 @@ public abstract class Trigger : ITrigger
 
     public abstract bool TryGetNext(bool firstExecution, out TimeSpan timeSpan);
 }
-
-public class CronTrigger : ITrigger
-{
-    private readonly CrontabSchedule cron;
-
-    public CronTrigger(CrontabSchedule cron)
-    {
-        this.cron = cron;
-    }
-
-    public bool TryGetNext(bool firstExecution, out TimeSpan timeSpan)
-    {
-        timeSpan = cron.GetNextOccurrence(DateTime.Now).Subtract(DateTime.Now);
-        return true;
-    }
-}
-
-public class PeriodicTrigger : ITrigger
-{
-    private readonly TimeSpan timeSpan;
-
-    public PeriodicTrigger(TimeSpan timeSpan)
-    {
-        this.timeSpan = timeSpan;
-    }
-
-    public bool TryGetNext(bool firstExecution, out TimeSpan timeSpan)
-    {
-        timeSpan = this.timeSpan;
-        return true;
-    }
-}
-
-public class SingleFireTrigger : ITrigger
-{
-    private readonly TimeSpan timeSpan;
-
-    public SingleFireTrigger(TimeSpan timeSpan)
-    {
-        this.timeSpan = timeSpan;
-    }
-    
-    public bool TryGetNext(bool firstExecution, out TimeSpan timeSpan)
-    {
-        timeSpan = this.timeSpan;
-        return firstExecution;
-    }
-}
-

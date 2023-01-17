@@ -298,6 +298,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Abstractions\IHostingEnvironment.cs" />
     <Compile Include="Angular\Angular.cs" />
     <Compile Include="Angular\IAngularContext.cs" />
     <Compile Include="Angular\IAngularDependency.cs" />
@@ -327,6 +328,9 @@
     <Compile Include="Configuration\IRouteConfiguratorSetter.cs" />
     <Compile Include="Configuration\IRouter.cs" />
     <Compile Include="Configuration\RouteConfiguratorExtras.cs" />
+    <Compile Include="DataCleanup\CleanupInstaller.cs" />
+    <Compile Include="DataCleanup\DataCleaner.cs" />
+    <Compile Include="DataCleanup\DataCleanupManager.cs" />
     <Compile Include="Diagnostics\DiagnosticsInstaller.cs" />
     <Compile Include="Diagnostics\DiagnosticsLogger.cs" />
     <Compile Include="Diagnostics\ExceptionHandlers\ExceptionHandlerInstaller.cs" />
@@ -391,11 +395,12 @@
     <Compile Include="Providers\ProviderInstaller.cs" />
     <Compile Include="Providers\Scheduler\IScheduler.cs" />
     <Compile Include="Providers\Scheduler\TaskEventArgs.cs" />
-    <Compile Include="Providers\Scheduler\Tasks\CronScheduledTask.cs" />
-    <Compile Include="Providers\Scheduler\Tasks\IScheduledTask.cs" />
-    <Compile Include="Providers\Scheduler\Tasks\PeriodicScheduledTask.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\CronTrigger.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\Trigger.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\ITrigger.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\PeriodicTrigger.cs" />
     <Compile Include="Providers\Scheduler\Tasks\ScheduledTask.cs" />
-    <Compile Include="Providers\Scheduler\Tasks\SingleFireScheduledTask.cs" />
+    <Compile Include="Providers\Scheduler\Tasks\SingleFireTrigger.cs" />
     <Compile Include="Providers\Scheduler\ThreadPoolProxy.cs" />
     <Compile Include="Providers\SearchServiceProvider.cs" />
     <Compile Include="Providers\ServiceProvider.cs" />
