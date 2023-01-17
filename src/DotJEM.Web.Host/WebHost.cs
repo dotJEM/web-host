@@ -260,9 +260,13 @@ public abstract class WebHost : IWebHost
     {
         IndexStorageConfiguration storage = Configuration.Index.Storage;
 
+        IndexDeletionPolicy policy = Configuration.Index.Snapshots.MaxSnapshots > -1
+            ? new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy())
+            : new KeepOnlyLastCommitDeletionPolicy();
+
         if (storage == null)
             return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
-
+        
         switch (storage.Type)
         {
             case IndexStorageType.File:
