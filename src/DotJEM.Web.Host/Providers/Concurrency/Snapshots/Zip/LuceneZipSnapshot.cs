@@ -17,6 +17,7 @@ public class LuceneZipSnapshot : ISnapshot
 
     public long Generation { get; }
     public ILuceneFile SegmentsFile { get; }
+    public ILuceneFile SegmentsGenFile { get; }
     public IEnumerable<ILuceneFile> Files { get; }
 
     public LuceneZipSnapshot(ZipArchive archive, JObject metadata, IInfoStream infoStream)
@@ -30,6 +31,7 @@ public class LuceneZipSnapshot : ISnapshot
         if (metadata["files"] is JArray arr)
             Files = arr.Select(fileName => new LuceneZipFile((string)fileName, archive, infoStream));
         SegmentsFile = new LuceneZipFile((string)metadata["segmentsFile"], archive, infoStream);
+        SegmentsGenFile = new LuceneZipFile((string)metadata["segmentsGenFile"], archive, infoStream);
         Generation = (long)metadata["generation"];
         infoStream.WriteSnapshotOpenEvent(this);
     }

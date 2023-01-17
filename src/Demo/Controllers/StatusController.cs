@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using System.Web.Http;
 using DotJEM.Web.Host;
+using DotJEM.Web.Host.Initialization;
 
 namespace Demo.Controllers
 {
@@ -8,9 +9,9 @@ namespace Demo.Controllers
     public class StatusController : WebHostApiController
     {
         [HttpGet]
-        public async Task<object> Get()
+        public Task<IInitializationTracker> Get()
         {
-            return WebHost.Initialization;
+            return Task.FromResult(WebHost.Initialization);
         }
 
     }

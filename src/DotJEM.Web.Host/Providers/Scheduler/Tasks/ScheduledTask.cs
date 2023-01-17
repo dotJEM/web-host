@@ -11,7 +11,21 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Scheduler.Tasks;
 
-public abstract class ScheduledTask : Disposeable, IScheduledTask
+public interface IScheduledTask : IDisposable
+{
+    event EventHandler<TaskEventArgs> TaskCompleted;
+    event EventHandler<TaskExceptionEventArgs> TaskException;
+
+    Guid Id { get; }
+    string Name { get; }
+
+    IScheduledTask Start();
+    IScheduledTask Signal();
+    IScheduledTask Signal(TimeSpan delay);
+
+}
+
+public class ScheduledTask : Disposeable, IScheduledTask
 {
     public event EventHandler<TaskEventArgs> TaskCompleted;
     public event EventHandler<TaskExceptionEventArgs> TaskException;
@@ -26,23 +40,31 @@ public abstract class ScheduledTask : Disposeable, IScheduledTask
     public string Name { get; }
 
     private readonly IThreadPool pool;
+    private readonly ITrigger trigger;
     private readonly ILogger perf;
 
-    protected ScheduledTask(string name, Action<bool> callback, ILogger perf)
-        : this(name, callback, new ThreadPoolProxy(), perf)
+    public ScheduledTask(string name, Action<bool> callback, ITrigger trigger, ILogger perf)
+        : this(name, callback, new ThreadPoolProxy(), trigger, perf)
     {
     }
 
-    protected ScheduledTask(string name, Action<bool> callback, IThreadPool pool, ILogger perf)
+    public ScheduledTask(string name, Action<bool> callback, IThreadPool pool, ITrigger trigger, ILogger perf)
     {
         Id = Guid.NewGuid();
         this.Name = name;
         this.callback = callback;
         this.pool = pool;
+        this.trigger = trigger;
         this.perf = perf;
     }
+    
+    public IScheduledTask Start()
+    {
+        if (trigger.TryGetNext(true, out TimeSpan value))
+            RegisterWait(value);
+        return this;
+    }
 
-    public abstract IScheduledTask Start();
 
     /// <summary>
     /// Registers the next call for the scheduled task onto the threadpool.
@@ -83,6 +105,11 @@ public abstract class ScheduledTask : Disposeable, IScheduledTask
                     OnTaskException(new TaskExceptionEventArgs(ex, this, seenBefore));
                     tracker.Commit(new { ex });
                     return false;
+                }
+                finally
+                {
+                    if (trigger.TryGetNext(false, out TimeSpan value))
+                        RegisterWait(value);
                 }
             }
         }

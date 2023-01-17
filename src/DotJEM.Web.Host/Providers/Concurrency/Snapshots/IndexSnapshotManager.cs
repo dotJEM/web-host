@@ -71,8 +71,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
         if(paused || maxSnapshots <= 0 || strategy == null) return false;
             
         JObject generations = storage.AreaInfos
-            .Aggregate(new JObject(), (x, info) =>
-            {
+            .Aggregate(new JObject(), (x, info) => {
                 x[info.Name] = storage.Area(info.Name).Log.CurrentGeneration;
                 return x;
             });
@@ -80,6 +79,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
         try
         {
             ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = generations });
+            index.Commit();
             index.Storage.Snapshot(target);
             InfoStream.WriteInfo($"Created snapshot");
         }

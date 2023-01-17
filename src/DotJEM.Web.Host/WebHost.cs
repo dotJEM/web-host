@@ -20,6 +20,7 @@ using DotJEM.Json.Storage.Migration;
 using DotJEM.Web.Host.Castle;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.DataCleanup;
 using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
@@ -155,10 +156,21 @@ public abstract class WebHost : IWebHost
             Initialization.SetProgress("Loading index.");
 
             indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
-            
-            perf.TrackAction(storageManager.Start);
-            perf.TrackAction(indexManager.Start);
-            perf.TrackAction(AfterStart);
+
+            try
+            {
+                perf.TrackAction(storageManager.Start);
+                perf.TrackAction(indexManager.Start);
+                perf.TrackAction(AfterStart);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+
+            container.Resolve<IDataCleanupManager>().Start();
 
             Initialization.Complete();
             startup.Dispose();
