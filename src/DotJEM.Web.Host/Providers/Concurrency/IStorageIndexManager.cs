@@ -132,11 +132,14 @@ public class StorageIndexManager : IStorageIndexManager
         task = scheduler.ScheduleTask("ChangeLogWatcher", b => UpdateIndex(), interval);
     }
 
-    public void Stop() => task.Dispose();
+    public void Stop()
+    {
+        snapshot.Stop();
+        task.Dispose();
+    }
 
     private void InitializeIndex()
     {
-        snapshot.Pause();
         bool restoredFromSnapshot = this.snapshot.RestoreSnapshot();
         using (ILuceneWriteContext writer = Index.Writer.WriteContext(new StorageIndexManagerLuceneWriteContextSettings(buffer)))
         {
@@ -147,7 +150,8 @@ public class StorageIndexManager : IStorageIndexManager
             Sync.Await(watchers.Values.Select(x => x.Initialize(writer, restoredFromSnapshot)));
         }
         if (!restoredFromSnapshot) this.snapshot.TakeSnapshot();
-        snapshot.Resume();
+        
+        snapshot.Start();
         OnIndexInitialized(new IndexInitializedEventArgs());
     }
 

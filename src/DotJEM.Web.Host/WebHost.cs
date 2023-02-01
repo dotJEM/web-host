@@ -157,21 +157,11 @@ public abstract class WebHost : IWebHost
 
             indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
-            try
-            {
-                perf.TrackAction(storageManager.Start);
-                perf.TrackAction(indexManager.Start);
-                perf.TrackAction(AfterStart);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-
+            perf.TrackAction(storageManager.Start);
+            perf.TrackAction(indexManager.Start);
+            perf.TrackAction(AfterStart);
 
             container.Resolve<IDataCleanupManager>().Start();
-
             Initialization.Complete();
             startup.Dispose();
         }).ContinueWith(async result => {
@@ -179,7 +169,6 @@ public abstract class WebHost : IWebHost
                 return;
 
             IDiagnosticsDumpService dump = Resolve<IDiagnosticsDumpService>();
-
             Guid ticket = Guid.NewGuid();
             try
             {
