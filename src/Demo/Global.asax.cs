@@ -17,7 +17,7 @@ namespace Demo
     {
         protected void Application_Start()
         {
-            new DemoHost(GlobalConfiguration.Configuration).Start();
+            //new DemoHost(GlobalConfiguration.Configuration).Start();
         }
     }
     public class DemoHost : WebHost
@@ -45,7 +45,5 @@ namespace Demo
             container.Register(Component.For<StatusController>().LifestyleTransient());
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
         }
-
-
     }
 }
