@@ -355,31 +355,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\AppConfigurationProvider.cs" />
     <Compile Include="Providers\Concurrency\Cutoff\IStorageCutoffFilter.cs" />
-    <Compile Include="Providers\Concurrency\IndexChangesEventArgs.cs" />
-    <Compile Include="Providers\Concurrency\IndexInitializedEventArgs.cs" />
     <Compile Include="Providers\Concurrency\Installer.cs" />
     <Compile Include="Providers\Concurrency\Cutoff\IStorageCutoff.cs" />
     <Compile Include="Providers\Concurrency\IStorageHistoryCleaner.cs" />
-    <Compile Include="Providers\Concurrency\IStorageIndexChangeLogWatcher.cs" />
-    <Compile Include="Providers\Concurrency\IStorageIndexManager.cs" />
-    <Compile Include="Providers\Concurrency\Info\IStorageIndexManagerInfoStream.cs" />
-    <Compile Include="Providers\Concurrency\IStorageManager.cs" />
-    <Compile Include="Providers\Concurrency\SimpleDictionaryWriter.cs" />
     <Compile Include="Diagnostics\InfoStreams\IInfoStream.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\ISnapshotSourceWithMetadata.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\ISnapshotStrategy.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\IndexSnapshotManager.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\LuceneZipFile.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\LuceneZipSnapshot.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipFileEvent.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipInfoStreamExtensions.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipSnapshotEvent.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipSnapshotSource.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipSnapshotStrategy.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipSnapshotTarget.cs" />
-    <Compile Include="Providers\Concurrency\Snapshots\Zip\ZipSnapshotWriter.cs" />
     <Compile Include="Providers\Concurrency\StorageHistoryCleaner.cs" />
-    <Compile Include="Providers\Concurrency\StorageIndexChangeLogWatcherInitializationProgress.cs" />
     <Compile Include="Providers\ContentServiceProvider.cs" />
     <Compile Include="Providers\FileServiceProvider.cs" />
     <Compile Include="Providers\Pipeline\ContentTypeFilterAttribute.cs" />
@@ -430,9 +410,7 @@
     <None Include="DotJEM.Web.Host.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Providers\Concurrency\WriteContext\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
