@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Configuration.Elements;
-using DotJEM.Web.Host.Providers.Concurrency;
-using DotJEM.Web.Host.Providers.Scheduler;
+using DotJEM.Web.Scheduler;
 
 namespace DotJEM.Web.Host.DataCleanup;
 
@@ -17,7 +17,7 @@ public class DataCleanupManager : IDataCleanupManager
 {
     private readonly List<IDataCleaner> cleaners;
 
-    public DataCleanupManager(IStorageIndexManager index, IStorageContext storage, IWebScheduler scheduler, IWebHostConfiguration configuration)
+    public DataCleanupManager(IJsonIndexManager index, IStorageContext storage, IWebTaskScheduler scheduler, IWebHostConfiguration configuration)
     {
         if (configuration.Cleanup == null)
         {

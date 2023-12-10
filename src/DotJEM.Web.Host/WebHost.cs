@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,10 @@ using Castle.Windsor.Installer;
 using DotJEM.AdvParsers;
 using DotJEM.Diagnostic;
 using DotJEM.Json.Index;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Configuration;
+using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Snapshots;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Migration;
 using DotJEM.Web.Host.Castle;
@@ -29,9 +34,13 @@ using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using DotJEM.Web.Host.Providers.Storage;
 using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Writers;
+using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis;
+using Lucene.Net.Analysis.Standard;
+using Lucene.Net.Analysis.Util;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -53,10 +62,10 @@ public abstract class WebHost : IWebHost
 
     private readonly IWindsorContainer container;
     private readonly HttpConfiguration configuration;
-    private IStorageIndexManager indexManager;
+    private IJsonIndexManager indexManager;
     private IStorageManager storageManager;
 
-    protected IStorageIndex Index { get; set; }
+    protected IJsonIndex Index { get; set; }
     protected IStorageContext Storage { get; set; }
     protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
     protected IWebHostConfiguration Configuration { get; set; }
@@ -120,7 +129,7 @@ public abstract class WebHost : IWebHost
             .Register(Component.For<ILazyComponentLoader>().ImplementedBy<LazyOfTComponentLoader>())
             .Register(Component.For<IWindsorContainer>().Instance(container))
             .Register(Component.For<IWebHost>().Instance(this))
-            .Register(Component.For<IStorageIndex>().Instance(Index))
+            .Register(Component.For<IJsonIndex>().Instance(Index))
             .Register(Component.For<IStorageContext>().Instance(Storage))
             .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
             .Register(Component.For<IInitializationTracker>().Instance(Initialization));
@@ -134,7 +143,7 @@ public abstract class WebHost : IWebHost
         perf.TrackAction(() => Configure(container.Resolve<IPipeline>()), "Configure Pipeline");
         perf.TrackAction(() => Configure(container), "Configure Container");
         perf.TrackAction(() => Configure(Storage), "Configure Storage");
-        perf.TrackAction(() => Configure(Index), "Configure Index");
+        //perf.TrackAction(() => Configure(Index), "Configure Index");
         perf.TrackAction(() => Configure(new HttpRouterConfigurator(configuration.Routes)), "Configure Routes");
         perf.TrackAction(AfterConfigure);
 
@@ -152,13 +161,13 @@ public abstract class WebHost : IWebHost
             perf.TrackAction(AfterInitialize);
 
             storageManager = container.Resolve<IStorageManager>();
-            indexManager = container.Resolve<IStorageIndexManager>();
+            indexManager = container.Resolve<IJsonIndexManager>();
             Initialization.SetProgress("Loading index.");
 
             indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
             perf.TrackAction(storageManager.Start);
-            perf.TrackAction(indexManager.Start);
+            perf.TrackTask(indexManager.RunAsync());
             perf.TrackAction(AfterStart);
 
             container.Resolve<IDataCleanupManager>().Start();
@@ -257,16 +266,20 @@ public abstract class WebHost : IWebHost
     }
 
 
-    protected virtual IStorageIndex CreateIndex(Analyzer analyzer = null)
+    protected virtual IJsonIndex CreateIndex(Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
     {
         IndexStorageConfiguration storage = Configuration.Index.Storage;
 
-        IndexDeletionPolicy policy = Configuration.Index.Snapshots.MaxSnapshots > -1
-            ? new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy())
-            : new KeepOnlyLastCommitDeletionPolicy();
+        analyzerProvider ??= config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET); 
 
+        JsonIndexBuilder builder = new JsonIndexBuilder("Main");
         if (storage == null)
-            return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
+        {
+            return builder.UsingMemmoryStorage()
+                .WithAnalyzer(analyzerProvider)
+                .WithSnapshoting()
+                .Build();
+        }
         
         switch (storage.Type)
         {
@@ -290,21 +303,21 @@ public abstract class WebHost : IWebHost
     protected virtual void BeforeConfigure() { }
     protected virtual void Configure(IWindsorContainer container) { }
     protected virtual void Configure(IStorageContext storage) { }
-    protected virtual void Configure(IStorageIndex index) { }
+    //protected virtual void Configure(IStorageIndex index) { }
     protected virtual void Configure(IRouter router) { }
     protected virtual void Configure(IPipeline pipeline) { }
 
     protected virtual void AfterConfigure() { }
     protected virtual void BeforeInitialize() { }
     protected virtual void Initialize(IStorageContext storage) { }
-    protected virtual void Initialize(IStorageIndex index) { }
+    protected virtual void Initialize(IJsonIndex index) { }
 
     protected virtual void AfterInitialize() { }
     protected virtual void AfterStart() { }
 
     public void Shutdown()
     {
-        Resolve<IWebScheduler>().Stop();
+        Resolve<IWebTaskScheduler>().Stop();
         Index.Close();
     }
 }

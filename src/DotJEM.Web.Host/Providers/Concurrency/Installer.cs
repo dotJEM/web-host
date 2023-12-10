@@ -2,6 +2,7 @@ using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Web.Host.Providers.Concurrency.Snapshots;
+using DotJEM.Web.Host.Providers.Storage;
 
 namespace DotJEM.Web.Host.Providers.Concurrency;
 

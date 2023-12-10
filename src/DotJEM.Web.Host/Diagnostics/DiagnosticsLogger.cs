@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.Concurrency;
@@ -117,13 +118,13 @@ public class DiagnosticsLogger : IDiagnosticsLogger
     public const string ContentTypeFailure = "failure";
 
     private readonly Lazy<IStorageArea> area;
-    private readonly Lazy<IStorageIndexManager> manager;
+    private readonly Lazy<IJsonIndexManager> manager;
 
     public IStorageArea Area => area.Value;
-    public IStorageIndexManager Manager => manager.Value;
+    public IJsonIndexManager Manager => manager.Value;
     public IJsonConverter Converter { get; }
 
-    public DiagnosticsLogger(Lazy<IStorageContext> context, Lazy<IStorageIndexManager> manager, IJsonConverter converter)
+    public DiagnosticsLogger(Lazy<IStorageContext> context, Lazy<IJsonIndexManager> manager, IJsonConverter converter)
     {
         area = new Lazy<IStorageArea>(() => context.Value.Area("diagnostic"));
         this.manager = manager;

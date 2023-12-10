@@ -1,15 +1,15 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
- using DotJEM.Diagnostic;
- using DotJEM.Json.Index;
-using DotJEM.Json.Index.Searching;
- using DotJEM.Web.Host.Diagnostics.Performance;
- using DotJEM.Web.Host.Providers.Pipeline;
- using Lucene.Net.Search;
+using DotJEM.Diagnostic;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Results;
+using DotJEM.Json.Index2.Searching;
+using DotJEM.Web.Host.Providers.Pipeline;
+using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
 
- namespace DotJEM.Web.Host.Providers.Services; 
+namespace DotJEM.Web.Host.Providers.Services; 
 
  public sealed class SearchResult
  {
@@ -38,11 +38,11 @@ using Newtonsoft.Json.Linq;
 
  public class SearchService : ISearchService
  {
-     private readonly IStorageIndex index;
+     private readonly IJsonIndex index;
      private readonly IPipeline pipeline;
      private readonly ILogger performance;
 
-     public SearchService(IStorageIndex index, IPipeline pipeline, ILogger performance)
+     public SearchService(IJsonIndex index, IPipeline pipeline, ILogger performance)
      {
          this.index = index;
          this.pipeline = pipeline;
@@ -55,10 +55,16 @@ using Newtonsoft.Json.Linq;
          //if (string.IsNullOrWhiteSpace(query))
          //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
-         ISearchResult result = index
+
+         ISearch result = index
              .Search(query)
              .Skip(skip)
              .Take(take);
+
+         SearchResults results = result
+             .Execute();
+
+        
 
          //TODO: extract contenttype based on configuration.
          SearchResult searchResult = new SearchResult(result
@@ -80,7 +86,7 @@ using Newtonsoft.Json.Linq;
      {
          JObject reduceObj = query as JObject ?? JObject.FromObject(query);
 
-         ISearchResult result = index.Search(reduceObj).Skip(skip).Take(take);
+         ISearch result = index.Search(reduceObj).Skip(skip).Take(take);
          if (!string.IsNullOrEmpty(sort))
          {
              result.Sort(CreateSortObject(sort));
@@ -98,6 +104,6 @@ using Newtonsoft.Json.Linq;
      {
          //TODO: Sort by other types as well.
          string[] fields = sort.Split(':');
-         return new SortField(fields[0], SortField.LONG, fields[1].Equals("desc", StringComparison.InvariantCultureIgnoreCase));
+         return new SortField(fields[0], SortFieldType.INT64, fields[1].Equals("desc", StringComparison.InvariantCultureIgnoreCase));
      }
  }

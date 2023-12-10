@@ -4,11 +4,16 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using DotJEM.Diagnostic;
 using DotJEM.Json.Index;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Searching;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using Lucene.Net.Index;
+using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services;
@@ -79,16 +84,16 @@ public class ContentService : IContentService
 {
     private const string TRACK_TYPE = "content";
 
-    private readonly IStorageIndex index;
+    private readonly IJsonIndex index;
     private readonly IStorageArea area;
-    private readonly IStorageIndexManager manager;
+    private readonly IJsonIndexManager manager;
     private readonly IPipeline pipeline;
     private readonly ILogger performance;
     private readonly IContentMergeService merger;
 
     public IStorageArea StorageArea => area;
 
-    public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
+    public ContentService(IJsonIndex index, IStorageArea area, IJsonIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
     {
         this.index = index;
         this.area = area;
@@ -100,18 +105,18 @@ public class ContentService : IContentService
 
     public IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20)
     {
-        JObject[] res = index.Search("contentType: " + contentType)
+        TermQuery query = new TermQuery(new Term("contentType", contentType));
+        JObject[] res = index.Search(query)
             .Skip(skip).Take(take)
-            .Select(hit => hit.Json)
+            .Execute()
+            .Select(hit => hit.Data)
             //Note: Execute the pipeline for each element found
             .Select(json =>
             {
-                using (PipelineContext context = pipeline.CreateContext(contentType, (JObject)json))
-                {
-                    return pipeline.ExecuteAfterGet(json, contentType, context);
-                }
+                using PipelineContext context = pipeline.CreateContext(contentType, json);
+                return pipeline.ExecuteAfterGet(json, contentType, context);
             })
-            .Cast<JObject>().ToArray();
+            .ToArray();
 
         return res;
 
