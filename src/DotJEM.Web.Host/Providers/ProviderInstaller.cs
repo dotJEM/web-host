@@ -1,7 +1,6 @@
 ﻿using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
-using DotJEM.Web.Host.Providers.Scheduler;
 using DotJEM.Web.Host.Providers.Services;
 using DotJEM.Web.Scheduler;
 

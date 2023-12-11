@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DotJEM.Json.Index.Searching;
 using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Results;
 using DotJEM.Json.Storage;

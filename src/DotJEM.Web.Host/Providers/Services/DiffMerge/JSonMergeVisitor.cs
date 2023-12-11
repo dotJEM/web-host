@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Lucene.Net.Documents;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services.DiffMerge;

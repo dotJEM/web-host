@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Diagnostic;
-using DotJEM.Web.Host.Diagnostics.Performance;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Pipeline;

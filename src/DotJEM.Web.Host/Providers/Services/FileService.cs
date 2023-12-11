@@ -6,12 +6,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web.Http;
-using System.Web.Http.Controllers;
-using DotJEM.Json.Index;
+using DotJEM.Json.Index2;
 using DotJEM.Json.Storage.Adapter;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 namespace DotJEM.Web.Host.Providers.Services;
 
@@ -162,10 +160,10 @@ public static class FileObjectExtentions
 
 public class FileService : IFileService
 {
-    private readonly IStorageIndex index;
+    private readonly IJsonIndex index;
     private readonly IStorageArea area;
 
-    public FileService(IStorageIndex index, IStorageArea area)
+    public FileService(IJsonIndex index, IStorageArea area)
     {
         this.index = index;
         this.area = area;
@@ -210,8 +208,8 @@ public class FileService : IFileService
     {
         JObject entity = area.Insert(contentType, file.ToJson());
 
-        FileHeader header = new FileHeader(entity);
-        index.Write(header.ToJson());
+        FileHeader header = new FileHeader(entity); 
+        index.Update(header.ToJson());
         return header;
     }
 
@@ -220,7 +218,7 @@ public class FileService : IFileService
         JObject entity = area.Update(id, file.ToJson());
 
         FileHeader header = new FileHeader(entity);
-        index.Write(header.ToJson());
+        index.Update(header.ToJson());
         return header;
     }
 

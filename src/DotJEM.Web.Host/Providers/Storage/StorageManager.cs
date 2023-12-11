@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DotJEM.AdvParsers;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Configuration;
@@ -25,7 +26,8 @@ public class StorageManager : IStorageManager
     public StorageManager(IStorageContext storage, IWebHostConfiguration configuration, IWebTaskScheduler scheduler)
     {
         this.scheduler = scheduler;
-        this.interval = AdvConvert.ConvertToTimeSpan(configuration.Storage.Interval);
+        this.interval = AdvParser.ParseTimeSpan(configuration.Storage.Interval);
+        //this.interval = AdvConvert.ConvertToTimeSpan(configuration.Storage.Interval);
         foreach (StorageAreaElement areaConfig in configuration.Storage.Items)
         {
             IStorageAreaConfigurator areaConfigurator = storage.Configure.Area(areaConfig.Name);
@@ -36,7 +38,8 @@ public class StorageManager : IStorageManager
             if (string.IsNullOrEmpty(areaConfig.HistoryAge))
                 continue;
 
-            TimeSpan historyAge = AdvConvert.ConvertToTimeSpan(areaConfig.HistoryAge);
+            //TimeSpan historyAge = AdvConvert.ConvertToTimeSpan(areaConfig.HistoryAge);
+            TimeSpan historyAge = AdvParser.ParseTimeSpan(areaConfig.HistoryAge);
             if (historyAge <= TimeSpan.Zero)
                 continue;
 

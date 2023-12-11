@@ -24,14 +24,14 @@ public class PipelineHandlerSet : IPipelineHandlerSet
         {
             IPipelineHandler handler = queue.Dequeue();
             Type handlerType = handler.GetType();
-            PipelineDepencency[] dependencies = PipelineDepencency.GetDepencencies(handler);
+            PipelineDependency[] dependencies = PipelineDependency.GetDependencies(handler);
             if (dependencies.Length < 1 || dependencies.All(d => ordered.Contains(d.Type)))
             {
                 ordered.Add(handlerType);
             }
             else
             {
-                IEnumerable<PipelineDepencency> unknownDependencies = dependencies
+                IEnumerable<PipelineDependency> unknownDependencies = dependencies
                     .Where(dep => !map.ContainsKey(dep.Type))
                     .ToArray();
                 if (unknownDependencies.Any())

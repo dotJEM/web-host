@@ -1,8 +1,7 @@
 ﻿using DotJEM.Diagnostic;
-using DotJEM.Json.Index;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Storage;
-using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
@@ -13,7 +12,7 @@ public class ContentServiceProvider : ServiceProvider<IContentService>
 {
     private readonly IStorageContext context;
 
-    public ContentServiceProvider(IStorageIndex index, IStorageContext context, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
+    public ContentServiceProvider(IJsonIndex index, IStorageContext context, IJsonIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
         : base(name => new ContentService(index, context.Area(name), manager, pipeline, merger, performance))
     {
         this.context = context;

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Dynamic;
 
 namespace DotJEM.Web.Host.Diagnostics.InfoStreams;
 

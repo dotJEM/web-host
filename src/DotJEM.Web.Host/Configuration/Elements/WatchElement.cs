@@ -1,5 +1,4 @@
 using System.Configuration;
-using DotJEM.Web.Host.Diagnostics;
 
 namespace DotJEM.Web.Host.Configuration.Elements;
 
