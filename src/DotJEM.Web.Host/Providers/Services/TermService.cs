@@ -2,10 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Castle.MicroKernel.Registration;
-using Castle.MicroKernel.SubSystems.Configuration;
-using Castle.Windsor;
-using DotJEM.Json.Index;
 using DotJEM.Json.Index2;
 using Lucene.Net.Index;
 using Lucene.Net.Util;
