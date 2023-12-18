@@ -11,19 +11,13 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services; 
 
- public sealed class SearchResult
- {
-     public long TotalCount { get; set; }
-     public IEnumerable<dynamic> Results { get; set; }
+ public sealed class JsonSearchResult
+{
+     public long TotalCount { get;  }
+     public IReadOnlyCollection<dynamic> Results { get; }
 
-     public SearchResult(ISearchResult result)
-     {
-         //Note: We must do the actual enumeration here to kick of the search, otherwise TotalCount is 0.
-         Results = result.Select(hit => hit.Json).ToArray();
-         TotalCount = result.TotalCount;
-     }
 
-     public SearchResult(IEnumerable<dynamic> results, long totalCount)
+     public JsonSearchResult(IReadOnlyCollection<JObject> results, long totalCount)
      {
          Results = results;
          TotalCount = totalCount;
@@ -32,8 +26,8 @@ namespace DotJEM.Web.Host.Providers.Services;
 
  public interface ISearchService
  {
-     SearchResult Search(string query, int skip = 0, int take = 20);
-     SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
+     JsonSearchResult Search(string query, int skip = 0, int take = 20);
+     JsonSearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc");
  }
 
  public class SearchService : ISearchService
@@ -49,50 +43,60 @@ namespace DotJEM.Web.Host.Providers.Services;
          this.performance = performance;
      }
 
-     public SearchResult Search(string query, int skip = 0, int take = 20)
+     public JsonSearchResult Search(string query, int skip = 0, int take = 20)
      {
          //TODO: Throw exception on invalid query.
          //if (string.IsNullOrWhiteSpace(query))
          //    Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Must specify a query.");
 
 
-         ISearch result = index
+         ISearch search = index
              .Search(query)
              .Skip(skip)
              .Take(take);
 
-         SearchResults results = result
+         SearchResults result = search
              .Execute();
 
-        
+        JObject[] items = result
+             .Select(result => pipeline.ExecuteAfterGet(result.Data,
+                 (string)result.Data["contentType"], 
+                 pipeline.CreateContext((string)result.Data["contentType"], result.Data)))
+             .ToArray();
 
-         //TODO: extract contenttype based on configuration.
-         SearchResult searchResult = new SearchResult(result
-             .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
-             .ToArray(), result.TotalCount);
+        JsonSearchResult searchResult = new JsonSearchResult(
+            items,
+            result.TotalHits
+        );
+
+        //TODO: extract contenttype based on configuration.
+        //JsonSearchResult searchResult = new SearchResult(result
+        //     .Select(hit => pipeline.ExecuteAfterGet(hit.Json, (string)hit.Json.contentType, pipeline.CreateContext((string)hit.Json.contentType, (JObject)hit.Json)))
+        //     .ToArray(), result.TotalCount);
 
          performance.LogAsync("search", new
          {
-             totalTime = (long)result.TotalTime.TotalMilliseconds,
-             searchTime = (long)result.SearchTime.TotalMilliseconds,
-             loadTime = (long)result.LoadTime.TotalMilliseconds,
+             //totalTime = (long)result.TotalTime.TotalMilliseconds,
+             //searchTime = (long)result.SearchTime.TotalMilliseconds,
+             //loadTime = (long)result.LoadTime.TotalMilliseconds,
              query, skip, take,
-             results = result.TotalCount
+             results = searchResult.TotalCount
          });
          return searchResult;
      }
 
-     public SearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc")
+     public JsonSearchResult Search(dynamic query, string contentType = null, int skip = 0, int take = 20, string sort = "$created:desc")
      {
-         JObject reduceObj = query as JObject ?? JObject.FromObject(query);
+         //JObject reduceObj = query as JObject ?? JObject.FromObject(query);
+         //ISearch result = index.Search(reduceObj).Skip(skip).Take(take);
+         //if (!string.IsNullOrEmpty(sort))
+         //{
+         //    result.Sort(CreateSortObject(sort));
+         //}
+         //SearchResult searchResult = new SearchResult(result);
+         //return searchResult;
 
-         ISearch result = index.Search(reduceObj).Skip(skip).Take(take);
-         if (!string.IsNullOrEmpty(sort))
-         {
-             result.Sort(CreateSortObject(sort));
-         }
-         SearchResult searchResult = new SearchResult(result);
-         return searchResult;
+         throw new NotImplementedException();
      }
 
      private Sort CreateSortObject(string sort)

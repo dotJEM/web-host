@@ -376,6 +376,7 @@
     <Compile Include="Providers\Index\Builder\FieldQueryBuilder.cs" />
     <Compile Include="Providers\Index\Builder\IRangeFieldQueryFactory.cs" />
     <Compile Include="Providers\Index\Builder\TermFieldQueryBuilder.cs" />
+    <Compile Include="Providers\Index\IndexQueryParserExtensions.cs" />
     <Compile Include="Providers\Index\QueryParser.cs" />
     <Compile Include="Providers\Index\Schemas\IJObjectEnumarator.cs" />
     <Compile Include="Providers\Index\Schemas\ISchemaCollection.cs" />
