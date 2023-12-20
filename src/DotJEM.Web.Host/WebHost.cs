@@ -159,10 +159,10 @@ public abstract class WebHost : IWebHost
             indexManager = container.Resolve<IJsonIndexManager>();
             Initialization.SetProgress("Loading index.");
 
-            indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
+            //indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
             perf.TrackAction(storageManager.Start);
-            perf.TrackTask(indexManager.RunAsync());
+            perf.TrackTask(indexManager.RunAsync(), "Index Manager");
             perf.TrackAction(AfterStart);
 
             container.Resolve<IDataCleanupManager>().Start();
@@ -273,6 +273,7 @@ public abstract class WebHost : IWebHost
             return builder.UsingMemmoryStorage()
                 .WithAnalyzer(analyzerProvider)
                 .WithSnapshoting()
+                
                 .Build();
         }
         

@@ -5,5 +5,5 @@ namespace DotJEM.Web.Host.Providers.Concurrency;
 
 public interface IStorageCutoffFilter
 {
-    IEnumerable<Change> Filter(IEnumerable<Change> changes);
+    //IEnumerable<Change> Filter(IEnumerable<Change> changes);
 }

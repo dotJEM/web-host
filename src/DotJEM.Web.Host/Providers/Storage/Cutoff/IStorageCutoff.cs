@@ -1,26 +1,37 @@
 using System.Collections.Generic;
 using System.Linq;
-using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog;
+using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
+using DotJEM.Web.Host.Providers.Concurrency;
 
-namespace DotJEM.Web.Host.Providers.Concurrency;
-
-public interface IStorageCutoff
+namespace DotJEM.Web.Host.Providers.Storage.Cutoff;
+public interface IStorageChangeFilter
 {
-    IEnumerable<Change> Filter(IEnumerable<Change> changes);
+    bool Exclude(IChangeLogRow change);
 }
 
-public class StorageCutoff : IStorageCutoff
+public interface IStorageChangeFilterHandler
 {
-    private readonly List<IStorageCutoffFilter> filters;
-    public StorageCutoff(params IStorageCutoffFilter[] filters)
+    bool Exclude(IChangeLogRow change);
+}
+
+public class StorageChangeFilterHandler : IStorageChangeFilterHandler
+{
+    private readonly List<IStorageChangeFilter> filters;
+
+    public StorageChangeFilterHandler(params IStorageChangeFilter[] filters)
     {
         this.filters = filters.ToList();
     }
 
-    public IEnumerable<Change> Filter(IEnumerable<Change> changes)
+    //public IEnumerable<Change> Filter(IEnumerable<Change> changes)
+    //{
+    //    if (filters.Count < 1)
+    //        return changes;
+    //    return filters.Aggregate(changes, (items, filter) => filter.Filter(items));
+    //}
+
+    public bool Exclude(IChangeLogRow change)
     {
-        if (filters.Count < 1)
-            return changes;
-        return filters.Aggregate(changes, (items, filter) => filter.Filter(items));
+        return filters.Any(filter => filter.Exclude(change));
     }
 }

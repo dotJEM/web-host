@@ -5,6 +5,7 @@ using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.ObservableExtensions.InfoStreams;
+using DotJEM.Web.Host.Providers.Storage.Cutoff;
 using DotJEM.Web.Scheduler;
 
 namespace DotJEM.Web.Host.Providers.Storage.Indexing;
@@ -22,6 +23,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 {
     private readonly string pollInterval;
     private readonly IWebTaskScheduler scheduler;
+    private readonly IStorageChangeFilterHandler filter;
     private readonly IStorageAreaLog log;
     private readonly ChangeStream observable = new();
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
@@ -35,10 +37,11 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public IInfoStream InfoStream => infoStream;
     public IObservable<IJsonDocumentChange> Observable => observable;
 
-    public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, string pollInterval = "10s")
+    public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, IStorageChangeFilterHandler filter, string pollInterval = "10s")
     {
         StorageArea = storageArea;
         this.scheduler = scheduler;
+        this.filter = filter;
         this.pollInterval = pollInterval;
         log = storageArea.Log;
     }
@@ -104,6 +107,9 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             {
                 generation = change.Generation;
                 if (change.Type == ChangeType.Faulty)
+                    continue;
+
+                if(filter.Exclude(change))
                     continue;
 
                 observable.Publish(new JsonDocumentChange(change.Area, changeTypeGetter(change), change.CreateEntity(), change.Size, new GenerationInfo(change.Generation, latestGeneration)));
