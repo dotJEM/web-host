@@ -15,10 +15,10 @@ public static class IndexQueryParserExtensions
     public static ISearch Search(this IJsonIndexSearcher self, string query)
     {
         IQueryParser parser = self.Index.Configuration.ResolveParser();
-        MultiFieldQueryParser parser = new MultiFieldQueryParser();
+        //MultiFieldQueryParser parser = new MultiFieldQueryParser();
 
 
-        LuceneQueryInfo queryInfo = parser.Parse(query);
+        //LuceneQueryInfo queryInfo = parser.Parse(query);
         return self.Search(queryInfo.Query).OrderBy(queryInfo.Sort);
     }
 

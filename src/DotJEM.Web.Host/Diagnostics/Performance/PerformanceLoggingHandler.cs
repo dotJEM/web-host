@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using DotJEM.AdvParsers;
 using DotJEM.Diagnostic;
 using DotJEM.Diagnostic.Collectors;
 using DotJEM.Diagnostic.Correlation;
@@ -39,7 +40,7 @@ public class LoggerFactory : ILoggerFactory
             return new NullLogger();
 
         PerformanceConfiguration config = configuration.Diagnostics.Performance;
-        var writer = new QueuingTraceWriter(resolver.MapPath(config.Path), AdvConvert.ConvertToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
+        var writer = new QueuingTraceWriter(resolver.MapPath(config.Path), AdvParser.ParseByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         return new HighPrecisionLogger(new TraceEventCollector(writer), customDataProviderManager.Providers);
     }
 }
