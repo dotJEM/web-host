@@ -1,13 +1,8 @@
-﻿using DotJEM.Web.Host.Providers.Services;
-using DotJEM.Web.Host;
+﻿using DotJEM.Web.Host;
 using System.Collections.Generic;
 using System.Linq;
 using System;
 using System.Web.Http;
-using DotJEM.Json.Index;
-using DotJEM.Json.Index.Searching;
-using Lucene.Net.QueryParsers;
-using Lucene.Net.Search;
 
 namespace Demo.Controllers
 {

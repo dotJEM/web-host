@@ -24,9 +24,7 @@ public static class IndexQueryParserExtensions
 
     public static ISearch Search(this IJsonIndex self, string query)
     {
-        IQueryParser parser = self.Configuration.ResolveParser();
-        LuceneQueryInfo queryInfo = parser.Parse(query);
-        return self.CreateSearcher().Search(queryInfo.Query).OrderBy(queryInfo.Sort);
+        return self.CreateSearcher().Search(query);
     }
 
     private static IQueryParser ResolveParser(this IJsonIndexConfiguration self)

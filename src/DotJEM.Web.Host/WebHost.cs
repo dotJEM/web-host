@@ -30,6 +30,7 @@ using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Providers.Storage;
+using DotJEM.Web.Host.Providers.Storage.Indexing;
 using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Writers;
 using DotJEM.Web.Scheduler;
@@ -58,10 +59,13 @@ public abstract class WebHost : IWebHost
     private readonly IWindsorContainer container;
     private readonly HttpConfiguration configuration;
     private IJsonIndexManager indexManager;
-    private IStorageManager storageManager;
+    private IJsonStorageManager storageManager;
 
     protected IJsonIndex Index { get; set; }
+    protected IJsonIndexManager IndexManager { get; set; }
     protected IStorageContext Storage { get; set; }
+    protected IJsonStorageManager StorageManager { get; set; }
+    protected IWebTaskScheduler Scheduler { get; set; }
     protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
     protected IWebHostConfiguration Configuration { get; set; }
     protected IDiagnosticsLogger DiagnosticsLogger { get; set; }
@@ -112,12 +116,12 @@ public abstract class WebHost : IWebHost
         Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
         SetupKillSignal(path);
 
-        AttachIndexDebugging();
         Index = CreateIndex();
         Storage = CreateStorage();
-
+        Scheduler = CreateScheduler();
         container
             .Register(Component.For<IPathResolver>().Instance(path))
+            .Register(Component.For<IWebTaskScheduler>().Instance(Scheduler))
             .Register(Component.For<IJsonMergeVisitor>().ImplementedBy<JsonMergeVisitor>())
             .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
             .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
@@ -155,7 +159,7 @@ public abstract class WebHost : IWebHost
 
             perf.TrackAction(AfterInitialize);
 
-            storageManager = container.Resolve<IStorageManager>();
+            storageManager = container.Resolve<IJsonStorageManager>();
             indexManager = container.Resolve<IJsonIndexManager>();
             Initialization.SetProgress("Loading index.");
 
@@ -233,20 +237,6 @@ public abstract class WebHost : IWebHost
         watcher.EnableRaisingEvents = true;
     }
 
-    private void AttachIndexDebugging()
-    {
-        IndexDebuggingConfiguration config = Configuration.Index.Debugging;
-        if (!config.Enabled) 
-            return;
-
-        InfoStreamConfiguration writerConfig = config?.IndexWriterInfoStream;
-        if (writerConfig != null)
-        {
-            string path = HostingEnvironment.MapPath(writerConfig.Path);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            IndexWriter.DefaultInfoStream = new RollingStreamWriter(path, AdvParser.ParseByteCount(writerConfig.MaxSize), writerConfig.MaxFiles, writerConfig.Zip);
-        }
-    }
 
     protected virtual void ResolveComponents()
     {
@@ -260,38 +250,45 @@ public abstract class WebHost : IWebHost
             .ForEach(Storage.MigrationManager.Add);
     }
 
+    protected virtual IWebTaskScheduler CreateScheduler() => new WebTaskScheduler();
 
     protected virtual IJsonIndex CreateIndex(Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
     {
-        IndexStorageConfiguration storage = Configuration.Index.Storage;
+        IndexConfiguration configuration = Configuration.Index;
 
         analyzerProvider ??= config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET); 
 
-        JsonIndexBuilder builder = new JsonIndexBuilder("Main");
-        if (storage == null)
+        IJsonIndexBuilder builder = new JsonIndexBuilder("Main");
+        if (configuration.Storage == null)
         {
-            return builder.UsingMemmoryStorage()
+            return builder
+                .UsingMemmoryStorage()
                 .WithAnalyzer(analyzerProvider)
                 .WithSnapshoting()
-                
                 .Build();
         }
-        
-        switch (storage.Type)
+
+        if (configuration.Snapshots != null)
         {
-            case IndexStorageType.File:
-                return new LuceneStorageIndex(new LuceneFileIndexStorage(HostingEnvironment.MapPath(storage.Path), analyzer));
-            case IndexStorageType.CachedMemory:
-                return new LuceneStorageIndex(new LuceneCachedMemmoryIndexStorage(HostingEnvironment.MapPath(storage.Path), analyzer));
-            case IndexStorageType.Memory:
-                return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
-            default:
-                return new LuceneStorageIndex(new LuceneMemmoryIndexStorage(analyzer));
+            builder.WithSnapshoting();
         }
+
+        builder = configuration.Storage.Type switch
+        {
+            IndexStorageType.Memory => builder.UsingMemmoryStorage(),
+            IndexStorageType.File => builder.UsingSimpleFileStorage(HostingEnvironment.MapPath(configuration.Storage.Path)),
+            IndexStorageType.CachedMemory => builder.UsingSimpleFileStorage(HostingEnvironment.MapPath(configuration.Storage.Path)),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        return builder.Build();
     }
-
-
+    
     protected virtual IStorageContext CreateStorage() => new SqlServerStorageContext(Configuration.Storage.ConnectionString);
+
+
+
+  
     public T Resolve<T>() => container.Resolve<T>();
 
 

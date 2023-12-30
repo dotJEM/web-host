@@ -9,6 +9,8 @@ using DotJEM.Json.Index2.Searching;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using DotJEM.Web.Host.Providers.Storage;
+using DotJEM.Web.Host.Tasks;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
@@ -83,14 +85,14 @@ public class ContentService : IContentService
 
     private readonly IJsonIndex index;
     private readonly IStorageArea area;
-    private readonly IJsonIndexManager manager;
+    private readonly IJsonStorageManager manager;
     private readonly IPipeline pipeline;
     private readonly ILogger performance;
     private readonly IContentMergeService merger;
 
     public IStorageArea StorageArea => area;
 
-    public ContentService(IJsonIndex index, IStorageArea area, IJsonIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
+    public ContentService(IJsonIndex index, IStorageArea area, IJsonStorageManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
     {
         this.index = index;
         this.area = area;
@@ -139,7 +141,7 @@ public class ContentService : IContentService
             JObject closure = entity;
             entity = performance.TrackFunction(() => area.Insert(contentType, closure), TRACK_TYPE, new { fn = $"ContentService.Post({contentType}, $ENTITY)" } );
             entity = pipeline.ExecuteAfterPost(entity, contentType, context);
-            manager.QueueUpdate(entity);
+            Sync.Await(manager.QueueUpdate(area, entity));
             return entity;
         }
     }
@@ -156,7 +158,7 @@ public class ContentService : IContentService
             JObject closure = entity;
             entity = performance.TrackFunction(() => area.Update(id, closure), TRACK_TYPE, new { fn = $"ContentService.Put({contentType}, $ENTITY)" } );
             entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
-            manager.QueueUpdate(entity);
+            Sync.Await(manager.QueueUpdate(area, entity));
             return entity;
         }
     }
@@ -172,7 +174,7 @@ public class ContentService : IContentService
             if (deleted == null)
                 return null;
 
-            manager.QueueDelete(deleted);
+            Sync.Await(manager.QueueDelete(area, deleted));
             return pipeline.ExecuteAfterDelete(deleted, contentType, context);
         }
     }

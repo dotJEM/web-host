@@ -7,6 +7,7 @@ using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Host.Providers.Storage.Cutoff;
 using DotJEM.Web.Scheduler;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Storage.Indexing;
 
@@ -17,6 +18,8 @@ public interface IJsonStorageAreaObserver
     IObservable<IJsonDocumentChange> Observable { get; }
     Task RunAsync();
     void UpdateGeneration(long generation);
+    Task QueueUpdate(JObject entity);
+    Task QueueDelete(JObject entity);
 }
 
 public class JsonStorageAreaObserver : IJsonStorageAreaObserver
@@ -65,6 +68,20 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     {
         generation = value;
         initialized = true;
+    }
+
+    public Task QueueUpdate(JObject entity)
+    {
+        task.Signal();
+        //TODO: Wait for completion!
+        return Task.CompletedTask;
+    }
+
+    public Task QueueDelete(JObject entity)
+    {
+        task.Signal();
+        //TODO: Wait for completion!
+        return Task.CompletedTask;
     }
 
     public void RunUpdateCheck()
@@ -116,6 +133,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             }
         }
     }
+
     public virtual void BeforeInitialize() { }
     public virtual void AfterInitialize() { }
 

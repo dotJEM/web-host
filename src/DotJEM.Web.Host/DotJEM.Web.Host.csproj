@@ -403,7 +403,6 @@
     <Compile Include="Providers\Storage\Cutoff\IStorageCutoff.cs" />
     <Compile Include="Providers\Storage\IStorageHistoryCleaner.cs" />
     <Compile Include="Diagnostics\InfoStreams\IInfoStream.cs" />
-    <Compile Include="Providers\Storage\StorageHistoryCleaner.cs" />
     <Compile Include="Providers\ContentServiceProvider.cs" />
     <Compile Include="Providers\FileServiceProvider.cs" />
     <Compile Include="Providers\Pipeline\ContentTypeFilterAttribute.cs" />
@@ -427,7 +426,7 @@
     <Compile Include="Providers\Services\FileService.cs" />
     <Compile Include="Providers\Services\SearchService.cs" />
     <Compile Include="Providers\Services\TermService.cs" />
-    <Compile Include="Providers\Storage\StorageManager.cs" />
+    <Compile Include="Providers\Storage\IJsonStorageManager.cs" />
     <Compile Include="Results\ForbiddenErrorMessageResult.cs" />
     <Compile Include="Results\NotFoundErrorMessageResult.cs" />
     <Compile Include="Results\ServiceUnavailableMessageResult.cs" />
