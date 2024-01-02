@@ -136,8 +136,8 @@ public class DiagnosticsLogger : IDiagnosticsLogger
         json["host"] = Environment.MachineName;
         json["severity"] = Converter.FromObject(severity);
         json["stackTrace"] = JArray.FromObject(BuildStackTrace().ToArray());
-        json = Area.Insert(contentType, json);
-        Manager.QueueUpdate(json);
+        Area.Insert(contentType, json);
+        //Manager.QueueUpdate(json);
     }
 
     public void Log(string contentType, Severity severity, string message, object entity = null)

@@ -119,9 +119,10 @@ public abstract class WebHost : IWebHost
         Index = CreateIndex();
         Storage = CreateStorage();
         Scheduler = CreateScheduler();
+
         container
             .Register(Component.For<IPathResolver>().Instance(path))
-            .Register(Component.For<IWebTaskScheduler>().Instance(Scheduler))
+            //.Register(Component.For<IWebTaskScheduler>().Instance(Scheduler))
             .Register(Component.For<IJsonMergeVisitor>().ImplementedBy<JsonMergeVisitor>())
             .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
             .Register(Component.For<IJsonConverter>().ImplementedBy<DotjemJsonConverter>())
@@ -162,6 +163,8 @@ public abstract class WebHost : IWebHost
             storageManager = container.Resolve<IJsonStorageManager>();
             indexManager = container.Resolve<IJsonIndexManager>();
             Initialization.SetProgress("Loading index.");
+
+            indexManager.InfoStream.Subscribe(Initialization);
 
             //indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 

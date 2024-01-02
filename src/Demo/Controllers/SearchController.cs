@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using System.Web.Http;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Results;
+using DotJEM.Web.Host.Providers.Index;
+using Lucene.Net.QueryParsers.Classic;
+using Lucene.Net.Search;
 
 namespace Demo.Controllers
 {
@@ -14,20 +19,20 @@ namespace Demo.Controllers
 
         public IEnumerable<object> Results { get; set; }
 
-        public GenericSearchResult(ISearchResult result, long take, long skip)
+        public GenericSearchResult(SearchResults result, long take, long skip)
         {
             Take = take;
             Skip = skip;
-            Results = result.Select<IHit, object>(hit => hit.Json).ToArray();
-            Count = result.TotalCount;
+            Results = result.Select(x=>x.Data).ToArray();
+            Count = result.TotalHits;
         }
     }
 
     public class SearchController : WebHostApiController
     {
-        private readonly IStorageIndex index;
+        private readonly IJsonIndex index;
 
-        public SearchController(IStorageIndex index)
+        public SearchController(IJsonIndex index)
         {
             this.index = index;
         }
@@ -43,11 +48,12 @@ namespace Demo.Controllers
             try
             {
                 QueryInfo info = Build(query);
-                ISearchResult result = index
+                SearchResults result = index
                     .Search(info.Query)
-                    .Sort(info.Sort)
+                    .OrderBy(info.Sort)
                     .Skip(skip)
-                    .Take(take);
+                    .Take(take)
+                    .Execute();
                 return new GenericSearchResult(result, take, skip);
             }
             catch (ParseException ex)
@@ -87,18 +93,18 @@ namespace Demo.Controllers
         private SortField CreateSortField(string name, bool reverse)
         {
             if (name.EndsWith(".@ticks"))
-                return new SortField(name, SortField.LONG, reverse);
+                return new SortField(name, SortFieldType.INT64, reverse);
 
             if (name == "certainty" || name == "importance" || name == "relevance")
-                return new SortField(name, SortField.LONG, reverse);
+                return new SortField(name, SortFieldType.INT64, reverse);
 
             if (name.EndsWith("length") || name.EndsWith("width") || name.EndsWith("grosston") || name.EndsWith("built") || name.EndsWith("height"))
-                return new SortField(name, SortField.LONG, reverse);
+                return new SortField(name, SortFieldType.INT64, reverse);
 
-            return new SortField(name, SortField.STRING, reverse);
+            return new SortField(name, SortFieldType.STRING, reverse);
         }
 
-        public Sort DefaultSort => new Sort(new SortField("$created.@ticks", SortField.LONG));
+        public Sort DefaultSort => new Sort(new SortField("$created.@ticks", SortFieldType.INT64));
 
         private static string TrimString(string arg)
         {

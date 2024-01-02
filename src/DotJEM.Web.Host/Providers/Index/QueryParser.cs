@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Configuration;
 using DotJEM.Web.Host.Providers.Index.Builder;
 using DotJEM.Web.Host.Providers.Index.Schemas;
 using Lucene.Net.QueryParsers.Classic;
@@ -12,6 +13,7 @@ namespace DotJEM.Web.Host.Providers.Index;
 public interface IQueryParser
 {
     Query BooleanQuery(IList<BooleanClause> clauses, bool disableCoord);
+    Query Parse(string str);
 }
 
 public class CallContext
@@ -29,24 +31,37 @@ public class CallContext
     }
 }
 
+public interface IQueryParserConfiguration
+{
+    IFieldStrategy LookupStrategy(string field);
+}
+
+public class QueryParserConfiguration : IQueryParserConfiguration
+{
+    private readonly Dictionary<string, IFieldStrategy> strategies = new();
+
+    public IFieldStrategy LookupStrategy(string field)
+    {
+        if(strategies.TryGetValue(field, out IFieldStrategy strategy))
+            return strategy;
+
+        return new FieldStrategy();
+    }
+}
+
 public class MultiFieldQueryParser : QueryParser, IQueryParser
 {
     private readonly string[] fields;
     private readonly string[] contentTypes;
 
-    private readonly IJsonIndex index;
     private readonly ISchemaCollection schemas;
+    private readonly IQueryParserConfiguration parserConfig;
 
-    public MultiFieldQueryParser(IJsonIndex index, ISchemaCollection schemas, string query)
-        : this(index, schemas, query, schemas.AllFields().ToArray())
+    public MultiFieldQueryParser(IJsonIndexConfiguration config, IQueryParserConfiguration parserConfig, ISchemaCollection schemas, params string[] fields)
+        : base(config.Version, null, config.Analyzer)
     {
-    }
-
-    public MultiFieldQueryParser(IJsonIndex index, ISchemaCollection schemas, string query, params string[] fields)
-        : base(index.Configuration.Version, null, index.Configuration.Analyzer)
-    {
+        this.parserConfig = parserConfig;
         this.fields = fields;
-        this.index = index;
         this.schemas = schemas;
     }
 
@@ -61,8 +76,11 @@ public class MultiFieldQueryParser : QueryParser, IQueryParser
         //TODO: Use "ForAll" strategy for now, we need to be able to extract possible contenttypes from the query and
         //      target their strategies. But this may turn into being very complex as different branches of a Query
         //      may target different 
-        return index.Configuration.Field.Strategy(field)
+        return parserConfig.LookupStrategy(field)
             .PrepareBuilder(this, field, type);
+
+        //return index.Configuration.Field.Strategy(field)
+        //    .PrepareBuilder(this, field, type);
     }
 
     protected override Query GetFieldQuery(string fieldName, string queryText, int slop)
@@ -148,8 +166,6 @@ public class MultiFieldQueryParser : QueryParser, IQueryParser
             .Select(t => new BooleanClause(GetRangeQuery(t, part1, part2, startInclusive, endInclusive), Occur.SHOULD))
             .ToList(), true);
     }
-
-
 
 }
 

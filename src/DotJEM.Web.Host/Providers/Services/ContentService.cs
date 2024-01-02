@@ -220,7 +220,7 @@ public class ContentService : IContentService
                 entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
                 area.Update(id, entity);
                 entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
-                manager.QueueUpdate(entity);
+                manager.QueueUpdate(area, entity);
                 return entity;
             }
         }, TRACK_TYPE, new { fn =$"ContentService.Revert({id}, {contentType}, {version})"});
