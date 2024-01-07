@@ -10,8 +10,12 @@ namespace DotJEM.Web.Host.Providers.Index;
 
 public static class IndexQueryParserExtensions
 {
-    public static IJsonIndexBuilder WithSimplifiedLuceneQueryParser(this IJsonIndexBuilder self)
-        => self.TryWithService<IQueryParser>(config => new MultiFieldQueryParser(config, config.Get<IQueryParserConfiguration>(), config.Get<ISchemaCollection>()));
+    public static IJsonIndexBuilder WithClassicLuceneQueryParser(this IJsonIndexBuilder self, ISchemaCollection schemas,IQueryParserConfiguration config)
+        => self
+            .TryWithService(schemas)
+            .TryWithService(config)
+            .TryWithService<IQueryParser>(x
+                => new MultiFieldQueryParser(x, x.Get<IQueryParserConfiguration>(), x.Get<ISchemaCollection>()));
 
     public static ISearch Search(this IJsonIndexSearcher self, string query)
     {

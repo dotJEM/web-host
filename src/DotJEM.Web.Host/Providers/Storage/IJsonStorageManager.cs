@@ -105,10 +105,10 @@ public class JsonStorageManager : IJsonStorageManager
     public void Start()
     {
         task = scheduler.ScheduleTask("StorageManager.CleanHistory", b => CleanHistory(), interval);
-        foreach (IJsonStorageAreaObserver observer in Observers)
-        {
-            Sync.FireAndForget(observer.RunAsync(), exception => logger.LogException(exception));
-        }
+        //foreach (IJsonStorageAreaObserver observer in Observers)
+        //{
+        //    Sync.FireAndForget(observer.RunAsync(), exception => logger.LogException(exception));
+        //}
     }
 
     private void CleanHistory()

@@ -105,7 +105,7 @@ public class MultiFieldQueryParser : QueryParser, IQueryParser
 
     protected override Query GetFieldQuery(string field, string queryText, bool quoted)
     {
-        return base.GetFieldQuery(field, queryText, 0);
+        return this.GetFieldQuery(field, queryText, 0);
     }
 
 

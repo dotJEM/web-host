@@ -2,6 +2,7 @@
 using System.Linq;
 using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Management.Snapshots.Zip.Meta;
+using DotJEM.Json.Index2.Management.Tracking;
 using DotJEM.Json.Index2.Results;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
@@ -15,6 +16,7 @@ public interface IInitializationTracker : IObserver<IInfoStreamEvent>
 
     JObject Json { get; }
     string Message { get; }
+    ITrackerState State { get; }
     double Percent { get; }
     bool Completed { get; }
     DateTime StarTime { get; }
@@ -38,6 +40,7 @@ public class InitializationTracker : IInitializationTracker
 
     public JObject Json => CreateJObject();
     public string Message { get; private set; } = "";
+    public ITrackerState State { get; private set; } = null;
     public double Percent { get; private set; } = 0;
     public bool Completed { get; private set; } = false;
     public DateTime StarTime { get; } = DateTime.Now;
@@ -106,6 +109,7 @@ public class InitializationTracker : IInitializationTracker
                 break;
             case TrackerStateInfoStreamEvent state:
                 SetProgress(state.Message);
+                State = state.State;
                 switch (state.State)
                 {
                     case SnapshotRestoreState snapshotState:

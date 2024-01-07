@@ -16,6 +16,7 @@ using DotJEM.Diagnostic;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Configuration;
 using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Management.Tracking;
 using DotJEM.Json.Index2.Snapshots;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Migration;
@@ -27,10 +28,13 @@ using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
+using DotJEM.Web.Host.Providers.Index;
+using DotJEM.Web.Host.Providers.Index.Schemas;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Providers.Storage;
 using DotJEM.Web.Host.Providers.Storage.Indexing;
+using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Writers;
 using DotJEM.Web.Scheduler;
@@ -69,6 +73,7 @@ public abstract class WebHost : IWebHost
     protected IAppConfigurationProvider AppConfigurationProvider { get; set; }
     protected IWebHostConfiguration Configuration { get; set; }
     protected IDiagnosticsLogger DiagnosticsLogger { get; set; }
+    protected ISchemaCollection Schemas { get; private set; }
 
     public HttpConfiguration HttpConfiguration => configuration;
 
@@ -116,12 +121,15 @@ public abstract class WebHost : IWebHost
         Configuration = AppConfigurationProvider.Get<WebHostConfiguration>();
         SetupKillSignal(path);
 
-        Index = CreateIndex();
+        IQueryParserConfiguration parserConfiguration = new QueryParserConfiguration();
+        Schemas = new SchemaCollection();
+        Index = CreateIndex(Schemas, parserConfiguration);
         Storage = CreateStorage();
         Scheduler = CreateScheduler();
 
         container
             .Register(Component.For<IPathResolver>().Instance(path))
+            .Register(Component.For<ISchemaCollection>().Instance(Schemas))
             //.Register(Component.For<IWebTaskScheduler>().Instance(Scheduler))
             .Register(Component.For<IJsonMergeVisitor>().ImplementedBy<JsonMergeVisitor>())
             .Register(Component.For<IDiagnosticsDumpService>().ImplementedBy<DiagnosticsDumpService>())
@@ -140,6 +148,7 @@ public abstract class WebHost : IWebHost
         DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
 
         perf.TrackAction(BeforeConfigure);
+        perf.TrackAction(() => Configure(parserConfiguration), "Configure Query Parser");
         perf.TrackAction(() => Configure(container.Resolve<IPipeline>()), "Configure Pipeline");
         perf.TrackAction(() => Configure(container), "Configure Container");
         perf.TrackAction(() => Configure(Storage), "Configure Storage");
@@ -168,9 +177,11 @@ public abstract class WebHost : IWebHost
 
             //indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
-            perf.TrackAction(storageManager.Start);
-            perf.TrackTask(indexManager.RunAsync(), "Index Manager");
+            Sync.FireAndForget(indexManager.RunAsync());
+            perf.TrackTask(indexManager.Tracker.WhenState(IngestInitializationState.Initialized), "Index Manager");
             perf.TrackAction(AfterStart);
+            perf.TrackAction(storageManager.Start);
+
 
             container.Resolve<IDataCleanupManager>().Start();
             Initialization.Complete();
@@ -215,6 +226,7 @@ public abstract class WebHost : IWebHost
         return this;
     }
 
+
     protected virtual void SetupKillSignal(IPathResolver path)
     {
         if(string.IsNullOrEmpty(Configuration.KillSignalFile))
@@ -255,18 +267,19 @@ public abstract class WebHost : IWebHost
 
     protected virtual IWebTaskScheduler CreateScheduler() => new WebTaskScheduler();
 
-    protected virtual IJsonIndex CreateIndex(Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
+    protected virtual IJsonIndex CreateIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
     {
         IndexConfiguration configuration = Configuration.Index;
 
         analyzerProvider ??= config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET); 
 
         IJsonIndexBuilder builder = new JsonIndexBuilder("Main");
+        builder.WithClassicLuceneQueryParser(schemas, config);
+        builder.WithAnalyzer(analyzerProvider);
         if (configuration.Storage == null)
         {
             return builder
                 .UsingMemmoryStorage()
-                .WithAnalyzer(analyzerProvider)
                 .WithSnapshoting()
                 .Build();
         }
@@ -302,6 +315,7 @@ public abstract class WebHost : IWebHost
     //protected virtual void Configure(IStorageIndex index) { }
     protected virtual void Configure(IRouter router) { }
     protected virtual void Configure(IPipeline pipeline) { }
+    protected virtual void Configure(IQueryParserConfiguration parserConfig) { }
 
     protected virtual void AfterConfigure() { }
     protected virtual void BeforeInitialize() { }

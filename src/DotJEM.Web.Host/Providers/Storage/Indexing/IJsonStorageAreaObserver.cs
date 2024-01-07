@@ -11,13 +11,9 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Storage.Indexing;
 
-public interface IJsonStorageAreaObserver
+public interface IJsonStorageAreaObserver : IJsonDocumentSource
 {
     string AreaName { get; }
-    IInfoStream InfoStream { get; }
-    IObservable<IJsonDocumentChange> Observable { get; }
-    Task RunAsync();
-    void UpdateGeneration(long generation);
     Task QueueUpdate(JObject entity);
     Task QueueDelete(JObject entity);
 }
@@ -32,13 +28,13 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
 
     private long generation = 0;
-    private bool initialized = false;
     private IScheduledTask task;
     public IStorageArea StorageArea { get; }
 
     public string AreaName => StorageArea.Name;
     public IInfoStream InfoStream => infoStream;
-    public IObservable<IJsonDocumentChange> Observable => observable;
+    public IObservable<IJsonDocumentChange> DocumentChanges => observable;
+    public IObservableValue<bool> Initialized { get; } = new ObservableValue<bool>();
 
     public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, IStorageChangeFilterHandler filter, string pollInterval = "10s")
     {
@@ -64,10 +60,13 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Stopped, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
     }
 
-    public void UpdateGeneration(long value)
+    public void UpdateGeneration(string area, long value)
     {
+        if(!AreaName.Equals(area))
+            return;
+
         generation = value;
-        initialized = true;
+        Initialized.Value = true;
     }
 
     public Task QueueUpdate(JObject entity)
@@ -87,13 +86,13 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public void RunUpdateCheck()
     {
         long latestGeneration = log.LatestGeneration;
-        if (!initialized)
+        if (!Initialized.Value)
         {
             BeforeInitialize();
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
-            using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
+            using IStorageAreaLogReader changes = log.OpenLogReader(generation, Initialized.Value);
             PublishChanges(changes, _ => JsonChangeType.Create);
-            initialized = true;
+            Initialized.Value = true;
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
             AfterInitialize();
         }
@@ -101,7 +100,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         {
             BeforeUpdate();
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
-            using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
+            using IStorageAreaLogReader changes = log.OpenLogReader(generation, Initialized.Value);
             PublishChanges(changes, row => MapChange(row.Type));
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
             AfterUpdate();

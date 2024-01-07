@@ -22,27 +22,22 @@ namespace DotJEM.Web.Host.Providers.Index.Schemas
     {
         private readonly IDictionary<string, JSchema> schemas = new ConcurrentDictionary<string, JSchema>();
 
-        public IEnumerable<string> ContentTypes { get { return schemas.Keys; } }
+        public IEnumerable<string> ContentTypes => schemas.Keys;
 
         public JSchema this[string contentType]
         {
-            get
-            {
-                return schemas.ContainsKey(contentType) ? schemas[contentType] : null;
-            }
+            get => schemas.TryGetValue(contentType, out JSchema schema) ? schema : null;
             set
             {
-                if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentNullException("contentType");
-                if (value == null) throw new ArgumentNullException("value");
-
-                schemas[contentType] = value;
+                if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentNullException(nameof(contentType));
+                schemas[contentType] = value ?? throw new ArgumentNullException(nameof(value));
             }
         }
 
         public JSchema Add(string contentType, JSchema schema)
         {
-            if (contentType == null) throw new ArgumentNullException("contentType");
-            if (schema == null) throw new ArgumentNullException("schema");
+            if (contentType == null) throw new ArgumentNullException(nameof(contentType));
+            if (schema == null) throw new ArgumentNullException(nameof(schema));
 
             schema.ContentType = contentType;
             if (schemas.ContainsKey(contentType))
@@ -78,13 +73,9 @@ namespace DotJEM.Web.Host.Providers.Index.Schemas
         }
 
         IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+            => GetEnumerator();
 
         public IEnumerator<JSchema> GetEnumerator()
-        {
-            return schemas.Values.GetEnumerator();
-        }
+            => schemas.Values.GetEnumerator();
     }
 }

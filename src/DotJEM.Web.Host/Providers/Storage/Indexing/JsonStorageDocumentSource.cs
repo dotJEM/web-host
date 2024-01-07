@@ -17,13 +17,9 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
     private readonly ChangeStream observable = new();
     private readonly InfoStream<JsonStorageDocumentSource> infoStream = new();
 
-    public IObservable<IJsonDocumentChange> Observable => observable;
+    public IObservable<IJsonDocumentChange> DocumentChanges => observable;
     public IInfoStream InfoStream => infoStream;
-
-    //public JsonStorageDocumentSource(IStorageContext context, IWebTaskScheduler scheduler)
-    //    : this(new JsonStorageAreaObserverFactory(context, scheduler))
-    //{
-    //}
+    public IObservableValue<bool> Initialized { get; } = new ObservableValue<bool>();
 
     public JsonStorageDocumentSource(IJsonStorageAreaObserverFactory factory)
         : this(factory.CreateAll()) {}
@@ -35,10 +31,16 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
     {
         this.observers = observers.Select(observer =>
         {
-            observer.Observable.Subscribe(observable);
+            observer.DocumentChanges.Subscribe(observable);
             observer.InfoStream.Subscribe(infoStream);
+            observer.Initialized.Subscribe(_ => InitializedChanged());
             return observer;
         }).ToDictionary(x => x.AreaName);
+    }
+    
+    private void InitializedChanged()
+    {
+        this.Initialized.Value = observers.Values.All(observer => observer.Initialized.Value);
     }
 
     public async Task RunAsync()
@@ -53,7 +55,7 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
         if (!observers.TryGetValue(area, out IJsonStorageAreaObserver observer))
             return; // TODO?
 
-        observer.UpdateGeneration(generation);
+        observer.UpdateGeneration(area, generation);
     }
 
     public async Task QueueUpdate(IStorageArea area, JObject entity)
