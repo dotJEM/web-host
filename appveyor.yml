@@ -18,7 +18,7 @@ assembly_info:
   assembly_informational_version: '{version}'
 
 matrix:
-  fast_finish: true # fail fast!
+  fast_finish: true
 
 clone_depth: 3  
 
