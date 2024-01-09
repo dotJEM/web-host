@@ -40,20 +40,20 @@ deploy:
   - provider: NuGet
     name: Master
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
     on:
       branch: master 
       
   - provider: NuGet
     name: Beta
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
     on:
       branch: beta  
       
   - provider: NuGet
     name: Nsw
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
     on:
       branch: nsw 
