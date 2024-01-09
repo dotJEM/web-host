@@ -1,15 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using DotJEM.AdvParsers;
 using DotJEM.Diagnostic;
 using DotJEM.Diagnostic.Collectors;
 using DotJEM.Diagnostic.Correlation;
 using DotJEM.Diagnostic.DataProviders;
 using DotJEM.Diagnostic.Writers;
-using DotJEM.Json.Index.Util;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Tasks;
 
 namespace DotJEM.Web.Host.Diagnostics.Performance;
 
@@ -37,7 +40,7 @@ public class LoggerFactory : ILoggerFactory
             return new NullLogger();
 
         PerformanceConfiguration config = configuration.Diagnostics.Performance;
-        var writer = new QueuingTraceWriter(resolver.MapPath(config.Path), AdvConvert.ConvertToByteCount(config.MaxSize), config.MaxFiles, config.Zip);
+        var writer = new QueuingTraceWriter(resolver.MapPath(config.Path), AdvParser.ParseByteCount(config.MaxSize), config.MaxFiles, config.Zip);
         return new HighPrecisionLogger(new TraceEventCollector(writer), customDataProviderManager.Providers);
     }
 }
@@ -234,5 +237,12 @@ public static class LoggerExtensions
     public static IPerformanceTracker TrackTask(this ILogger self, string name)
     {
         return self.Track("task", new { name });
+    }
+
+    public static void TrackTask(this ILogger self, Task task, string name)
+    {
+        using IPerformanceTracker tracker = self.Track("task", new { name });
+        Sync.Await(task);
+        tracker.Commit();
     }
 }

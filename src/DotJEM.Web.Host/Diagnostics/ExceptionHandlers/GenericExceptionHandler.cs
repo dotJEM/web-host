@@ -2,8 +2,6 @@ using System;
 using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.ExceptionHandling;
-using DotJEM.Web.Host.Providers;
-using DotJEM.Web.Host.Providers.Services;
 
 namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 

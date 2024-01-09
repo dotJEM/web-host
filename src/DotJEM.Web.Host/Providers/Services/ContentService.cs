@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using DotJEM.Diagnostic;
-using DotJEM.Json.Index;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Searching;
 using DotJEM.Json.Storage.Adapter;
-using DotJEM.Web.Host.Diagnostics.Performance;
-using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
+using DotJEM.Web.Host.Providers.Storage;
+using DotJEM.Web.Host.Tasks;
+using Lucene.Net.Index;
+using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Services;
@@ -79,16 +83,16 @@ public class ContentService : IContentService
 {
     private const string TRACK_TYPE = "content";
 
-    private readonly IStorageIndex index;
+    private readonly IJsonIndex index;
     private readonly IStorageArea area;
-    private readonly IStorageIndexManager manager;
+    private readonly IJsonStorageManager manager;
     private readonly IPipeline pipeline;
     private readonly ILogger performance;
     private readonly IContentMergeService merger;
 
     public IStorageArea StorageArea => area;
 
-    public ContentService(IStorageIndex index, IStorageArea area, IStorageIndexManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
+    public ContentService(IJsonIndex index, IStorageArea area, IJsonStorageManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
     {
         this.index = index;
         this.area = area;
@@ -100,18 +104,18 @@ public class ContentService : IContentService
 
     public IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20)
     {
-        JObject[] res = index.Search("contentType: " + contentType)
+        TermQuery query = new TermQuery(new Term("contentType", contentType));
+        JObject[] res = index.Search(query)
             .Skip(skip).Take(take)
-            .Select(hit => hit.Json)
+            .Execute()
+            .Select(hit => hit.Data)
             //Note: Execute the pipeline for each element found
             .Select(json =>
             {
-                using (PipelineContext context = pipeline.CreateContext(contentType, (JObject)json))
-                {
-                    return pipeline.ExecuteAfterGet(json, contentType, context);
-                }
+                using PipelineContext context = pipeline.CreateContext(contentType, json);
+                return pipeline.ExecuteAfterGet(json, contentType, context);
             })
-            .Cast<JObject>().ToArray();
+            .ToArray();
 
         return res;
 
@@ -137,7 +141,7 @@ public class ContentService : IContentService
             JObject closure = entity;
             entity = performance.TrackFunction(() => area.Insert(contentType, closure), TRACK_TYPE, new { fn = $"ContentService.Post({contentType}, $ENTITY)" } );
             entity = pipeline.ExecuteAfterPost(entity, contentType, context);
-            manager.QueueUpdate(entity);
+            Sync.Await(manager.QueueUpdate(area, entity));
             return entity;
         }
     }
@@ -154,7 +158,7 @@ public class ContentService : IContentService
             JObject closure = entity;
             entity = performance.TrackFunction(() => area.Update(id, closure), TRACK_TYPE, new { fn = $"ContentService.Put({contentType}, $ENTITY)" } );
             entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
-            manager.QueueUpdate(entity);
+            Sync.Await(manager.QueueUpdate(area, entity));
             return entity;
         }
     }
@@ -170,7 +174,7 @@ public class ContentService : IContentService
             if (deleted == null)
                 return null;
 
-            manager.QueueDelete(deleted);
+            Sync.Await(manager.QueueDelete(area, deleted));
             return pipeline.ExecuteAfterDelete(deleted, contentType, context);
         }
     }
@@ -216,7 +220,7 @@ public class ContentService : IContentService
                 entity = pipeline.ExecuteBeforeRevert(entity, current, contentType, context);
                 area.Update(id, entity);
                 entity = pipeline.ExecuteAfterRevert(entity, current, contentType, context);
-                manager.QueueUpdate(entity);
+                manager.QueueUpdate(area, entity);
                 return entity;
             }
         }, TRACK_TYPE, new { fn =$"ContentService.Revert({id}, {contentType}, {version})"});

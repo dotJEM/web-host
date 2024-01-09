@@ -14,6 +14,31 @@ namespace DotJEM.Web.Host.Tasks;
 /// </summary>
 public static class Sync
 {
+    public static async void FireAndForget(Task task, Action<Exception> onException = null)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            onException?.Invoke(e);
+        }
+    }
+
+    public static async void FireAndForget<T>(Task<T> task, Action<Exception> onException = null, Action<T> onValue = null)
+    {
+        try
+        {
+            T value = await task.ConfigureAwait(false);
+            onValue?.Invoke(value);
+        }
+        catch (Exception e)
+        {
+            onException?.Invoke(e);
+        }
+    }
+
     public static T Await<T>(Task<T> task)
     {
         using (new NoSynchronizationContext())

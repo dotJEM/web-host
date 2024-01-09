@@ -16,11 +16,11 @@ namespace Demo
     {
         public void Configuration(IAppBuilder app)
         {
-            HttpConfiguration config = new HttpConfiguration();
-            config.MapHttpAttributeRoutes();
+            //HttpConfiguration config = new HttpConfiguration();
+            //config.MapHttpAttributeRoutes();
 
-            DemoHost host = new DemoHost(config);
-            host.Start();
+            //DemoHost host = new DemoHost(config);
+            //host.Start();
 
             // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=316888
         }

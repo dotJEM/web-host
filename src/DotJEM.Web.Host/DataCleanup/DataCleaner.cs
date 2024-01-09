@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DotJEM.Json.Index.Searching;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Results;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
-using DotJEM.Web.Host.Providers.Concurrency;
-using DotJEM.Web.Host.Providers.Scheduler;
-using DotJEM.Web.Host.Providers.Scheduler.Tasks;
+using DotJEM.Web.Host.Providers.Index;
+using DotJEM.Web.Scheduler;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
 
 namespace DotJEM.Web.Host.DataCleanup;
 
@@ -21,9 +23,9 @@ public interface IDataCleaner
 }
 public class DataCleaner : IDataCleaner
 {
-    private readonly IStorageIndexManager indexManager;
+    private readonly IJsonIndex index;
     private readonly IStorageContext storage;
-    private readonly IWebScheduler scheduler;
+    private readonly IWebTaskScheduler scheduler;
     private readonly string query;
     private readonly string expression;
 
@@ -32,9 +34,9 @@ public class DataCleaner : IDataCleaner
 
     private IScheduledTask task;
 
-    public DataCleaner(IStorageIndexManager indexManager, IStorageContext storage, IWebScheduler scheduler, string query, string expression)
+    public DataCleaner(IJsonIndex index, IStorageContext storage, IWebTaskScheduler scheduler, string query, string expression)
     {
-        this.indexManager = indexManager;
+        this.index = index;
         this.storage = storage;
         this.scheduler = scheduler;
         this.query = query;
@@ -52,19 +54,22 @@ public class DataCleaner : IDataCleaner
 
     private void Clean(bool obj)
     {
-        ISearchResult result = indexManager.Index.Search(query);
+        ISearch result = index.Search(query);
 
         if (result == null)
             return;
 
         (string areaField, string idField) = configs.Value;
-        foreach (IGrouping<string, JObject> group in result.Take(500).Select(hit => hit.Entity).GroupBy(GroupKeySelector))
+        foreach (IGrouping<string, JObject> group in result.Take(500)
+                     .Execute()
+                     .Select(x => x.Data)
+                     .GroupBy(GroupKeySelector))
         {
             if(group.Key == string.Empty)
                 continue;
             DeleteDocuments(storage.Area(group.Key), group.AsEnumerable());
         }
-        indexManager.UpdateIndex();
+        //index.UpdateIndex();
 
         void DeleteDocuments(IStorageArea area, IEnumerable<JObject> items)
         {

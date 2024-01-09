@@ -6,8 +6,6 @@ using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.SubSystems.Configuration;
 using Castle.Windsor;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
-using DotJEM.Web.Host.Util;
-using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
 

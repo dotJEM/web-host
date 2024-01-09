@@ -19,6 +19,7 @@
             <p>Services should be up again shortly, we apologize for the inconvenience.</p>
             <p><small class="text-muted" id="time">[@WebHost.Initialization.Duration.ToString("hh\\:mm\\:ss\\.fff")]</small></p>
             <p><small class="text-muted" id="status">@Html.Raw(WebHost.Initialization.Message.Replace("\n", "<br/>").Replace("\r", ""))</small></p>
+            <p><small class="text-muted" id="status2">@Html.Raw(WebHost.Initialization.State.ToString().Replace("\n", "<br/>").Replace("\r", ""))</small></p>
         </div>
 
     </div>
@@ -35,6 +36,10 @@
             document
                 .getElementById("status")
                 .innerHTML = data.message.replace(/\n/g, '<br/>').replace(/\r/, "");
+
+            document
+                .getElementById("status2")
+                .innerHTML = data.state.replace(/\n/g, '<br/>').replace(/\r/, "");
         }
 
     </script>

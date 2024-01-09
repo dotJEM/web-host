@@ -1,18 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Management.Snapshots.Zip.Meta;
+using DotJEM.Json.Index2.Management.Tracking;
+using DotJEM.Json.Index2.Results;
+using DotJEM.ObservableExtensions.InfoStreams;
+using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Initialization;
 
-public interface IInitializationTracker
+public interface IInitializationTracker : IObserver<IInfoStreamEvent>
 {
     event EventHandler<EventArgs> Progress;
 
     JObject Json { get; }
     string Message { get; }
+    ITrackerState State { get; }
     double Percent { get; }
     bool Completed { get; }
     DateTime StarTime { get; }
@@ -36,6 +40,7 @@ public class InitializationTracker : IInitializationTracker
 
     public JObject Json => CreateJObject();
     public string Message { get; private set; } = "";
+    public ITrackerState State { get; private set; } = null;
     public double Percent { get; private set; } = 0;
     public bool Completed { get; private set; } = false;
     public DateTime StarTime { get; } = DateTime.Now;
@@ -88,5 +93,56 @@ public class InitializationTracker : IInitializationTracker
     protected virtual void OnProgress()
     {
         Progress?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void OnNext(IInfoStreamEvent value)
+    {
+        switch (value)
+        {
+            case IInfoStreamExceptionEvent infoStreamExceptionEvent:
+                break;
+            case ZipSnapshotEvent zipSnapshotEvent:
+                break;
+            case StorageIngestStateInfoStreamEvent storageIngestStateInfoStreamEvent:
+                break;
+            case StorageObserverInfoStreamEvent storageObserverInfoStreamEvent:
+                break;
+            case TrackerStateInfoStreamEvent state:
+                SetProgress(state.Message);
+                State = state.State;
+                switch (state.State)
+                {
+                    case SnapshotRestoreState snapshotState:
+                        break;
+                    case StorageIngestState storageIngestState:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                break;
+            case SearchInfoStreamEvent searchInfoStreamEvent:
+                break;
+            case ZipFileEvent zipFileEvent:
+                break;
+            case InfoStreamExceptionEvent infoStreamExceptionEvent1:
+                break;
+            case TaskCompletedInfoStreamEvent taskCompletedInfoStreamEvent:
+                break;
+            case InfoStreamEvent infoStreamEvent:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(value));
+        }
+    }
+
+    public void OnError(Exception error)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void OnCompleted()
+    {
+        throw new NotImplementedException();
     }
 }
