@@ -32,7 +32,7 @@ public class Installer : IWindsorInstaller
                     new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path), 
                         configuration.Index.Snapshots.MaxSnapshots),
                     scheduler, configuration.Index.Snapshots.CronTime),
-                new ManagerJsonIndexWriter(index, scheduler)
+                new JsonIndexWriter(index, scheduler)
 
             );
             return indexManager;

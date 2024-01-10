@@ -24,7 +24,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     private readonly IWebTaskScheduler scheduler;
     private readonly IStorageChangeFilterHandler filter;
     private readonly IStorageAreaLog log;
-    private readonly ChangeStream observable = new();
+    private readonly DocumentChangesStream observable = new();
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
 
     private long generation = 0;
@@ -32,6 +32,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public IStorageArea StorageArea { get; }
 
     public string AreaName => StorageArea.Name;
+
     public IInfoStream InfoStream => infoStream;
     public IObservable<IJsonDocumentChange> DocumentChanges => observable;
     public IObservableValue<bool> Initialized { get; } = new ObservableValue<bool>();
@@ -80,6 +81,10 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     {
         task.Signal();
         //TODO: Wait for completion!
+        return Task.CompletedTask;
+    }
+    public Task ResetAsync()
+    {
         return Task.CompletedTask;
     }
 

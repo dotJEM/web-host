@@ -14,7 +14,7 @@ namespace DotJEM.Web.Host.Providers.Storage.Indexing;
 public class JsonStorageDocumentSource : IJsonDocumentSource
 {
     private readonly Dictionary<string, IJsonStorageAreaObserver> observers;
-    private readonly ChangeStream observable = new();
+    private readonly DocumentChangesStream observable = new();
     private readonly InfoStream<JsonStorageDocumentSource> infoStream = new();
 
     public IObservable<IJsonDocumentChange> DocumentChanges => observable;
@@ -56,6 +56,12 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
             return; // TODO?
 
         observer.UpdateGeneration(area, generation);
+    }
+
+    public async Task ResetAsync()
+    {
+        foreach (IJsonStorageAreaObserver observer in observers.Values)
+            await observer.ResetAsync().ConfigureAwait(false);
     }
 
     public async Task QueueUpdate(IStorageArea area, JObject entity)
