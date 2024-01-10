@@ -36,7 +36,7 @@ public class Installer : IWindsorInstaller
 
             );
             return indexManager;
-        }));
+        }).LifestyleSingleton());
 
     }
 }
