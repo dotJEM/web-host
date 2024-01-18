@@ -123,7 +123,7 @@ public abstract class WebHost : IWebHost
 
         IQueryParserConfiguration parserConfiguration = new QueryParserConfiguration();
         Schemas = new SchemaCollection();
-        Index = CreateIndex(Schemas, parserConfiguration);
+        Index = BuildIndex(Schemas, parserConfiguration).Build();
         Storage = CreateStorage();
         Scheduler = CreateScheduler();
 
@@ -267,7 +267,7 @@ public abstract class WebHost : IWebHost
 
     protected virtual IWebTaskScheduler CreateScheduler() => new WebTaskScheduler();
 
-    protected virtual IJsonIndex CreateIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
+    protected virtual IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
     {
         IndexConfiguration configuration = Configuration.Index;
 
@@ -280,8 +280,7 @@ public abstract class WebHost : IWebHost
         {
             return builder
                 .UsingMemmoryStorage()
-                .WithSnapshoting()
-                .Build();
+                .WithSnapshoting();
         }
 
         if (configuration.Snapshots != null)
@@ -297,7 +296,7 @@ public abstract class WebHost : IWebHost
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        return builder.Build();
+        return builder;
     }
     
     protected virtual IStorageContext CreateStorage() => new SqlServerStorageContext(Configuration.Storage.ConnectionString);
@@ -312,7 +311,6 @@ public abstract class WebHost : IWebHost
     protected virtual void BeforeConfigure() { }
     protected virtual void Configure(IWindsorContainer container) { }
     protected virtual void Configure(IStorageContext storage) { }
-    //protected virtual void Configure(IStorageIndex index) { }
     protected virtual void Configure(IRouter router) { }
     protected virtual void Configure(IPipeline pipeline) { }
     protected virtual void Configure(IQueryParserConfiguration parserConfig) { }

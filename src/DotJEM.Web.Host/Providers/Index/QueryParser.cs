@@ -34,7 +34,26 @@ public class CallContext
 public interface IQueryParserConfiguration
 {
     IFieldStrategy LookupStrategy(string field);
+
+    //IContentTypeQueryParserConfiguration For(string contentType);
+    IQueryParserConfiguration Field(string field, IFieldStrategy strategy);
 }
+
+//public interface IContentTypeQueryParserConfiguration
+//{
+//}
+
+//public class ContentTypeQueryParserConfiguration : IContentTypeQueryParserConfiguration
+//{
+//    private readonly Dictionary<string, IFieldStrategy> strategies = new();
+//    public IFieldStrategy LookupStrategy(string field)
+//    {
+//        if (strategies.TryGetValue(field, out IFieldStrategy strategy))
+//            return strategy;
+
+//        return new FieldStrategy();
+//    }
+//}
 
 public class QueryParserConfiguration : IQueryParserConfiguration
 {
@@ -47,6 +66,17 @@ public class QueryParserConfiguration : IQueryParserConfiguration
 
         return new FieldStrategy();
     }
+
+    public IQueryParserConfiguration Field(string field, IFieldStrategy strategy)
+    {
+        strategies.Add(field, strategy);
+        return this;
+    }
+
+    //public IContentTypeQueryParserConfiguration For(string contentType)
+    //{
+    //    throw new NotImplementedException();
+    //}
 }
 
 public class MultiFieldQueryParser : QueryParser, IQueryParser
