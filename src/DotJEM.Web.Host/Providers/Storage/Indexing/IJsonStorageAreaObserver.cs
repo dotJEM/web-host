@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Management.Observables;
+using DotJEM.Json.Index2.Management.Source;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;

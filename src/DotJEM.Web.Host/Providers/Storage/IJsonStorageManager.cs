@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotJEM.AdvParsers;
-using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Index2.Management.Source;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Configuration;
@@ -13,7 +13,6 @@ using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Providers.Concurrency;
 using DotJEM.Web.Host.Providers.Storage.Cutoff;
 using DotJEM.Web.Host.Providers.Storage.Indexing;
-using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 
@@ -33,7 +32,6 @@ public class JsonStorageManager : IJsonStorageManager
 {
     private IScheduledTask task;
     private readonly IWebTaskScheduler scheduler;
-    private readonly IDiagnosticsLogger logger;
     private readonly Dictionary<string, IStorageHistoryCleaner> cleaners = new();
     private readonly TimeSpan interval;
     private readonly JsonStorageDocumentSource documentSource;
@@ -45,13 +43,10 @@ public class JsonStorageManager : IJsonStorageManager
         IStorageContext storage,
         IWebHostConfiguration configuration,
         IWebTaskScheduler scheduler,
-        IStorageChangeFilterHandler filter, 
-        IDiagnosticsLogger logger)
+        IStorageChangeFilterHandler filter)
     {
         this.scheduler = scheduler;
-        this.logger = logger;
         this.interval = AdvParser.ParseTimeSpan(configuration.Storage.Interval);
-        //this.interval = AdvConvert.ConvertToTimeSpan(configuration.Storage.Interval);
         foreach (StorageAreaElement areaConfig in configuration.Storage.Items)
         {
             IStorageAreaConfigurator areaConfigurator = storage.Configure.Area(areaConfig.Name);
@@ -62,7 +57,6 @@ public class JsonStorageManager : IJsonStorageManager
             if (string.IsNullOrEmpty(areaConfig.HistoryAge))
                 continue;
 
-            //TimeSpan historyAge = AdvConvert.ConvertToTimeSpan(areaConfig.HistoryAge);
             TimeSpan historyAge = AdvParser.ParseTimeSpan(areaConfig.HistoryAge);
             if (historyAge <= TimeSpan.Zero)
                 continue;
@@ -83,7 +77,7 @@ public class JsonStorageManager : IJsonStorageManager
                 AreaWatchElement match = watch.FirstOrDefault(x => x.IsMatch(area.Name));
                 return match == null 
                     ? (IJsonStorageAreaObserver)null 
-                    : new JsonStorageAreaObserver(storage.Area(area.Name), scheduler, filter);
+                    : new JsonStorageAreaObserver(storage.Area(area.Name), scheduler, filter, configuration.Storage.Interval);
             })
             .Where(observer => observer != null)
             .ToList()

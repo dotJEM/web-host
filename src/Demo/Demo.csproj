@@ -62,17 +62,17 @@
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Diagnostic.1.0.30\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2, Version=0.3.53.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.0.3.53\lib\netstandard2.0\DotJEM.Json.Index2.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2, Version=0.3.55.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.0.3.55\lib\netstandard2.0\DotJEM.Json.Index2.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.Management, Version=0.3.53.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.Management.0.3.53\lib\netstandard2.0\DotJEM.Json.Index2.Management.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.Management, Version=0.3.55.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.Management.0.3.55\lib\netstandard2.0\DotJEM.Json.Index2.Management.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.QueryParsers, Version=0.3.53.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.QueryParsers.0.3.53\lib\netstandard2.0\DotJEM.Json.Index2.QueryParsers.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.QueryParsers, Version=0.3.55.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.QueryParsers.0.3.55\lib\netstandard2.0\DotJEM.Json.Index2.QueryParsers.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.Snapshots, Version=0.3.53.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.Snapshots.0.3.53\lib\netstandard2.0\DotJEM.Json.Index2.Snapshots.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.Snapshots, Version=0.3.55.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.Snapshots.0.3.55\lib\netstandard2.0\DotJEM.Json.Index2.Snapshots.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Json.Storage, Version=0.4.50.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Storage.0.4.50\lib\net48\DotJEM.Json.Storage.dll</HintPath>
@@ -83,8 +83,8 @@
     <Reference Include="DotJEM.ObservableExtensions, Version=0.0.13.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.ObservableExtensions.0.0.13\lib\netstandard2.0\DotJEM.ObservableExtensions.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Web.Scheduler, Version=0.0.7.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Web.Scheduler.0.0.7\lib\netstandard2.0\DotJEM.Web.Scheduler.dll</HintPath>
+    <Reference Include="DotJEM.Web.Scheduler, Version=0.0.8.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Web.Scheduler.0.0.8\lib\netstandard2.0\DotJEM.Web.Scheduler.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=1.4.1.12, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpZipLib.1.4.1\lib\netstandard2.0\ICSharpCode.SharpZipLib.dll</HintPath>
@@ -141,7 +141,7 @@
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json.Bson, Version=1.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.Bson.1.0.1\lib\net45\Newtonsoft.Json.Bson.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.Bson.1.0.2\lib\net45\Newtonsoft.Json.Bson.dll</HintPath>
     </Reference>
     <Reference Include="Owin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f0ebd12fd5e55cc5, processorArchitecture=MSIL">
       <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
