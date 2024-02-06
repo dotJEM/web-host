@@ -57,8 +57,8 @@ public class IndexSnapshotsConfiguration : ConfigurationElement
     [ConfigurationProperty("max-snapshots", IsRequired = false, DefaultValue = 0)]
     public int MaxSnapshots => (int)this["max-snapshots"];
 
-    [ConfigurationProperty("cron-time", IsRequired = false, DefaultValue = "")]
-    public string CronTime => (string)this["cron-time"];
+    [ConfigurationProperty("interval", IsRequired = false, DefaultValue = "")]
+    public string Interval => (string)this["interval"];
 }
 
 public enum IndexStorageType { Memory, File, CachedMemory }

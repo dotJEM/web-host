@@ -31,7 +31,7 @@ public class Installer : IWindsorInstaller
                 new JsonIndexSnapshotManager(index, 
                     new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path), 
                         configuration.Index.Snapshots.MaxSnapshots),
-                    scheduler, configuration.Index.Snapshots.CronTime),
+                    scheduler, configuration.Index.Snapshots.Interval),
                 new JsonIndexWriter(index, scheduler)
 
             );
