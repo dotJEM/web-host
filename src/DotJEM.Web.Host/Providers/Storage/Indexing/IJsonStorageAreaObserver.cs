@@ -53,13 +53,13 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
         task = scheduler.Schedule($"JsonStorageAreaObserver:{StorageArea.Name}", _ => RunUpdateCheck(), pollInterval);
         task.InfoStream.Subscribe(infoStream);
-        await task;
+        await task.WhenCompleted();
     }
 
     public async Task StopAsync()
     {
         task.Dispose();
-        await task;
+        await task.WhenCompleted();
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Stopped, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
     }
 
