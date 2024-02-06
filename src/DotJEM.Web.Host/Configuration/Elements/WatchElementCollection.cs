@@ -20,7 +20,7 @@ public class WatchElementCollection : ConfigurationElementCollection
     }
 
     [ConfigurationProperty("interval", IsRequired = true)]
-    public long Interval => (long)this["interval"];
+    public string Interval => (string)this["interval"];
 
     [ConfigurationProperty("rambuffer", IsRequired = false, DefaultValue = "512mb")]
     public string RamBuffer => (string)this["rambuffer"];

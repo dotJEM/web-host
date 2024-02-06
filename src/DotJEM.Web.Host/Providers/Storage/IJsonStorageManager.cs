@@ -77,7 +77,7 @@ public class JsonStorageManager : IJsonStorageManager
                 AreaWatchElement match = watch.FirstOrDefault(x => x.IsMatch(area.Name));
                 return match == null 
                     ? (IJsonStorageAreaObserver)null 
-                    : new JsonStorageAreaObserver(storage.Area(area.Name), scheduler, filter, configuration.Storage.Interval);
+                    : new JsonStorageAreaObserver(storage.Area(area.Name), scheduler, filter, configuration.Index.Watch.Interval);
             })
             .Where(observer => observer != null)
             .ToList()
@@ -86,7 +86,7 @@ public class JsonStorageManager : IJsonStorageManager
         documentSource = new JsonStorageDocumentSource(Observers);
     }
 
-    public async Task  QueueUpdate(IStorageArea area, JObject entity)
+    public async Task QueueUpdate(IStorageArea area, JObject entity)
     {
         await documentSource.QueueUpdate(area, entity);
     }

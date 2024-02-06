@@ -37,7 +37,8 @@ namespace Demo
         protected override void Configure(IRouter router)
         {
             router.Route("api/exception").To<ExceptionController>();
-            router.Route("api/storage/{area}/{contentType}/{id}").To<StorageController>(x => x.Set.Defaults(new { id = RouteParameter.Optional }));
+            router.Route("api/storage/{area}/{contentType}/{id}")
+                .To<StorageController>(x => x.Set.Defaults(new { id = RouteParameter.Optional }));
             router.Route("api/search").To<SearchController>();
             router.Route("api/status").To<StatusController>();
             router.Default("Index").To<IndexController>();
