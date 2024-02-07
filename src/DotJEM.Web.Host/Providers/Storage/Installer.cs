@@ -45,8 +45,7 @@ public class Installer : IWindsorInstaller
             IWebTaskScheduler scheduler = kernel.Resolve<IWebTaskScheduler>();
             IJsonStorageManager storageManager = kernel.Resolve<IJsonStorageManager>();
             IJsonIndexSnapshotManager snapshotsManager = kernel.Resolve<IJsonIndexSnapshotManager>();
-            return new JsonIndexManager(new JsonStorageDocumentSource(storageManager.Observers), snapshotsManager, new JsonIndexWriter(index, scheduler)
-            );
+            return new JsonIndexManager(new JsonStorageDocumentSource(storageManager.Observers), snapshotsManager, new JsonIndexWriter(index, scheduler));
         }).LifestyleSingleton());
 
     }
