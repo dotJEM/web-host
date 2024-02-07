@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
-using DotJEM.Json.Index2.Management;
-using DotJEM.Json.Index2.Management.Snapshots.Zip.Meta;
+using DotJEM.Json.Index2.Management.Info;
 using DotJEM.Json.Index2.Management.Tracking;
 using DotJEM.Json.Index2.Results;
 using DotJEM.ObservableExtensions.InfoStreams;
@@ -101,7 +100,7 @@ public class InitializationTracker : IInitializationTracker
         {
             case IInfoStreamExceptionEvent infoStreamExceptionEvent:
                 break;
-            case ZipSnapshotEvent zipSnapshotEvent:
+            case SnapshotInfoEvent snapshotEvent:
                 break;
             case StorageIngestStateInfoStreamEvent storageIngestStateInfoStreamEvent:
                 break;
@@ -119,11 +118,10 @@ public class InitializationTracker : IInitializationTracker
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-
                 break;
             case SearchInfoStreamEvent searchInfoStreamEvent:
                 break;
-            case ZipFileEvent zipFileEvent:
+            case FileInfoEvent fileInfoEvent:
                 break;
             case InfoStreamExceptionEvent infoStreamExceptionEvent1:
                 break;

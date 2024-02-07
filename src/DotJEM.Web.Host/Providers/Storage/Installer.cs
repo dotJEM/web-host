@@ -10,6 +10,8 @@ using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Providers.Storage.Cutoff;
 using DotJEM.Web.Host.Providers.Storage.Indexing;
 using DotJEM.Web.Scheduler;
+using static Lucene.Net.Documents.Field;
+using System.Reactive.Concurrency;
 
 namespace DotJEM.Web.Host.Providers.Storage;
 
@@ -20,22 +22,31 @@ public class Installer : IWindsorInstaller
         container.Register(Component.For<IJsonStorageManager>().ImplementedBy<JsonStorageManager>().LifestyleSingleton());
         container.Register(Component.For<IStorageChangeFilterHandler>().ImplementedBy<StorageChangeFilterHandler>().LifestyleSingleton());
 
+
+        container.Register(Component.For<ISnapshotStrategy>().UsingFactoryMethod(kernel =>
+        {
+            IPathResolver path = kernel.Resolve<IPathResolver>();
+            IWebHostConfiguration configuration = kernel.Resolve<IWebHostConfiguration>();
+            return new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path), configuration.Index.Snapshots.MaxSnapshots);
+
+        }).LifestyleSingleton());
+
+        container.Register(Component.For<IJsonIndexSnapshotManager>().UsingFactoryMethod(kernel =>
+        {
+            ISnapshotStrategy snapshotStrategy = kernel.Resolve<ISnapshotStrategy>();
+            IWebTaskScheduler scheduler = kernel.Resolve<IWebTaskScheduler>();
+            IJsonIndex index = kernel.Resolve<IJsonIndex>();
+            IWebHostConfiguration configuration = kernel.Resolve<IWebHostConfiguration>();
+            return new JsonIndexSnapshotManager(index, snapshotStrategy, scheduler, configuration.Index.Snapshots.Interval);
+        }).LifestyleSingleton());
         container.Register(Component.For<IJsonIndexManager>().UsingFactoryMethod(kernel =>
         {
             IJsonIndex index = kernel.Resolve<IJsonIndex>();
-            IPathResolver path = kernel.Resolve<IPathResolver>();
             IWebTaskScheduler scheduler = kernel.Resolve<IWebTaskScheduler>();
-            IWebHostConfiguration configuration = kernel.Resolve<IWebHostConfiguration>();
             IJsonStorageManager storageManager = kernel.Resolve<IJsonStorageManager>();
-            JsonIndexManager indexManager = new JsonIndexManager(new JsonStorageDocumentSource(storageManager.Observers),
-                new JsonIndexSnapshotManager(index, 
-                    new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path), 
-                        configuration.Index.Snapshots.MaxSnapshots),
-                    scheduler, configuration.Index.Snapshots.Interval),
-                new JsonIndexWriter(index, scheduler)
-
+            IJsonIndexSnapshotManager snapshotsManager = kernel.Resolve<IJsonIndexSnapshotManager>();
+            return new JsonIndexManager(new JsonStorageDocumentSource(storageManager.Observers), snapshotsManager, new JsonIndexWriter(index, scheduler)
             );
-            return indexManager;
         }).LifestyleSingleton());
 
     }
