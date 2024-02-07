@@ -267,7 +267,9 @@ public abstract class WebHost : IWebHost
 
     protected virtual IWebTaskScheduler CreateScheduler() => new WebTaskScheduler();
 
-    protected virtual IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
+    protected virtual IJsonIndexBuilder BuildIndex(
+        ISchemaCollection schemas, IQueryParserConfiguration config,
+        Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
     {
         IndexConfiguration configuration = Configuration.Index;
 

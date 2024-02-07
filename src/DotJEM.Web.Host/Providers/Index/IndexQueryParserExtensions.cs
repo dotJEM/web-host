@@ -14,8 +14,8 @@ public static class IndexQueryParserExtensions
         => self
             .TryWithService(schemas)
             .TryWithService(config)
-            .TryWithService<IQueryParser>(x
-                => new MultiFieldQueryParser(x, x.Get<IQueryParserConfiguration>(), x.Get<ISchemaCollection>()));
+            .TryWithService<IQueryParserFactory>(x
+                => new QueryParserFactory(x));
 
     public static ISearch Search(this IJsonIndexSearcher self, string query)
     {
@@ -33,7 +33,25 @@ public static class IndexQueryParserExtensions
 
     private static IQueryParser ResolveParser(this IJsonIndexConfiguration self)
     {
-        return self.Get<IQueryParser>() ?? throw new Exception("Query parser not configured.");
+        IQueryParserFactory factory = self.Get<IQueryParserFactory>() ?? throw new Exception("Query parser not configured.");
+        return factory.Create();
     }
 
+}
+
+public interface IQueryParserFactory
+{
+    IQueryParser Create();
+}
+
+class QueryParserFactory : IQueryParserFactory
+{
+    private readonly IJsonIndexConfiguration config;
+
+    public QueryParserFactory(IJsonIndexConfiguration config)
+    {
+        this.config = config;
+    }
+
+    public IQueryParser Create() => new MultiFieldQueryParser(config, config.Get<IQueryParserConfiguration>(), config.Get<ISchemaCollection>());
 }
