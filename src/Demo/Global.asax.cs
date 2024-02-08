@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Web;
@@ -10,12 +11,18 @@ using Demo.Controllers;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Configuration;
 using DotJEM.Json.Index2.Documents.Fields;
+using DotJEM.Json.Index2.Management;
+using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Configuration;
+using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Host;
 using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Diagnostics.ExceptionHandlers;
-using DotJEM.Web.Host.Providers.Index;
-using DotJEM.Web.Host.Providers.Index.Builder;
-using DotJEM.Web.Host.Providers.Index.Schemas;
+using DotJEM.Web.Host.Providers.Data;
+using DotJEM.Web.Host.Providers.Data.Index;
+using DotJEM.Web.Host.Providers.Data.Index.Builder;
+using DotJEM.Web.Host.Providers.Data.Index.Schemas;
+using DotJEM.Web.Host.Providers.Data.Storage;
 using Lucene.Net.Analysis;
 using Lucene.Net.Search;
 
@@ -59,6 +66,23 @@ namespace Demo
             return base.BuildIndex(schemas, config, analyzerProvider)
                 .WithFieldResolver(new FieldResolver("id", "contentType"));
         }
+        
+        private static readonly string SchemaVersionFieldName = "$schemaVersion";
+        protected override void Configure(IStorageContext storage)
+        {
+            Resolve<IJsonStorageManager>();
+
+            storage.Configure.MapField(JsonField.Id, "id");
+            storage.Configure.MapField(JsonField.ContentType, "contentType");
+            storage.Configure.MapField(JsonField.Version, "$version");
+            storage.Configure.MapField(JsonField.Created, "$created");
+            storage.Configure.MapField(JsonField.Updated, "$updated");
+            storage.Configure.MapField(JsonField.SchemaVersion, SchemaVersionFieldName);
+
+            //storage.Configure.VersionProvider = version;
+
+            base.Configure(storage);
+        }
 
         protected override void Configure(IQueryParserConfiguration parserConfig)
         {
@@ -88,6 +112,16 @@ namespace Demo
             //index.Configuration.For("ship").Index("imo", As.Term);
 
             //index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
+        }
+
+        protected override void AfterInitialize()
+        {
+            Resolve<IDataStorageManager>().InfoStream.Subscribe(WriteDebug);
+        }
+
+        private void WriteDebug(IInfoStreamEvent evt)
+        {
+            Debug.WriteLine(evt);
         }
     }
 }

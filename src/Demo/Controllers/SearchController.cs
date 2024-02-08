@@ -5,7 +5,7 @@ using System;
 using System.Web.Http;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Results;
-using DotJEM.Web.Host.Providers.Index;
+using DotJEM.Web.Host.Providers.Data.Index;
 using Lucene.Net.QueryParsers.Classic;
 using Lucene.Net.Search;
 

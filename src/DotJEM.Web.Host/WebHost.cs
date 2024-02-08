@@ -28,12 +28,11 @@ using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Diagnostics.Performance;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
-using DotJEM.Web.Host.Providers.Index;
-using DotJEM.Web.Host.Providers.Index.Schemas;
+using DotJEM.Web.Host.Providers.Data.Index;
+using DotJEM.Web.Host.Providers.Data.Index.Schemas;
+using DotJEM.Web.Host.Providers.Data.Storage;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
-using DotJEM.Web.Host.Providers.Storage;
-using DotJEM.Web.Host.Providers.Storage.Indexing;
 using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Writers;
@@ -172,18 +171,16 @@ public abstract class WebHost : IWebHost
             storageManager = container.Resolve<IJsonStorageManager>();
             indexManager = container.Resolve<IJsonIndexManager>();
             Initialization.SetProgress("Loading index.");
-
             indexManager.InfoStream.Subscribe(Initialization);
 
             //indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
             Sync.FireAndForget(indexManager.RunAsync());
             perf.TrackTask(indexManager.Tracker.WhenState(IngestInitializationState.Initialized), "Index Manager");
-            perf.TrackAction(AfterStart);
             perf.TrackAction(storageManager.Start);
-
-
             container.Resolve<IDataCleanupManager>().Start();
+
+            perf.TrackAction(AfterStart);
             Initialization.Complete();
             startup.Dispose();
         }).ContinueWith(async result => {

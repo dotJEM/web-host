@@ -7,9 +7,9 @@ using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Searching;
 using DotJEM.Json.Storage.Adapter;
+using DotJEM.Web.Host.Providers.Data;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
-using DotJEM.Web.Host.Providers.Storage;
 using DotJEM.Web.Host.Tasks;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
@@ -85,14 +85,14 @@ public class ContentService : IContentService
 
     private readonly IJsonIndex index;
     private readonly IStorageArea area;
-    private readonly IJsonStorageManager manager;
+    private readonly IDataStorageManager manager;
     private readonly IPipeline pipeline;
     private readonly ILogger performance;
     private readonly IContentMergeService merger;
 
     public IStorageArea StorageArea => area;
 
-    public ContentService(IJsonIndex index, IStorageArea area, IJsonStorageManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
+    public ContentService(IJsonIndex index, IStorageArea area, IDataStorageManager manager, IPipeline pipeline, IJsonMergeVisitor merger, ILogger performance)
     {
         this.index = index;
         this.area = area;

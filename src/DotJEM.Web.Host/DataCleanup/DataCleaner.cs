@@ -8,7 +8,7 @@ using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.Web.Host.Diagnostics.InfoStreams;
-using DotJEM.Web.Host.Providers.Index;
+using DotJEM.Web.Host.Providers.Data.Index;
 using DotJEM.Web.Scheduler;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

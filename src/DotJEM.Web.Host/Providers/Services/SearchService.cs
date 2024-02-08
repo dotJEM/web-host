@@ -5,7 +5,7 @@ using DotJEM.Diagnostic;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Results;
 using DotJEM.Json.Index2.Searching;
-using DotJEM.Web.Host.Providers.Index;
+using DotJEM.Web.Host.Providers.Data.Index;
 using DotJEM.Web.Host.Providers.Pipeline;
 using Lucene.Net.Search;
 using Newtonsoft.Json.Linq;
