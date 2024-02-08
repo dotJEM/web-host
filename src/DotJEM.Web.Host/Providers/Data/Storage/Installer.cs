@@ -39,11 +39,7 @@ public class Installer : IWindsorInstaller
             return new JsonIndexSnapshotManager(index, snapshotStrategy, scheduler, configuration.Index.Snapshots.Interval);
         }).LifestyleSingleton());
         container.Register(Component.For<IJsonIndexWriter>().ImplementedBy<JsonIndexWriter>());
-        container.Register(Component.For<IJsonDocumentSource>().UsingFactoryMethod(kernel =>
-        {
-            IJsonStorageManager storageManager = kernel.Resolve<IJsonStorageManager>();
-            return new JsonStorageDocumentSource(storageManager.Observers);
-        }).LifestyleSingleton());
+        container.Register(Component.For<IJsonDocumentSource>().UsingFactoryMethod(kernel => kernel.Resolve<IJsonStorageManager>().DocumentSource).LifestyleSingleton());
         container.Register(Component.For<IJsonIndexManager>().ImplementedBy<JsonIndexManager>().LifestyleSingleton());
         container.Register(Component.For<IDataStorageManager>().ImplementedBy<DataStorageManager>().LifestyleSingleton());
     }

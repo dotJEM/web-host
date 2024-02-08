@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -20,7 +21,6 @@ namespace DotJEM.Web.Host.Providers.Data.Storage;
 public interface IJsonStorageManager
 {
     IInfoStream InfoStream { get; }
-    IReadOnlyCollection<IJsonStorageAreaObserver> Observers { get; }
     IJsonDocumentSource DocumentSource { get; }
     void Start();
     void Stop();
@@ -37,7 +37,6 @@ public class JsonStorageManager : IJsonStorageManager
     private readonly TimeSpan interval;
     private readonly JsonStorageDocumentSource documentSource;
 
-    public IReadOnlyCollection<IJsonStorageAreaObserver> Observers { get; }
     public IJsonDocumentSource DocumentSource => documentSource;
     public IInfoStream InfoStream => infoStream;
 
@@ -49,7 +48,6 @@ public class JsonStorageManager : IJsonStorageManager
     {
         this.scheduler = scheduler;
         this.interval = AdvParser.ParseTimeSpan(configuration.Storage.Interval);
-        
 
 
         foreach (StorageAreaElement areaConfig in configuration.Storage.Items)
@@ -76,7 +74,7 @@ public class JsonStorageManager : IJsonStorageManager
             .Select(AreaWatchElement.Create)
             .ToArray();
 
-        Observers = storage.AreaInfos
+        IEnumerable<IJsonStorageAreaObserver> observers = storage.AreaInfos
             .Select(area =>
             {
                 AreaWatchElement match = watch.FirstOrDefault(x => x.IsMatch(area.Name));
@@ -84,11 +82,9 @@ public class JsonStorageManager : IJsonStorageManager
                     ? (IJsonStorageAreaObserver)null 
                     : new JsonStorageAreaObserver(storage.Area(area.Name), scheduler, filter, configuration.Index.Watch.Interval);
             })
-            .Where(observer => observer != null)
-            .ToList()
-            .AsReadOnly();
+            .Where(observer => observer != null);
 
-        documentSource = new JsonStorageDocumentSource(Observers);
+        documentSource = new JsonStorageDocumentSource(observers);
     }
 
     public async Task QueueUpdate(IStorageArea area, JObject entity)
