@@ -122,7 +122,12 @@ public abstract class WebHost : IWebHost
 
         IQueryParserConfiguration parserConfiguration = new QueryParserConfiguration();
         Schemas = new SchemaCollection();
-        Index = BuildIndex(Schemas, parserConfiguration).Build();
+        Index = BuildIndex(
+            Schemas,
+            parserConfiguration,
+            config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET),
+            new JsonIndexBuilder("Main")
+            ).Build();
         Storage = CreateStorage();
         Scheduler = CreateScheduler();
 
@@ -272,8 +277,8 @@ public abstract class WebHost : IWebHost
         IndexConfiguration configuration = Configuration.Index;
 
         analyzerProvider ??= config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET); 
-
         builder ??= new JsonIndexBuilder("Main");
+
         builder.WithClassicLuceneQueryParser(schemas, config);
         builder.WithAnalyzer(analyzerProvider);
         if (configuration.Storage == null)

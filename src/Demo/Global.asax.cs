@@ -61,11 +61,12 @@ namespace Demo
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
         }
 
-        protected override IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration, Analyzer> analyzerProvider = null)
+        protected override IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration, Analyzer> analyzerProvider = null, IJsonIndexBuilder builder = null)
         {
-            return base.BuildIndex(schemas, config, analyzerProvider)
+            return base.BuildIndex(schemas, config, analyzerProvider, builder)
                 .WithFieldResolver(new FieldResolver("id", "contentType"));
         }
+
         
         private static readonly string SchemaVersionFieldName = "$schemaVersion";
         protected override void Configure(IStorageContext storage)
