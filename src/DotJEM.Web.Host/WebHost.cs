@@ -266,13 +266,14 @@ public abstract class WebHost : IWebHost
 
     protected virtual IJsonIndexBuilder BuildIndex(
         ISchemaCollection schemas, IQueryParserConfiguration config,
-        Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null)
+        Func<IJsonIndexConfiguration,Analyzer> analyzerProvider = null,
+        IJsonIndexBuilder builder = null)
     {
         IndexConfiguration configuration = Configuration.Index;
 
         analyzerProvider ??= config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET); 
 
-        IJsonIndexBuilder builder = new JsonIndexBuilder("Main");
+        builder ??= new JsonIndexBuilder("Main");
         builder.WithClassicLuceneQueryParser(schemas, config);
         builder.WithAnalyzer(analyzerProvider);
         if (configuration.Storage == null)
