@@ -15,12 +15,12 @@ public interface ISchemaCollection : IEnumerable<JSchema>
     IEnumerable<Field> AllFields();
     IEnumerable<Field> Fields(string contentType);
 
-    JSchema Add(string contentType, JSchema schema);
+    JSchema AddOrUpdate(string contentType, JSchema schema);
 }
 
 public class SchemaCollection : ISchemaCollection
 {
-    private readonly IDictionary<string, JSchema> schemas = new ConcurrentDictionary<string, JSchema>();
+    private readonly ConcurrentDictionary<string, JSchema> schemas = new ConcurrentDictionary<string, JSchema>();
 
     public IEnumerable<string> ContentTypes => schemas.Keys;
 
@@ -34,17 +34,16 @@ public class SchemaCollection : ISchemaCollection
         }
     }
 
-    public JSchema Add(string contentType, JSchema schema)
+    public JSchema AddOrUpdate(string contentType, JSchema schema)
     {
         if (contentType == null) throw new ArgumentNullException(nameof(contentType));
         if (schema == null) throw new ArgumentNullException(nameof(schema));
 
         schema.ContentType = contentType;
-        if (schemas.ContainsKey(contentType))
-        {
-            return this[contentType] = this[contentType].Merge(schema);
-        }
-        schemas.Add(contentType, schema);
+        schemas.AddOrUpdate(contentType,
+            _ => schema,
+            (_, jSchema) => jSchema.Merge(schema));
+
         return schema;
     }
 

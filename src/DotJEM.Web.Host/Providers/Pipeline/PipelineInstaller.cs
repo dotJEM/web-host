@@ -209,7 +209,7 @@ public class PipelineInstaller : IWindsorInstaller
 //        foreach (DirectoryInfo addinDirectory in directory.GetDirectories())
 //        {
 //            IAddinDescriptor descriptor = inspector.Inspect(addinDirectory);
-//            repository.Add(descriptor);
+//            repository.AddOrUpdate(descriptor);
 //        }
 //    }
 //}
@@ -248,7 +248,7 @@ public class PipelineInstaller : IWindsorInstaller
 //                AliasAttribute[] attributes = typeDescriptor.GetCustomAttributes<AliasAttribute>();
 
 //                context.Log.WriteEntry(Level.Info, "Application '{0}' was found.", typeDescriptor.FullName);
-//                tasks.Add(new ApplicationDescriptor(typeDescriptor, attributes));
+//                tasks.AddOrUpdate(new ApplicationDescriptor(typeDescriptor, attributes));
 //            }
 //        }
 //        return tasks.ToArray();

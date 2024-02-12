@@ -2,12 +2,42 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index2.Configuration;
+using DotJEM.Json.Index2.Documents.Builder;
+using DotJEM.Json.Index2.Documents.Info;
+using DotJEM.Json.Index2.Documents;
 using DotJEM.Web.Host.Providers.Data.Index.Builder;
 using DotJEM.Web.Host.Providers.Data.Index.Schemas;
 using Lucene.Net.QueryParsers.Classic;
 using Lucene.Net.Search;
+using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Web.Host.Providers.Data.Index;
+
+public class WebHostLuceneDocumentFactory : ILuceneDocumentFactory
+{
+    private readonly ISchemaCollection schemas;
+    private readonly ILuceneDocumentFactory parent;
+    private readonly IJSchemaGenerator schemaGenerator = new JSchemaGenerator();
+
+    public WebHostLuceneDocumentFactory(ILuceneDocumentFactory parent, ISchemaCollection schemas)
+    {
+        this.parent = parent;
+        this.schemas = schemas;
+    }
+
+    public LuceneDocumentEntry Create(JObject entity)
+    {
+        LuceneDocumentEntry entry = parent.Create(entity);
+        schemas.AddOrUpdate(entry.ContentType, schemaGenerator.Generate(entity, entry.ContentType, ""));
+        return entry;
+    }
+
+    public IEnumerable<LuceneDocumentEntry> Create(IEnumerable<JObject> entities)
+    {
+        //TODO: (jmd 2020-08-10) Make Async implementation later on.
+        return entities.Select(Create);
+    }
+}
 
 public interface IQueryParser
 {

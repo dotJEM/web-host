@@ -8,11 +8,11 @@ using DotJEM.Json.Index2.Management.Snapshots.Zip;
 using DotJEM.Json.Index2.Management.Source;
 using DotJEM.Json.Index2.Management.Writer;
 using DotJEM.Web.Host.Configuration.Elements;
+using DotJEM.Web.Host.Providers.Data.Storage;
 using DotJEM.Web.Host.Providers.Data.Storage.Cutoff;
-using DotJEM.Web.Host.Providers.Data.Storage.Indexing;
 using DotJEM.Web.Scheduler;
 
-namespace DotJEM.Web.Host.Providers.Data.Storage;
+namespace DotJEM.Web.Host.Providers.Data;
 
 public class Installer : IWindsorInstaller
 {

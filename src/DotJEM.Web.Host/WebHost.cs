@@ -15,6 +15,7 @@ using DotJEM.AdvParsers;
 using DotJEM.Diagnostic;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Configuration;
+using DotJEM.Json.Index2.Documents;
 using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Management.Tracking;
 using DotJEM.Json.Index2.Snapshots;
@@ -276,11 +277,13 @@ public abstract class WebHost : IWebHost
     {
         IndexConfiguration configuration = Configuration.Index;
 
-        analyzerProvider ??= config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET); 
+        analyzerProvider ??= c => new StandardAnalyzer(c.Version, CharArraySet.EMPTY_SET); 
         builder ??= new JsonIndexBuilder("Main");
 
         builder.WithClassicLuceneQueryParser(schemas, config);
         builder.WithAnalyzer(analyzerProvider);
+        builder.TryWithService<ILuceneDocumentFactory>(
+            c => new WebHostLuceneDocumentFactory(new LuceneDocumentFactory(c.FieldInformationManager), schemas));
         if (configuration.Storage == null)
         {
             return builder
