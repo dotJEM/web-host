@@ -397,11 +397,12 @@
     <Compile Include="Providers\Data\Index\Schemas\JsonSchemaGenerator.cs" />
     <Compile Include="Providers\Data\Index\Schemas\JsonSchemaTypeMapper.cs" />
     <Compile Include="Providers\Data\Index\Schemas\JsonSchemeTypeConverter.cs" />
+    <Compile Include="Providers\Data\Index\Snapshots\SnapshotManager.cs" />
     <Compile Include="Providers\Data\Storage\Cutoff\IStorageCutoffFilter.cs" />
     <Compile Include="Providers\Data\Storage\Indexing\IJsonStorageAreaObserver.cs" />
     <Compile Include="Providers\Data\Storage\Indexing\IJsonStorageAreaObserverFactory.cs" />
     <Compile Include="Providers\Data\Storage\Indexing\JsonStorageDocumentSource.cs" />
-    <Compile Include="Providers\Data\Installer.cs" />
+    <Compile Include="Providers\Data\IndexAndStorageInstaller.cs" />
     <Compile Include="Providers\Data\Storage\Cutoff\IStorageCutoff.cs" />
     <Compile Include="Providers\Data\Storage\IStorageHistoryCleaner.cs" />
     <Compile Include="Diagnostics\InfoStreams\IInfoStream.cs" />
