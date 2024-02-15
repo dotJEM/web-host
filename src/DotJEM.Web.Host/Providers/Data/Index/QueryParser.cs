@@ -125,6 +125,7 @@ public class MultiFieldQueryParser : QueryParser, IQueryParser
 
 
         AllowLeadingWildcard = true;
+        DefaultOperator = Operator.OR;
     }
 
     private IEnumerable<string> LookupFields(params JsonSchemaExtendedType[] types)
@@ -223,8 +224,8 @@ public class MultiFieldQueryParser : QueryParser, IQueryParser
 
     protected override Query GetRangeQuery(string field, string part1, string part2, bool startInclusive, bool endInclusive)
     {
-        part1 = (part1 == "*" ? "null" : part1);
-        part2 = (part2 == "*" ? "null" : part2);
+        part1 = (part1 is "*" or null ? "null" : part1);
+        part2 = (part2 is "*" or null ? "null" : part2);
 
         if (field != null)
         {
