@@ -14,6 +14,7 @@ using Castle.Windsor.Installer;
 using DotJEM.AdvParsers;
 using DotJEM.Diagnostic;
 using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Analysis;
 using DotJEM.Json.Index2.Configuration;
 using DotJEM.Json.Index2.Documents;
 using DotJEM.Json.Index2.Management;
@@ -39,6 +40,7 @@ using DotJEM.Web.Host.Util;
 using DotJEM.Web.Host.Writers;
 using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis;
+using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Index;
@@ -277,7 +279,7 @@ public abstract class WebHost : IWebHost
     {
         IndexConfiguration configuration = Configuration.Index;
 
-        analyzerProvider ??= c => new StandardAnalyzer(c.Version, CharArraySet.EMPTY_SET); 
+        analyzerProvider ??= c => new JsonAnalyzer(c.Version); 
         builder ??= new JsonIndexBuilder("Main");
 
         builder.WithClassicLuceneQueryParser(schemas, config);

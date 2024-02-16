@@ -166,6 +166,10 @@ public class ContentService : IContentService
     public JObject Delete(Guid id, string contentType)
     {
         JObject entity = area.Get(id);
+        //TODO: Throw exception if not found?
+        if (entity == null)
+            return null;
+
         using (PipelineContext context = pipeline.CreateContext(contentType, entity))
         {
             pipeline.ExecuteBeforeDelete(entity, contentType, context);

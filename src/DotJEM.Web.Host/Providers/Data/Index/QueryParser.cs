@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index2.Configuration;
-using DotJEM.Json.Index2.Documents.Builder;
-using DotJEM.Json.Index2.Documents.Info;
 using DotJEM.Json.Index2.Documents;
 using DotJEM.Web.Host.Providers.Data.Index.Builder;
 using DotJEM.Web.Host.Providers.Data.Index.Schemas;
@@ -63,26 +61,8 @@ public class CallContext
 public interface IQueryParserConfiguration
 {
     IFieldStrategy LookupStrategy(string field);
-
-    //IContentTypeQueryParserConfiguration For(string contentType);
     IQueryParserConfiguration Field(string field, IFieldStrategy strategy);
 }
-
-//public interface IContentTypeQueryParserConfiguration
-//{
-//}
-
-//public class ContentTypeQueryParserConfiguration : IContentTypeQueryParserConfiguration
-//{
-//    private readonly Dictionary<string, IFieldStrategy> strategies = new();
-//    public IFieldStrategy LookupStrategy(string field)
-//    {
-//        if (strategies.TryGetValue(field, out IFieldStrategy strategy))
-//            return strategy;
-
-//        return new FieldStrategy();
-//    }
-//}
 
 public class QueryParserConfiguration : IQueryParserConfiguration
 {
@@ -108,7 +88,7 @@ public class QueryParserConfiguration : IQueryParserConfiguration
     //}
 }
 
-public class MultiFieldQueryParser : QueryParser, IQueryParser
+public class MultiFieldQueryParserIntegration : QueryParser, IQueryParser
 {
     //private readonly string[] fields;
     //private readonly string[] contentTypes;
@@ -116,7 +96,7 @@ public class MultiFieldQueryParser : QueryParser, IQueryParser
     private readonly ISchemaCollection schemas;
     private readonly IQueryParserConfiguration parserConfig;
 
-    public MultiFieldQueryParser(IJsonIndexConfiguration config, IQueryParserConfiguration parserConfig, ISchemaCollection schemas, params string[] fields)
+    public MultiFieldQueryParserIntegration(IJsonIndexConfiguration config, IQueryParserConfiguration parserConfig, ISchemaCollection schemas, params string[] fields)
         : base(config.Version, null, config.Analyzer)
     {
         this.parserConfig = parserConfig;

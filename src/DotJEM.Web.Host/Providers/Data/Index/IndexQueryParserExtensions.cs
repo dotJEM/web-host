@@ -20,7 +20,7 @@ public static class IndexQueryParserExtensions
     public static ISearch Search(this IJsonIndexSearcher self, string query)
     {
         IQueryParser parser = self.Index.Configuration.ResolveParser();
-        //MultiFieldQueryParser parser = new MultiFieldQueryParser();
+        //MultiFieldQueryParserIntegration parser = new MultiFieldQueryParserIntegration();
         Query queryInfo = parser.Parse(query);
         //LuceneQueryInfo queryInfo = parser.Parse(query);
         return self.Search(queryInfo);
@@ -53,5 +53,6 @@ class QueryParserFactory : IQueryParserFactory
         this.config = config;
     }
 
-    public IQueryParser Create() => new MultiFieldQueryParser(config, config.Get<IQueryParserConfiguration>(), config.Get<ISchemaCollection>());
+    public IQueryParser Create() 
+        => new MultiFieldQueryParserIntegration(config, config.Get<IQueryParserConfiguration>(), config.Get<ISchemaCollection>());
 }

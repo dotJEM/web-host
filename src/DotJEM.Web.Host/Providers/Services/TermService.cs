@@ -40,18 +40,16 @@ public class TermService : ITermService
 
         DirectoryReader reader = index.WriterManager.Writer.GetReader(true);
         Fields fields = MultiFields.GetFields(reader);
-        if (fields != null)
-        {
-            Terms terms = fields.GetTerms(field);
-            return new JObject()
-            {
-                ["terms"] = JArray.FromObject(terms.AsEnumerable()
-                    .Select(bytes => bytes.Utf8ToString())
-                    .ToArray())
-            };
-        }
+        if (fields == null) return new();
 
-        return new JObject();
+        Terms terms = fields.GetTerms(field);
+        return new()
+        {
+            ["terms"] = JArray.FromObject(terms.AsEnumerable()
+                .Select(bytes => bytes.Utf8ToString())
+                .ToArray())
+        };
+
     }
 }
 
