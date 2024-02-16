@@ -22,13 +22,8 @@ public class MultiFieldQueryParserIntegrationTest
     [TestCase("test:353167C6-FEEB-4CF1-9E48-0A7B54979A68", "test:353167c6-feeb-4cf1-9e48-0a7b54979a68")]
     public void Parse_WithInput_SucceedsWithOutput(string input, string expected)
     {
-        ServiceDescriptor descriptor = new ServiceDescriptor
-        {
-            Type = typeof(Analyzer),
-            Factory = c => new ClassicAnalyzer(c.Version, CharArraySet.EMPTY_SET)
-        };
         MultiFieldQueryParserIntegration parserIntegration = new (
-            new JsonIndexConfiguration(LuceneVersion.LUCENE_48, new []{ descriptor }), 
+            new JsonIndexConfiguration(LuceneVersion.LUCENE_48, new List<ServiceDescriptor>()), 
             new QueryParserConfiguration(), new SchemaCollection());
         Query q = parserIntegration.Parse(input);
         Assert.That(q.ToString(), Is.EqualTo(expected));

@@ -51,17 +51,17 @@
     <Reference Include="DotJEM.Diagnostic, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Diagnostic.1.0.30\lib\netstandard2.0\DotJEM.Diagnostic.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2, Version=0.3.71.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.0.3.71\lib\netstandard2.0\DotJEM.Json.Index2.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2, Version=0.3.72.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.0.3.72\lib\netstandard2.0\DotJEM.Json.Index2.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.Management, Version=0.3.71.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.Management.0.3.71\lib\netstandard2.0\DotJEM.Json.Index2.Management.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.Management, Version=0.3.72.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.Management.0.3.72\lib\netstandard2.0\DotJEM.Json.Index2.Management.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.QueryParsers, Version=0.3.71.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.QueryParsers.0.3.71\lib\netstandard2.0\DotJEM.Json.Index2.QueryParsers.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.QueryParsers, Version=0.3.72.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.QueryParsers.0.3.72\lib\netstandard2.0\DotJEM.Json.Index2.QueryParsers.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.Snapshots, Version=0.3.71.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.Snapshots.0.3.71\lib\netstandard2.0\DotJEM.Json.Index2.Snapshots.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.Snapshots, Version=0.3.72.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.Snapshots.0.3.72\lib\netstandard2.0\DotJEM.Json.Index2.Snapshots.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Json.Storage, Version=0.4.50.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Storage.0.4.50\lib\net48\DotJEM.Json.Storage.dll</HintPath>
