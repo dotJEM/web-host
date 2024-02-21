@@ -1,6 +1,8 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/lj72kp8ldr5wuu2t?svg=true)](https://ci.appveyor.com/project/jeme/web-host)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FdotJEM%2Fweb-host.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FdotJEM%2Fweb-host?ref=badge_shield)
 
+DEPRECATED!
+
 web-host
 ========
 
