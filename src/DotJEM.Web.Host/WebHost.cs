@@ -238,9 +238,13 @@ public abstract class WebHost : IWebHost
             return;
 
         string killFile = path.MapPath(Configuration.KillSignalFile);
+        string dir = Path.GetDirectoryName(killFile);
+
         byte[] time = BitConverter.GetBytes(DateTime.Now.Ticks);
         byte[] owner = BitConverter.GetBytes(Process.GetCurrentProcess().Id);
         byte[] signature = time.Concat(owner).ToArray();
+
+        Directory.CreateDirectory(dir);
         File.WriteAllBytes(killFile, signature);
 
         FileSystemWatcher watcher =  new FileSystemWatcher();
