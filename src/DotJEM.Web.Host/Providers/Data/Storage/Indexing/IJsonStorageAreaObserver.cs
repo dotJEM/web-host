@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using DotJEM.Json.Index2.Management.Info;
 using DotJEM.Json.Index2.Management.Observables;
@@ -7,6 +8,7 @@ using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.ObservableExtensions.InfoStreams;
+using DotJEM.Web.Host.Diagnostics;
 using DotJEM.Web.Host.Providers.Data.Storage.Cutoff;
 using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
@@ -39,7 +41,11 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public IObservable<IJsonDocumentChange> DocumentChanges => observable;
     public IObservableValue<bool> Initialized { get; } = new ObservableValue<bool>();
 
-    public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, IStorageChangeFilterHandler filter, string pollInterval = "10s")
+    public JsonStorageAreaObserver(
+        IStorageArea storageArea,
+        IWebTaskScheduler scheduler,
+        IStorageChangeFilterHandler filter,
+        string pollInterval = "10s")
     {
         StorageArea = storageArea;
         this.scheduler = scheduler;

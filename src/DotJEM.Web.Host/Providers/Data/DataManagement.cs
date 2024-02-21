@@ -46,13 +46,13 @@ namespace DotJEM.Web.Host.Providers.Data
 
         public async Task QueueUpdate(IStorageArea area, JObject entity)
         {
-            await StorageManager.QueueUpdate(area, entity);
+            await StorageManager.QueueUpdate(area, entity).ConfigureAwait(false);
             //IndexWriter.Commit();
         }
 
         public async Task QueueDelete(IStorageArea area, JObject deleted)
         {
-            await StorageManager.QueueDelete(area, deleted);
+            await StorageManager.QueueDelete(area, deleted).ConfigureAwait(false);
             //IndexWriter.Commit();
         }
     }
