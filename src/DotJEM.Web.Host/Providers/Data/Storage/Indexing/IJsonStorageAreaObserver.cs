@@ -73,21 +73,23 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         Initialized.Value = true;
     }
 
-    public Task QueueUpdate(JObject entity)
+    public async Task QueueUpdate(JObject entity)
     {
-        task.Signal();
+        await task.Signal();
         //TODO: Wait for completion!
-        return Task.CompletedTask;
+        //return Task.CompletedTask;
     }
 
-    public Task QueueDelete(JObject entity)
+    public async Task QueueDelete(JObject entity)
     {
-        task.Signal();
+        await task.Signal();
         //TODO: Wait for completion!
-        return Task.CompletedTask;
+        //return Task.CompletedTask;
     }
     public Task ResetAsync()
     {
+        generation = 0;
+        task.Signal();
         return Task.CompletedTask;
     }
 
