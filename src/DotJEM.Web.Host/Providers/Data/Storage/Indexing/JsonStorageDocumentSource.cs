@@ -16,7 +16,7 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
     private readonly DocumentChangesStream observable = new();
     private readonly InfoStream<JsonStorageDocumentSource> infoStream = new();
 
-    public IObservable<IJsonDocumentChange> DocumentChanges => observable;
+    public IObservable<IJsonDocumentSourceEvent> DocumentChanges => observable;
     public IInfoStream InfoStream => infoStream;
     public IObservableValue<bool> Initialized { get; } = new ObservableValue<bool>();
 

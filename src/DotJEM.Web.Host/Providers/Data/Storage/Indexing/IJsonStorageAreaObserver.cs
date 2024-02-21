@@ -38,7 +38,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public string AreaName => StorageArea.Name;
 
     public IInfoStream InfoStream => infoStream;
-    public IObservable<IJsonDocumentChange> DocumentChanges => observable;
+    public IObservable<IJsonDocumentSourceEvent> DocumentChanges => observable;
     public IObservableValue<bool> Initialized { get; } = new ObservableValue<bool>();
 
     public JsonStorageAreaObserver(
@@ -107,7 +107,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             BeforeInitialize();
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, Initialized.Value);
-            PublishChanges(changes, _ => JsonChangeType.Create);
+            PublishChanges(changes, row => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)));
             Initialized.Value = true;
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
             AfterInitialize();
@@ -117,23 +117,24 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             BeforeUpdate();
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, Initialized.Value);
-            PublishChanges(changes, row => MapChange(row.Type));
+            PublishChanges(changes, MapRow);
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
             AfterUpdate();
         }
+        observable.Publish(new JsonDocumentSourceDigestCompleted(AreaName));
 
-        JsonChangeType MapChange(ChangeType type)
+        IJsonDocumentSourceEvent MapRow(IChangeLogRow row)
         {
-            return type switch
+            return row.Type switch
             {
-                ChangeType.Create => JsonChangeType.Create,
-                ChangeType.Update => JsonChangeType.Update,
-                ChangeType.Delete => JsonChangeType.Delete,
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+                ChangeType.Create => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)),
+                ChangeType.Update => new JsonDocumentUpdated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)),
+                ChangeType.Delete => new JsonDocumentDeleted(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)),
+                _ => throw new NotSupportedException()
             };
         }
-
-        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, JsonChangeType> changeTypeGetter)
+        
+        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, IJsonDocumentSourceEvent> rowMapper)
         {
             foreach (IChangeLogRow change in changes)
             {
@@ -143,8 +144,8 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
                 if(filter.Exclude(change))
                     continue;
-
-                observable.Publish(new JsonDocumentChange(change.Area, changeTypeGetter(change), change.CreateEntity(), change.Size, new GenerationInfo(change.Generation, latestGeneration)));
+                
+                observable.Publish(rowMapper(change));
             }
         }
     }
