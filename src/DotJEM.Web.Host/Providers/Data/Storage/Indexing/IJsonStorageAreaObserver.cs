@@ -75,14 +75,14 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public async Task QueueUpdate(JObject entity)
     {
-        await task.Signal();
+        await task.Signal().ConfigureAwait(false);
         //TODO: Wait for completion!
         //return Task.CompletedTask;
     }
 
     public async Task QueueDelete(JObject entity)
     {
-        await task.Signal();
+        await task.Signal().ConfigureAwait(false);
         //TODO: Wait for completion!
         //return Task.CompletedTask;
     }

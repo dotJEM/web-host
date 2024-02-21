@@ -89,21 +89,17 @@ public class JsonStorageManager : IJsonStorageManager
 
     public async Task QueueUpdate(IStorageArea area, JObject entity)
     {
-        await documentSource.QueueUpdate(area, entity);
+        await documentSource.QueueUpdate(area, entity).ConfigureAwait(false);
     }
 
     public async Task QueueDelete(IStorageArea area, JObject deleted)
     {
-        await documentSource.QueueDelete(area, deleted);
+        await documentSource.QueueDelete(area, deleted).ConfigureAwait(false);
     }
 
     public void Start()
     {
         task = scheduler.ScheduleTask("StorageManager.CleanHistory", b => CleanHistory(), interval);
-        //foreach (IJsonStorageAreaObserver observer in Observers)
-        //{
-        //    Sync.FireAndForget(observer.RunAsync(), exception => logger.LogException(exception));
-        //}
     }
 
     private void CleanHistory()

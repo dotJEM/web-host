@@ -59,6 +59,10 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
 
     public async Task ResetAsync()
     {
+        //await Task.WhenAll(
+        //    observers.Values.Select(o => o.ResetAsync())
+        //).ConfigureAwait(false);
+
         foreach (IJsonStorageAreaObserver observer in observers.Values)
             await observer.ResetAsync().ConfigureAwait(false);
     }
