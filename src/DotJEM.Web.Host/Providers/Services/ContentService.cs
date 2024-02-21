@@ -8,6 +8,7 @@ using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Searching;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.Data;
+using DotJEM.Web.Host.Providers.Data.Index;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Tasks;
@@ -104,8 +105,7 @@ public class ContentService : IContentService
 
     public IEnumerable<JObject> Get(string contentType, int skip = 0, int take = 20)
     {
-        TermQuery query = new TermQuery(new Term("contentType", contentType));
-        JObject[] res = index.Search(query)
+        JObject[] res = index.Search($"contentType:{contentType}")
             .Skip(skip).Take(take)
             .Execute()
             .Select(hit => hit.Data)
