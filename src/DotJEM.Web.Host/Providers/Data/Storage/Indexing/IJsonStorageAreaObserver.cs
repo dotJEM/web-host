@@ -100,12 +100,12 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         //TODO: Wait for completion!
         //return Task.CompletedTask;
     }
-    public Task ResetAsync()
+    public async Task ResetAsync()
     {
         infoStream.WriteDebug($"[{AreaName}] Resetting storage area observer.");
         generation = 0;
-        task.Signal();
-        return Task.CompletedTask;
+        await task.Signal();
+        observable.Publish(new JsonDocumentSourceReset(AreaName));
     }
 
     public void RunUpdateCheck()
