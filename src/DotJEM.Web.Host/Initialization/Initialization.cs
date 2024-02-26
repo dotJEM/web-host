@@ -115,8 +115,6 @@ public class InitializationTracker : IInitializationTracker
                         break;
                     case StorageIngestState storageIngestState:
                         break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
                 }
                 break;
             case SearchInfoStreamEvent searchInfoStreamEvent:
@@ -136,11 +134,9 @@ public class InitializationTracker : IInitializationTracker
 
     public void OnError(Exception error)
     {
-        throw new NotImplementedException();
     }
 
     public void OnCompleted()
     {
-        throw new NotImplementedException();
     }
 }

@@ -72,27 +72,18 @@ namespace Demo
         protected override void Configure(IStorageContext storage)
         {
             Resolve<IJsonStorageManager>();
-
             storage.Configure.MapField(JsonField.Id, "id");
             storage.Configure.MapField(JsonField.ContentType, "contentType");
             storage.Configure.MapField(JsonField.Version, "$version");
             storage.Configure.MapField(JsonField.Created, "$created");
             storage.Configure.MapField(JsonField.Updated, "$updated");
             storage.Configure.MapField(JsonField.SchemaVersion, SchemaVersionFieldName);
-
-            //storage.Configure.VersionProvider = version;
-
             base.Configure(storage);
         }
 
         protected override void Configure(IQueryParserConfiguration parserConfig)
         {
             BooleanQuery.MaxClauseCount = 65535;
-            //index.Configuration.SetTypeResolver("contentType");
-            //index.Configuration.SetRawField("$raw");
-            //index.Configuration.SetScoreField("$score");
-            //index.Configuration.SetIdentity("id");
-
             parserConfig.Field("users.identifier", new TermFieldStrategy());
             parserConfig.Field("groups.identifier", new TermFieldStrategy());
 
@@ -101,18 +92,6 @@ namespace Demo
 
             parserConfig.Field("owner", new TermFieldStrategy());
             parserConfig.Field("imo", new TermFieldStrategy());
-
-            //index.Configuration.ForAll().Index("users.identifier", As.Term);
-            //index.Configuration.ForAll().Index("groups.identifier", As.Term);
-
-            //index.Configuration.ForAll().Index("updatedBy.user", As.Term);
-            //index.Configuration.ForAll().Index("createdBy.user", As.Term);
-
-            //index.Configuration.ForAll().Index("owner", As.Term);
-
-            //index.Configuration.For("ship").Index("imo", As.Term);
-
-            //index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
         }
 
         protected override void AfterInitialize()

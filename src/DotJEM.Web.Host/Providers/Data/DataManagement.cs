@@ -16,7 +16,6 @@ namespace DotJEM.Web.Host.Providers.Data
     {
         IInfoStream InfoStream { get; }
         IJsonIndexManager IndexManager { get; }
-        IJsonIndexWriter IndexWriter { get; }
         IJsonStorageManager StorageManager { get; }
         Task QueueUpdate(IStorageArea area, JObject entity);
         Task QueueDelete(IStorageArea area, JObject deleted);
@@ -27,33 +26,28 @@ namespace DotJEM.Web.Host.Providers.Data
         private readonly InfoStream<DataStorageManager> infoStream = new InfoStream<DataStorageManager>();
 
         public IJsonIndexManager IndexManager { get; }
-        public IJsonIndexWriter IndexWriter { get; }
         public IJsonStorageManager StorageManager { get; }
 
         public IInfoStream InfoStream => infoStream;
 
 
-        public DataStorageManager(IJsonIndexManager indexManager, IJsonIndexWriter indexWriter, IJsonStorageManager storageManager)
+        public DataStorageManager(IJsonIndexManager indexManager, IJsonStorageManager storageManager)
         {
             this.IndexManager = indexManager;
-            this.IndexWriter = indexWriter;
             this.StorageManager = storageManager;
 
             indexManager.InfoStream.Subscribe(infoStream);
-            indexWriter.InfoStream.Subscribe(infoStream);
             storageManager.InfoStream.Subscribe(infoStream);
         }
 
         public async Task QueueUpdate(IStorageArea area, JObject entity)
         {
             await StorageManager.QueueUpdate(area, entity).ConfigureAwait(false);
-            //IndexWriter.Commit();
         }
 
         public async Task QueueDelete(IStorageArea area, JObject deleted)
         {
             await StorageManager.QueueDelete(area, deleted).ConfigureAwait(false);
-            //IndexWriter.Commit();
         }
     }
 }

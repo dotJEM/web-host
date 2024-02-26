@@ -1,14 +1,41 @@
 ﻿@using DotJEM.Web.Host
 @inherits System.Web.Mvc.WebViewPage
+
 <!DOCTYPE html>
-<html>
+<html ng-app="systematic.nsw">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <title>WebHost Startup Demo</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+
+    <link href="~/assets/icons/nsw/style.css" rel="stylesheet" type="text/css">
+    <link href="~/assets/bower/flag-icon-css/css/flag-icon.css" rel="stylesheet" type="text/css">
+    <link href="~/assets/styles/styles.css" rel="stylesheet" type="text/css">
+
+    <base href="@string.Format("{0}://{1}{2}", Request.Url.Scheme, Request.Url.Authority, Url.Content("~/"))" />
+
+    <style>
+        .maintbox {
+            width: 70%;
+            margin: 170px auto;
+            padding: 20px;
+        }
+
+        .miant-badge {
+            font-size: 80px;
+        }
+    </style>
 </head>
 <body>
-    HELLO WORLD
-    <a href="/exception">EXCEPTION</a>
+    <div class="sse-navbar ng-scope">
+        <div class="sse-navbar-margin-left text-center ng-scope">
+            <a class="navbar-brand">SafeSeaNet</a>
+        </div>
+    </div>
+
     <div class="maintbox row">
         <div class="col-sm-2 text-center"><i class="miant-badge text-orange icon icon-cogs"></i></div>
         <div class="col-sm-8">
@@ -21,31 +48,150 @@
             {
                 <h2>System is UP!.</h2>
             }
-            <p><small class="text-muted" id="time">[@WebHost.Initialization.Duration.ToString("hh\\:mm\\:ss\\.fff")]</small></p>
-            <p><small class="text-muted" id="status">@Html.Raw(WebHost.Initialization.Message.Replace("\n", "<br/>").Replace("\r", ""))</small></p>
-            <p><small class="text-muted" id="status2">@Html.Raw(WebHost.Initialization.State.ToString().Replace("\n", "<br/>").Replace("\r", ""))</small></p>
+            <p>
+                <small class="text-muted" id="status-duration"></small>
+            </p>
+            <p>
+                <small class="text-muted" id="status-message"></small>
+            </p>
+            <p>
+                <small class="text-muted" id="status-state"></small>
+            </p>
+            <p id="status-details"></p>
         </div>
-
     </div>
+
     <script type="text/javascript">
+        setInterval(update, 2000);
+        update();
+        async function update() {
+            const response = await fetch('api/status');
+            if (response.ok) {
+                location.reload();
+            }
 
-        setInterval(updateStatus, 5000);
-        async function updateStatus() {
-            const response = await fetch("api/status");
             const data = await response.json();
-            document
-                .getElementById("time")
-                .innerHTML = data.duration;
+            document.getElementById('status-duration').innerHTML = `[${data.state.Duration}]  Status: ${data.memory}`;
+            //document.getElementById('status-message').innerHTML = data.state.Message.replace(/\n/g, '<br/>').replace(/\r/g, "");
 
-            document
-                .getElementById("status")
-                .innerHTML = data.message.replace(/\n/g, '<br/>').replace(/\r/, "");
+            if (data.state.State.Files) {
+                const table = buildRestoreTableStatus(data);
+                document.getElementById('status-message').innerHTML = "Restoring index from snapshot...";
+                document.getElementById('status-details').innerHTML = table;
+                document.getElementById('status-state').innerHTML = "";
+            } else {
+                const table = buildIngestTableStatus(data);
+                document.getElementById('status-message').innerHTML = "Ingesting data from storage...";
+                document.getElementById('status-details').innerHTML = table;
+                document.getElementById('status-state').innerHTML = data.state.State.Generation.Current.toLocaleString()
+                    + ` of ${data.state.State.Generation.Latest.toLocaleString()} changes processed,`
+                    + ` ${data.state.State.IngestedCount.toLocaleString()} Indexed documents`;
+            }
+        }
 
-            document
-                .getElementById("status2")
-                .innerHTML = data.state.replace(/\n/g, '<br/>').replace(/\r/, "");
+        function buildRestoreTableStatus(data) {
+
+            const currentFile = data.state.State.Files.find(file => file.State === "RESTORING");
+            const restoredFiles = data.state.State.Files.filter(file => file.State === "COMPLETE");
+            const pendingFiles = data.state.State.Files.filter(file => file.State === "PENDING");
+            const totalFiles = data.state.State.Files.length;
+
+            return '<table class="table">'
+                + '<tbody>'
+                + '<tr><td colspan="2">' + progress((restoredFiles.length / totalFiles) * 100, `${restoredFiles.length} / ${totalFiles} - ...${currentFile.Name}`) + '</tr></td>'
+                + '<tr>'
+                + th("Pending:")
+                + td(pendingFiles.map(file => file.Name).join(', '))
+                + '</tr>'
+                + '<tr>'
+                + th("Completed:")
+                + td(restoredFiles.map(file => file.Name).join(', '))
+                + '</tr>'
+                + '</tbody>'
+                + '</table>';
+
+            function th(content, w) {
+                return '<th style="width: ' + w + 'px;border-bottom: 1px solid black;">' + content + '</th>'
+            }
+            function td(content, w) {
+                return '<td style="border-bottom: 1px solid gray; padding: 5px">' + content + '</td>'
+            }
+        }
+
+        function buildIngestTableStatus(data) {
+            return '<table class="table">'
+                + '<thead>'
+                + '<tr>'
+                + th('Area', 100)
+                + th('Indexed', 100)
+                + th('Generation', 60)
+                + th('', 10)
+                + th('', 100)
+                + th('Data', 160)
+                + th('Duration', 160)
+                + th('', 260)
+                + '</tr>'
+                + '</thead>'
+                + '<tbody>'
+                + data.state.State.Areas.map(buildRow).join('\n')
+                + '</tbody>'
+                + '</table>';
+
+
+            function buildRow(area) {
+                return '<tr>'
+                    + td(area.Area)
+                    + td(area.IngestedCount.toLocaleString())
+                    + td(area.Generation.Current.toLocaleString())
+                    + td('of')
+                    + td(area.Generation.Latest.toLocaleString())
+                    + td(bytes(area.BytesLoaded))
+                    + td(area.Duration)
+                    + td(progress((area.Generation.Current / area.Generation.Latest) * 100))
+                    + '</tr>'
+
+            }
+
+            function th(content, w) {
+                return '<th style="width: ' + w + 'px;border-bottom: 1px solid black;">' + content + '</th>'
+            }
+            function td(content) {
+                return '<td style="border-bottom: 1px solid gray; padding: 5px">' + content + '</td>'
+            }
+
+        }
+
+        function progress(val, text = "") {
+            const fixed = val.toFixed(0);
+            return `<div class="progress" style="margin-bottom: auto;">
+                      <div class="progress-bar" role="progressbar" aria-valuenow="${fixed}" aria-valuemin="0" aria-valuemax="100" style="width: ${fixed}%;">
+                        ${fixed}% ${text ? ' - ' + text : ''}
+                      </div>
+                    </div>`;
+        }
+
+
+        function bytes(bytes, dp = 2) {
+            const thresh = 1024;
+            const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+
+            if (Math.abs(bytes) < thresh) {
+                return bytes + ' B';
+            }
+
+            let u = -1;
+            const r = 10 ** dp;
+
+            do {
+                bytes /= thresh;
+                ++u;
+            } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
+
+
+            return bytes.toFixed(dp) + ' ' + units[u];
         }
 
     </script>
+
 </body>
 </html>
