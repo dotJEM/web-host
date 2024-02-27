@@ -26,7 +26,6 @@ public class IndexAndStorageInstaller : IWindsorInstaller
 
         container.Register(Component.For<ISnapshotStrategy>().UsingFactoryMethod(kernel =>
         {
-            
             IPathResolver path = kernel.Resolve<IPathResolver>();
             IWebHostConfiguration configuration = kernel.Resolve<IWebHostConfiguration>();
             return new ZipSnapshotStrategy(path.MapPath(configuration.Index.Snapshots.Path), configuration.Index.Snapshots.MaxSnapshots);
@@ -36,7 +35,7 @@ public class IndexAndStorageInstaller : IWindsorInstaller
         container.Register(Component.For<IJsonIndexSnapshotManager>().UsingFactoryMethod(kernel =>
         {
             IWebHostConfiguration configuration = kernel.Resolve<IWebHostConfiguration>();
-            if (configuration.Index.Snapshots == null)
+            if (configuration.Index.Snapshots == null || configuration.Index.Snapshots.MaxSnapshots ==0)
                 return (IJsonIndexSnapshotManager)new NullIndexSnapshotManager();
 
             ISnapshotStrategy snapshotStrategy = kernel.Resolve<ISnapshotStrategy>();
