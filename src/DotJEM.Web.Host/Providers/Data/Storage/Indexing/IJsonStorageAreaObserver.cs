@@ -21,6 +21,37 @@ public interface IJsonStorageAreaObserver : IJsonDocumentSource
     Task QueueUpdate(JObject entity);
     Task QueueDelete(JObject entity);
 }
+internal class Atomic<T>
+{
+    private T value;
+    private readonly object padlock = new();
+
+    public Atomic(T value)
+    {
+        this.value = value;
+    }
+
+    public T Read()
+    {
+        lock (padlock)
+        {
+            return value;
+        }
+    }
+
+    public T Exchange(T value)
+    {
+        lock (padlock)
+        {
+            T current = this.value;
+            this.value = value;
+            return current;
+        }
+    }
+
+    public static implicit operator Atomic<T>(T value) => new(value);
+    public static implicit operator T(Atomic<T> value) => value.Read();
+}
 
 public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 {
@@ -30,9 +61,10 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     private readonly IStorageAreaLog log;
     private readonly DocumentChangesStream observable = new();
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
+    private readonly Atomic<bool> started = false;
 
-    private bool started = false;
     private long generation = 0;
+    private long initialGeneration = 0;
     private IScheduledTask task;
     public IStorageArea StorageArea { get; }
 
@@ -55,23 +87,25 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         log = storageArea.Log;
     }
 
-    public async Task RunAsync()
+    public async Task StartAsync()
     {
-        if(started)
+        if(started.Exchange(true))
             return;
-
-        started = true;
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
         task = scheduler.Schedule($"JsonStorageAreaObserver:{StorageArea.Name}", _ => RunUpdateCheck(), pollInterval);
         task.InfoStream.Subscribe(infoStream);
-        await task.Signal();
-        await task.WhenCompleted();
+        await task.Signal().ConfigureAwait(false);
     }
+
+
 
     public async Task StopAsync()
     {
+        if (!started.Exchange(false))
+            return;
+        
         task.Dispose();
-        await task.WhenCompleted();
+        await task.WhenCompleted().ConfigureAwait(false);
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Stopped, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
     }
 
@@ -82,6 +116,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
         infoStream.WriteDebug($"[{area}] Setting generation to {value}");
         generation = value;
+        initialGeneration = value;
         Initialized.Value = true;
     }
 
@@ -103,8 +138,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public async Task ResetAsync()
     {
         infoStream.WriteDebug($"[{AreaName}] Resetting storage area observer.");
-        generation = 0;
-        await task.Signal();
+        UpdateGeneration(AreaName, initialGeneration);
         observable.Publish(new JsonDocumentSourceReset(AreaName));
     }
 
@@ -113,22 +147,18 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         long latestGeneration = log.LatestGeneration;
         if (!Initialized.Value)
         {
-            BeforeInitialize();
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, false);
             PublishChanges(changes, row => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)));
             Initialized.Value = true;
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
-            AfterInitialize();
         }
         else
         {
-            BeforeUpdate();
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation);
             PublishChanges(changes, MapRow);
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
-            AfterUpdate();
         }
         observable.Publish(new JsonDocumentSourceDigestCompleted(AreaName));
 
@@ -158,10 +188,4 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             }
         }
     }
-
-    public virtual void BeforeInitialize() { }
-    public virtual void AfterInitialize() { }
-
-    public virtual void BeforeUpdate() { }
-    public virtual void AfterUpdate() { }
 }

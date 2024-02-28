@@ -42,11 +42,19 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
         this.Initialized.Value = observers.Values.All(observer => observer.Initialized.Value);
     }
 
-    public async Task RunAsync()
+    public async Task StartAsync()
     {
-        await Task.WhenAll(
-            observers.Values.Select(async observer => await observer.RunAsync().ConfigureAwait(false))
-        ).ConfigureAwait(false);
+        await Task.WhenAll(observers.Values.Select(o => o.StartAsync())).ConfigureAwait(false);
+    }
+
+    public async Task StopAsync()
+    {
+        await Task.WhenAll(observers.Values.Select(o => o.StopAsync())).ConfigureAwait(false);
+    }
+
+    public async Task ResetAsync()
+    {
+        await Task.WhenAll(observers.Values.Select(o => o.ResetAsync())).ConfigureAwait(false);
     }
 
     public void UpdateGeneration(string area, long generation)
@@ -57,30 +65,17 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
         observer.UpdateGeneration(area, generation);
     }
 
-    public async Task ResetAsync()
-    {
-        //await Task.WhenAll(
-        //    observers.Values.Select(o => o.ResetAsync())
-        //).ConfigureAwait(false);
-
-        foreach (IJsonStorageAreaObserver observer in observers.Values)
-            await observer.ResetAsync().ConfigureAwait(false);
-    }
-
     public async Task QueueUpdate(IStorageArea area, JObject entity)
     {
         if(!observers.TryGetValue(area.Name, out IJsonStorageAreaObserver observer))
             return;
-
         await observer.QueueUpdate(entity).ConfigureAwait(false);
-
     }
 
     public async Task QueueDelete(IStorageArea area, JObject deleted)
     {
         if(!observers.TryGetValue(area.Name, out IJsonStorageAreaObserver observer))
             return;
-
         await observer.QueueDelete(deleted).ConfigureAwait(false);
     }
 }
