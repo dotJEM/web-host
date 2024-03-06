@@ -151,10 +151,12 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         }
         else
         {
-            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
+            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updating, StorageArea.Name,
+                $"Checking updates for storageArea '{StorageArea.Name}, starting at {generation}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation);
             PublishChanges(changes, MapRow);
-            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
+            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updated, StorageArea.Name,
+                $"Done checking updates for storageArea '{StorageArea.Name}'.");
         }
         observable.Publish(new JsonDocumentSourceDigestCompleted(AreaName));
 
@@ -179,8 +181,15 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
                 if(filter.Exclude(change))
                     continue;
-                
-                observable.Publish(rowMapper(change));
+
+                try
+                {
+                    observable.Publish(rowMapper(change));
+                }
+                catch (Exception e)
+                {
+                    infoStream.WriteError($"Error during publish for storageArea '{StorageArea.Name}.", e);
+                }
             }
         }
     }
