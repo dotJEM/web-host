@@ -21,7 +21,7 @@ public class IndexAndStorageInstaller : IWindsorInstaller
 {
     public void Install(IWindsorContainer container, IConfigurationStore store)
     {
-        container.Register(Component.For<IJsonStorageManager>().ImplementedBy<JsonStorageManager>().LifestyleSingleton());
+        container.Register(Component.For<IJsonStorageManager>().ImplementedBy<JsonStorageManager>().LifestyleSingleton().IsFallback());
         container.Register(Component.For<IStorageChangeFilterHandler>().ImplementedBy<StorageChangeFilterHandler>().LifestyleSingleton());
 
         container.Register(Component.For<ISnapshotStrategy>().UsingFactoryMethod(kernel =>
