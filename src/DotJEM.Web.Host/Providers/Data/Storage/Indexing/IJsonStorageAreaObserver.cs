@@ -124,16 +124,12 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     {
         infoStream.WriteDebug($"[{AreaName}] QueueUpdate.");
         await task.Signal().ConfigureAwait(false);
-        //TODO: Wait for completion!
-        //return Task.CompletedTask;
     }
 
     public async Task QueueDelete(JObject entity)
     {
         infoStream.WriteDebug($"[{AreaName}] QueueDelete.");
         await task.Signal().ConfigureAwait(false);
-        //TODO: Wait for completion!
-        //return Task.CompletedTask;
     }
     public async Task ResetAsync()
     {
@@ -149,7 +145,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         {
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, false);
-            PublishChanges(changes, row => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)));
+            PublishChanges(changes, row => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new(row.Generation, latestGeneration)));
             Initialized.Value = true;
             infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
         }
@@ -166,9 +162,9 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         {
             return row.Type switch
             {
-                ChangeType.Create => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)),
-                ChangeType.Update => new JsonDocumentUpdated(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)),
-                ChangeType.Delete => new JsonDocumentDeleted(row.Area, row.CreateEntity(), row.Size, new GenerationInfo(row.Generation, latestGeneration)),
+                ChangeType.Create => new JsonDocumentCreated(row.Area, row.CreateEntity(), row.Size, new(row.Generation, latestGeneration)),
+                ChangeType.Update => new JsonDocumentUpdated(row.Area, row.CreateEntity(), row.Size, new(row.Generation, latestGeneration)),
+                ChangeType.Delete => new JsonDocumentDeleted(row.Area, row.CreateEntity(), row.Size, new(row.Generation, latestGeneration)),
                 _ => throw new NotSupportedException()
             };
         }

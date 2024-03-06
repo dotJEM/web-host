@@ -11,10 +11,6 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width">
 
-    <link href="~/assets/icons/nsw/style.css" rel="stylesheet" type="text/css">
-    <link href="~/assets/bower/flag-icon-css/css/flag-icon.css" rel="stylesheet" type="text/css">
-    <link href="~/assets/styles/styles.css" rel="stylesheet" type="text/css">
-
     <base href="@string.Format("{0}://{1}{2}", Request.Url.Scheme, Request.Url.Authority, Url.Content("~/"))" />
 
     <style>
@@ -60,9 +56,6 @@
         update();
         async function update() {
             const response = await fetch('api/status');
-            if (response.ok) {
-                location.reload();
-            }
 
             const data = await response.json();
             document.getElementById('status-duration').innerHTML = `[${data.state.Duration}]  Status: ${data.memory}`;

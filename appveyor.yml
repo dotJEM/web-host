@@ -43,6 +43,7 @@ deploy:
       secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
     on:
       branch: master 
+    skip_symbols: false
       
   - provider: NuGet
     name: Beta
@@ -50,6 +51,7 @@ deploy:
       secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
     on:
       branch: beta  
+    skip_symbols: false
       
   - provider: NuGet
     name: Nsw
@@ -57,3 +59,4 @@ deploy:
       secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
     on:
       branch: nsw 
+    skip_symbols: false
