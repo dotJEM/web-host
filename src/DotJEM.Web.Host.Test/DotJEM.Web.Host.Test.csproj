@@ -48,17 +48,17 @@
     <Reference Include="DotJEM.AdvParsers, Version=1.1.7.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.AdvParsers.1.1.7\lib\netstandard1.3\DotJEM.AdvParsers.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2, Version=0.3.85.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.0.3.85\lib\netstandard2.0\DotJEM.Json.Index2.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2, Version=0.3.87.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.0.3.87\lib\netstandard2.0\DotJEM.Json.Index2.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.Management, Version=0.3.85.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.Management.0.3.85\lib\netstandard2.0\DotJEM.Json.Index2.Management.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.Management, Version=0.3.87.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.Management.0.3.87\lib\netstandard2.0\DotJEM.Json.Index2.Management.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.QueryParsers, Version=0.3.85.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.QueryParsers.0.3.85\lib\netstandard2.0\DotJEM.Json.Index2.QueryParsers.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.QueryParsers, Version=0.3.87.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.QueryParsers.0.3.87\lib\netstandard2.0\DotJEM.Json.Index2.QueryParsers.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.Json.Index2.Snapshots, Version=0.3.85.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.Json.Index2.Snapshots.0.3.85\lib\netstandard2.0\DotJEM.Json.Index2.Snapshots.dll</HintPath>
+    <Reference Include="DotJEM.Json.Index2.Snapshots, Version=0.3.87.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.Json.Index2.Snapshots.0.3.87\lib\netstandard2.0\DotJEM.Json.Index2.Snapshots.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Json.Storage, Version=0.4.51.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Json.Storage.0.4.51\lib\net48\DotJEM.Json.Storage.dll</HintPath>
@@ -69,8 +69,8 @@
     <Reference Include="DotJEM.NUnit.Json, Version=0.0.9.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.NUnit.Json.0.0.9\lib\net45\DotJEM.NUnit.Json.dll</HintPath>
     </Reference>
-    <Reference Include="DotJEM.ObservableExtensions, Version=0.0.13.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotJEM.ObservableExtensions.0.0.13\lib\netstandard2.0\DotJEM.ObservableExtensions.dll</HintPath>
+    <Reference Include="DotJEM.ObservableExtensions, Version=0.0.14.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotJEM.ObservableExtensions.0.0.14\lib\netstandard2.0\DotJEM.ObservableExtensions.dll</HintPath>
     </Reference>
     <Reference Include="DotJEM.Web.Scheduler, Version=0.0.10.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DotJEM.Web.Scheduler.0.0.10\lib\netstandard2.0\DotJEM.Web.Scheduler.dll</HintPath>

@@ -1,16 +1,24 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Web.Http;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using Demo.Controllers;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Configuration;
+using DotJEM.Json.Index2.Documents;
 using DotJEM.Json.Index2.Documents.Fields;
+using DotJEM.Json.Index2.Documents.Info;
+using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Management.Source;
+using DotJEM.Json.Index2.Management.Writer;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.ObservableExtensions.InfoStreams;
@@ -23,9 +31,12 @@ using DotJEM.Web.Host.Providers.Data.Index;
 using DotJEM.Web.Host.Providers.Data.Index.Builder;
 using DotJEM.Web.Host.Providers.Data.Index.Schemas;
 using DotJEM.Web.Host.Providers.Data.Storage;
+using DotJEM.Web.Host.Providers.Data.Storage.Indexing;
 using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis;
+using Lucene.Net.Index;
 using Lucene.Net.Search;
+using Newtonsoft.Json.Linq;
 
 namespace Demo
 {
@@ -99,12 +110,20 @@ namespace Demo
         }
         protected override void AfterConfigure()
         {
+            if (File.Exists("E:\\TEMP\\templog\\webhost.log.txt"))
+                File.Delete("E:\\TEMP\\templog\\webhost.log.txt");
+            DebugLog("------------------------------------------------------");
+            DebugLog("---------------- SafeSeaNet is Starting --------------");
+            DebugLog("------------------------------------------------------");
+            DebugLog("");
+
             IDiagnosticsLogger logger = Resolve<IDiagnosticsLogger>();
             IDiagnosticsDumpService dump = Resolve<IDiagnosticsDumpService>();
             LogInfoStreamErrorEvents(logger, dump, Resolve<IDataStorageManager>().InfoStream);
             LogInfoStreamErrorEvents(logger, dump, Resolve<IWebTaskScheduler>().InfoStream);
             Resolve<IJsonStorageManager>().DocumentSource.DocumentChanges.Subscribe(change =>
             {
+                DuplicateChangeTrackerManager.Instance.Track(nameof(IJsonDocumentSource), change);
                 switch (change)
                 {
                     case JsonDocumentCreated created:
@@ -126,13 +145,26 @@ namespace Demo
                         throw new ArgumentOutOfRangeException(nameof(change));
                 }
             });
+            Resolve<IJsonIndexManager>().DocumentChanges.Subscribe(change =>
+            {
+                DuplicateChangeTrackerManager.Instance.Track(nameof(IJsonIndexManager), change);
+            });
+
+            DuplicateChangeTrackerManager.Instance.InfoStream.Subscribe(evt => {
+                DebugLog(evt.ToString());
+            });
+
+            Resolve<IJsonIndex>().WriterManager.OnClose += (sender, args) =>
+            {
+                DebugLog("WRITER WAS CLOSED!");
+            };
         }
 
         private void DebugLog(string message)
         {
             lock (padlock)
             {
-                File.AppendAllLines("E:\\TEMP\\templog\\log2.txt", new List<string>() { message });
+                File.AppendAllLines("E:\\TEMP\\templog\\webhost.log.txt", new List<string>() { message });
             }
         }
         private object padlock = new object();
@@ -144,8 +176,59 @@ namespace Demo
                     logger.Log("incident", Severity.Error, evt.Message, evt);
                 });
 #if DEBUG
-            infoStream.Subscribe(evt => DebugLog(evt.ToString()));
+            infoStream
+                .Where(evt => evt.Source == typeof(JsonStorageAreaObserver) || evt.Source == typeof(JsonIndexWriter))
+                .Subscribe(evt => DebugLog(evt.ToString()));
 #endif
+        }
+    }
+}
+
+public class DuplicateChangeTrackerManager
+{
+    public static DuplicateChangeTrackerManager Instance { get; } = new();
+
+    private readonly ConcurrentDictionary<string, DuplicateChangeTracker> trackers = new();
+    private readonly IInfoStream<DuplicateChangeTrackerManager> infoStream = new InfoStream<DuplicateChangeTrackerManager>();
+
+    public IInfoStream InfoStream => infoStream;
+
+    public void Track(string source, IJsonDocumentSourceEvent evt)
+    {
+        DuplicateChangeTracker tracker = trackers.GetOrAdd(source, x =>
+        {
+            DuplicateChangeTracker tracker = new(x);
+            tracker.InfoStream.Subscribe(infoStream);
+            return tracker;
+        });
+        tracker.Capture(evt);
+    }
+
+    private class DuplicateChangeTracker
+    {
+        private readonly string source;
+        private readonly Dictionary<Guid, int> changes = new();
+        private readonly IInfoStream<DuplicateChangeTracker> infoStream = new InfoStream<DuplicateChangeTracker>();
+
+        public IInfoStream InfoStream => infoStream;
+
+        public DuplicateChangeTracker(string source)
+        {
+            this.source = source;
+        }
+
+        public void Capture(IJsonDocumentSourceEvent evt)
+        {
+            if (evt is not IJsonDocumentChangeEvent ch)
+                return;
+
+            Guid id = (Guid)ch.Document["id"];
+            if (evt is JsonDocumentCreated created && changes.TryGetValue(id, out int ver))
+            {
+                int docVer = (int)created.Document["$version"];
+                infoStream.WriteDebug($"[{source}] Saw create for the same row multiple times:'{id} ({ver}, {docVer}).");
+            }
+            changes[id] = ch is JsonDocumentDeleted ? -1 : (int)ch.Document["$version"];
         }
     }
 }
