@@ -129,9 +129,6 @@ public class MultiFieldQueryParserIntegration : QueryParser, IQueryParser
         //      may target different 
         return parserConfig.LookupStrategy(field)
             .PrepareBuilder(this, field, type);
-
-        //return index.Configuration.Field.Strategy(field)
-        //    .PrepareBuilder(this, field, type);
     }
     
     protected override Query GetFieldQuery(string fieldName, string queryText, int slop)
