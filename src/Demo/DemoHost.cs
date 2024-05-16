@@ -14,8 +14,10 @@ using Demo.Controllers;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Configuration;
 using DotJEM.Json.Index2.Documents;
+using DotJEM.Json.Index2.Documents.Builder;
 using DotJEM.Json.Index2.Documents.Fields;
 using DotJEM.Json.Index2.Documents.Info;
+using DotJEM.Json.Index2.Documents.Strategies;
 using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Index2.Management.Source;
 using DotJEM.Json.Index2.Management.Writer;
@@ -66,13 +68,24 @@ namespace Demo
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
         }
 
-        protected override IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration, Analyzer> analyzerProvider = null, IJsonIndexBuilder builder = null)
+        //protected override IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration, Analyzer> analyzerProvider = null, IJsonIndexBuilder builder = null)
+        //{
+        //    return base.BuildIndex(schemas, config, analyzerProvider, builder)
+        //        .WithFieldResolver(new FieldResolver("id", "contentType"));
+        //}
+        protected override IJsonIndexBuilder BuildIndex(
+            ISchemaCollection schemas,
+            IQueryParserConfiguration config,
+            Func<IJsonIndexConfiguration, Analyzer> analyzerProvider = null,
+            IJsonIndexBuilder builder = null)
         {
+            IFactory<ILuceneDocumentBuilder> factory = new FuncFactory<ILuceneDocumentBuilder>(() => new DemoDocumentBuilder());
             return base.BuildIndex(schemas, config, analyzerProvider, builder)
+                .WithDocumentFactory(config =>
+                    new WebHostLuceneDocumentFactory(new LuceneDocumentFactory(config.FieldInformationManager, factory), Schemas))
                 .WithFieldResolver(new FieldResolver("id", "contentType"));
         }
 
-        
         private static readonly string SchemaVersionFieldName = "$schemaVersion";
         protected override void Configure(IStorageContext storage)
         {
@@ -95,8 +108,15 @@ namespace Demo
             parserConfig.Field("updatedBy.user", new TermFieldStrategy());
             parserConfig.Field("createdBy.user", new TermFieldStrategy());
 
+            //parserConfig.Field("createdBy.organisations.identifier", new TermOrWildFieldStrategy());
+            //parserConfig.Field("updatedBy.organisations.identifier", new TermOrWildFieldStrategy());
+            //parserConfig.Field("identifier", new TermOrWildFieldStrategy());
             parserConfig.Field("owner", new TermFieldStrategy());
+            parserConfig.Field("parent", new TermFieldStrategy());
             parserConfig.Field("imo", new TermFieldStrategy());
+            parserConfig.Field("id", new TermFieldStrategy());
+            parserConfig.Field("origin", new TermFieldStrategy());
+            parserConfig.Field("relatedNotification", new TermFieldStrategy());
         }
 
         protected override void AfterInitialize()
@@ -229,6 +249,54 @@ public class DuplicateChangeTrackerManager
                 infoStream.WriteDebug($"[{source}] Saw create for the same row multiple times:'{id} ({ver}, {docVer}).");
             }
             changes[id] = ch is JsonDocumentDeleted ? -1 : (int)ch.Document["$version"];
+        }
+    }
+}
+public class DemoDocumentBuilder : LuceneDocumentBuilder
+{
+    protected override void VisitGuid(JValue json, IPathContext context)
+    {
+        this.Add(new IdentityFieldStrategy().CreateFields(json, context));
+    }
+
+    protected override void VisitBoolean(JValue json, IPathContext context)
+    {
+        Add(new TextFieldStrategy().CreateFields(json, context));
+    }
+
+    protected override void VisitString(JValue json, IPathContext context)
+    {
+        string value = (string)json;
+        if (value?.Length == 36 && Guid.TryParse(value, out _))
+            base.VisitGuid(json, context);
+        else
+            base.VisitString(json, context);
+    }
+
+    protected override void Visit(JValue json, IPathContext context)
+    {
+        switch (context.Path)
+        {
+            case "createdBy.organisations.identifier":
+            case "updatedBy.organisations.identifier":
+            case "identifier":
+            case "users.identifier":
+            case "groups.identifier":
+            case "updatedBy.user":
+            case "createdBy.user":
+            case "owner":
+            case "imo":
+                this.Add(new IdentityFieldStrategy()
+                    .CreateFields(json.ToObject<string>().ToLowerInvariant(), context));
+                break;
+
+            //Ignored fields.
+            case "$schemaVersion":
+                break;
+
+            default:
+                base.Visit(json, context);
+                break;
         }
     }
 }

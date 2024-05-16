@@ -128,7 +128,7 @@ public abstract class WebHost : IWebHost
         Index = BuildIndex(
             Schemas,
             parserConfiguration,
-            config => new StandardAnalyzer(config.Version, CharArraySet.EMPTY_SET),
+            config => new JsonAnalyzer(config.Version),
             new JsonIndexBuilder("Main")
             ).Build();
         Storage = CreateStorage();

@@ -16,8 +16,6 @@ public interface IWebHostConfiguration
 
 public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
 {
-    [ConfigurationProperty("kill-signal-file", IsRequired = false, DefaultValue = null)]
-    public string KillSignalFile => (string)this["kill-signal-file"];
 
     [ConfigurationProperty("storageConfiguration", IsRequired = true)]
     public StorageConfiguration Storage => this["storageConfiguration"] as StorageConfiguration;
@@ -25,7 +23,10 @@ public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
     [ConfigurationProperty("indexConfiguration", IsRequired = true)]
     public IndexConfiguration Index => this["indexConfiguration"] as IndexConfiguration;
 
-    [ConfigurationProperty("diagnostics", IsRequired = false)]
+    [ConfigurationProperty("kill-signal-file", IsRequired = false, DefaultValue = null)]
+    public string KillSignalFile => (string)this["kill-signal-file"];
+
+    [ConfigurationProperty("diagnostics", IsRequired = false, DefaultValue = null)]
     public DiagnosticsConfiguration Diagnostics => this["diagnostics"] as DiagnosticsConfiguration;
 
     [ConfigurationProperty("cleanup", IsRequired = false, DefaultValue = null)]

@@ -56,3 +56,4 @@ class QueryParserFactory : IQueryParserFactory
     public IQueryParser Create() 
         => new MultiFieldQueryParserIntegration(config, config.Get<IQueryParserConfiguration>(), config.Get<ISchemaCollection>());
 }
+

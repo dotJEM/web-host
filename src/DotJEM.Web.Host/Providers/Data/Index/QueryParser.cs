@@ -110,7 +110,7 @@ public class MultiFieldQueryParserIntegration : QueryParser, IQueryParser
 
     private IEnumerable<string> LookupFields(params JsonSchemaExtendedType[] types)
     {
-        var fields = schemas.AllFields()
+        IEnumerable<string> fields = schemas.AllFields()
             .Where(f => types.Any(flag => f.Type.HasFlag(flag)))
             .Select(f => f.FullName);
         return fields;
