@@ -1,4 +1,6 @@
 ﻿using System.Configuration;
+using OpenTelemetry;
+using OpenTelemetry.Exporter;
 
 namespace DotJEM.Web.Host.Configuration.Elements;
 
