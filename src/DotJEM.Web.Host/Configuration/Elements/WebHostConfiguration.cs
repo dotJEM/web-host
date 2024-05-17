@@ -10,7 +10,7 @@ public interface IWebHostConfiguration
 
     StorageConfiguration Storage { get; }
     IndexConfiguration Index { get; }
-    DiagnosticsConfiguration Diagnostics { get; }
+    TelemetryConfiguration Telemetry { get; }
     DataCleanupElementCollection Cleanup { get; }
 }
 
@@ -27,7 +27,7 @@ public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
     public string KillSignalFile => (string)this["kill-signal-file"];
 
     [ConfigurationProperty("diagnostics", IsRequired = false, DefaultValue = null)]
-    public DiagnosticsConfiguration Diagnostics => this["diagnostics"] as DiagnosticsConfiguration;
+    public TelemetryConfiguration Telemetry => this["diagnostics"] as TelemetryConfiguration;
 
     [ConfigurationProperty("cleanup", IsRequired = false, DefaultValue = null)]
     public DataCleanupElementCollection Cleanup => this["cleanup"] as DataCleanupElementCollection;

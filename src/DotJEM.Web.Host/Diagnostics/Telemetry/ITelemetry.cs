@@ -1,12 +1,13 @@
+using DotJEM.Web.Host.Tasks;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Diagnostics.Tracing;
-using System.Runtime.CompilerServices;
-using Lucene.Net.Search;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 
-namespace DotJEM.Web.Host.Diagnostics;
+namespace DotJEM.Web.Host.Diagnostics.Telemetry;
 
 //TODO: this is meant to make 
 public interface ITelemetry
@@ -23,16 +24,61 @@ public class NullTelemetry : ITelemetry
     public IEventSource EventSource { get; } = new NullEventSource();
 }
 
+public static class TelemetryExtensions
+{
+    public static void TrackAction(this ITelemetry self, Action action)
+        => self.ActivitySource.TrackAction(action, action.Method.Name);
+    public static void TrackAction(this ITelemetry self, Action action, string name)
+        => self.ActivitySource.TrackAction(action, name);
+    public static T TrackFunction<T>(this ITelemetry self, Func<T> func, string name)
+        => self.ActivitySource.TrackFunction(func, name);
+
+    public static IActivity CreateRootActivity(this ITelemetry self, string name, ActivityKind kind)
+        => self.ActivitySource.CreateRootActivity(name, kind);
+    public static IActivity StartRootActivity(this ITelemetry self, string name = "", ActivityKind kind = ActivityKind.Internal)
+        => self.ActivitySource.StartRootActivity(name, kind);
+
+
+
+    public static void TrackTask(this ITelemetry self, Task task, string name)
+    {
+        using IActivity activity = self.ActivitySource.StartActivity($"task:{name}");
+        Sync.Await(task);
+    }
+}
+
 public static class ActivitySourceExtensions
 {
-    public static Activity CreateRootActivity(this IActivitySource self, string name, ActivityKind kind)
+    public static void TrackAction(this IActivitySource self, Action action, string name)
+    {
+        if (self is NullActivitySource)
+        {
+            action();
+            return;
+        }
+
+        using IActivity activity = self.StartActivity(name);
+        action();
+    }
+    public static T TrackFunction<T>(this IActivitySource self, Func<T> func, string name)
+    {
+        if (self is NullActivitySource)
+            return func();
+
+        using IActivity activity = self.StartActivity(name);
+            return func();
+    }
+
+
+
+    public static IActivity CreateRootActivity(this IActivitySource self, string name, ActivityKind kind)
     {
         using (new CaptureResetActivity())
             return self.StartActivity(name, kind);
 
     }
 
-    public static Activity StartRootActivity(this IActivitySource self, string name = "", ActivityKind kind = ActivityKind.Internal)
+    public static IActivity StartRootActivity(this IActivitySource self, string name = "", ActivityKind kind = ActivityKind.Internal)
     {
         using (new CaptureResetActivity())
             return self.StartActivity(name, kind);
@@ -54,17 +100,19 @@ public static class ActivitySourceExtensions
 
 public interface IActivitySource
 {
-    bool HasListeners();
-    Activity CreateActivity(string name, ActivityKind kind);
-    Activity CreateActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown);
-    Activity CreateActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown);
-    Activity StartActivity(string name = "", ActivityKind kind = ActivityKind.Internal);
-    Activity StartActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new ());
-    Activity StartActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new ());
-    Activity StartActivity(ActivityKind kind, ActivityContext parentContext = new (), IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new (), string name = "");
-    void Dispose();
     string Name { get; }
     string Version { get; }
+
+    bool HasListeners();
+    IActivity CreateActivity(string name, ActivityKind kind);
+    IActivity CreateActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown);
+    IActivity CreateActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown);
+    IActivity StartActivity(string name = "", ActivityKind kind = ActivityKind.Internal);
+    IActivity StartActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new ());
+    IActivity StartActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new ());
+    IActivity StartActivity(ActivityKind kind, ActivityContext parentContext = new (), IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new (), string name = "");
+
+    void Dispose();
 }
 
 public class ForwardingActivitySource : IActivitySource
@@ -79,13 +127,20 @@ public class ForwardingActivitySource : IActivitySource
     }
 
     public bool HasListeners() => wrapped.HasListeners();
-    public Activity CreateActivity(string name, ActivityKind kind) => wrapped.CreateActivity(name, kind);
-    public Activity CreateActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown) => wrapped.CreateActivity(name, kind, parentContext, tags, links, idFormat);
-    public Activity CreateActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown) => wrapped.CreateActivity(name, kind, parentId, tags, links, idFormat);
-    public Activity StartActivity(string name = "", ActivityKind kind = ActivityKind.Internal) => wrapped.StartActivity(name, kind);
-    public Activity StartActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset()) => wrapped.StartActivity(name, kind, parentContext, tags, links, startTime);
-    public Activity StartActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset()) => wrapped.StartActivity(name, kind, parentId, tags, links, startTime);
-    public Activity StartActivity(ActivityKind kind, ActivityContext parentContext = new ActivityContext(), IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset(), string name = "") => wrapped.StartActivity(kind, parentContext, tags, links, startTime, name);
+    public IActivity CreateActivity(string name, ActivityKind kind)
+        => new ProxyActivity(wrapped.CreateActivity(name, kind));
+    public IActivity CreateActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown) 
+        => new ProxyActivity(wrapped.CreateActivity(name, kind, parentContext, tags, links, idFormat));
+    public IActivity CreateActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown) 
+        => new ProxyActivity(wrapped.CreateActivity(name, kind, parentId, tags, links, idFormat));
+    public IActivity StartActivity(string name = "", ActivityKind kind = ActivityKind.Internal)
+        => new ProxyActivity(wrapped.StartActivity(name, kind));
+    public IActivity StartActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset()) 
+        => new ProxyActivity(wrapped.StartActivity(name, kind, parentContext, tags, links, startTime));
+    public IActivity StartActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset()) 
+        => new ProxyActivity(wrapped.StartActivity(name, kind, parentId, tags, links, startTime));
+    public IActivity StartActivity(ActivityKind kind, ActivityContext parentContext = new ActivityContext(), IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset(), string name = "")
+        => new ProxyActivity(wrapped.StartActivity(kind, parentContext, tags, links, startTime, name));
 
     public void Dispose() => wrapped.Dispose();
 
@@ -93,40 +148,39 @@ public class ForwardingActivitySource : IActivitySource
 
 public class NullActivitySource : IActivitySource
 {
-
     public string Name => string.Empty;
     public string Version => string.Empty;
     public bool HasListeners() => false;
-    public Activity CreateActivity(string name, ActivityKind kind) => null;
+    public IActivity CreateActivity(string name, ActivityKind kind) => NullActivity.Default;
 
-    public Activity CreateActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown)
+    public IActivity CreateActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown)
     {
-        return null;
+        return NullActivity.Default;
     }
 
-    public Activity CreateActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown)
+    public IActivity CreateActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, ActivityIdFormat idFormat = ActivityIdFormat.Unknown)
     {
-        return null;
+        return NullActivity.Default;
     }
 
-    public Activity StartActivity(string name = "", ActivityKind kind = ActivityKind.Internal)
+    public IActivity StartActivity(string name = "", ActivityKind kind = ActivityKind.Internal)
     {
-        return null;
+        return NullActivity.Default;
     }
 
-    public Activity StartActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset())
+    public IActivity StartActivity(string name, ActivityKind kind, ActivityContext parentContext, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset())
     {
-        return null;
+        return NullActivity.Default;
     }
 
-    public Activity StartActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset())
+    public IActivity StartActivity(string name, ActivityKind kind, string parentId, IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset())
     {
-        return null;
+        return NullActivity.Default;
     }
 
-    public Activity StartActivity(ActivityKind kind, ActivityContext parentContext = new ActivityContext(), IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset(), string name = "")
+    public IActivity StartActivity(ActivityKind kind, ActivityContext parentContext = new ActivityContext(), IEnumerable<KeyValuePair<string, object>> tags = null, IEnumerable<ActivityLink> links = null, DateTimeOffset startTime = new DateTimeOffset(), string name = "")
     {
-        return null;
+        return NullActivity.Default;
     }
 
     public void Dispose() { }
@@ -220,4 +274,24 @@ public class NullEventSource : IEventSource
     public void Write<T>(string eventName, ref EventSourceOptions options, ref Guid activityId, ref Guid relatedActivityId, ref T data)
     {
     }
+}
+
+public interface IActivity : IDisposable
+{
+
+}
+
+public class ProxyActivity(Activity activity) : IActivity
+{
+    public void Dispose()
+    {
+        activity?.Dispose();
+    }
+}
+
+public class NullActivity : IActivity
+{
+    public static NullActivity Default { get; } = new NullActivity();
+
+    public void Dispose() {}
 }

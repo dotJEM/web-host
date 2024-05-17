@@ -12,7 +12,6 @@ using Castle.MicroKernel.Resolvers;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
 using DotJEM.AdvParsers;
-using DotJEM.Diagnostic;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Analysis;
 using DotJEM.Json.Index2.Configuration;
@@ -27,7 +26,7 @@ using DotJEM.Web.Host.Configuration;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.DataCleanup;
 using DotJEM.Web.Host.Diagnostics;
-using DotJEM.Web.Host.Diagnostics.Performance;
+using DotJEM.Web.Host.Diagnostics.Telemetry;
 using DotJEM.Web.Host.Initialization;
 using DotJEM.Web.Host.Providers;
 using DotJEM.Web.Host.Providers.Data.Index;
@@ -37,13 +36,8 @@ using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Tasks;
 using DotJEM.Web.Host.Util;
-using DotJEM.Web.Host.Writers;
 using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis;
-using Lucene.Net.Analysis.Core;
-using Lucene.Net.Analysis.Standard;
-using Lucene.Net.Analysis.Util;
-using Lucene.Net.Index;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Component = Castle.MicroKernel.Registration.Component;
@@ -149,32 +143,33 @@ public abstract class WebHost : IWebHost
             .Register(Component.For<IWebHostConfiguration>().Instance(Configuration))
             .Register(Component.For<IInitializationTracker>().Instance(Initialization));
 
-        ILogger perf = container.Resolve<ILogger>();
-        IPerformanceTracker startup = perf.TrackTask("Start");
+        ITelemetry telemetry = container.Resolve<ITelemetry>();
+        IActivity startup = telemetry.ActivitySource.StartActivity();
+
 
         DiagnosticsLogger = container.Resolve<IDiagnosticsLogger>();
 
-        perf.TrackAction(BeforeConfigure);
-        perf.TrackAction(() => Configure(parserConfiguration), "Configure Query Parser");
-        perf.TrackAction(() => Configure(container.Resolve<IPipeline>()), "Configure Pipeline");
-        perf.TrackAction(() => Configure(container), "Configure Container");
-        perf.TrackAction(() => Configure(Storage), "Configure Storage");
+        telemetry.TrackAction(BeforeConfigure);
+        telemetry.TrackAction(() => Configure(parserConfiguration), "Configure Query Parser");
+        telemetry.TrackAction(() => Configure(container.Resolve<IPipeline>()), "Configure Pipeline");
+        telemetry.TrackAction(() => Configure(container), "Configure Container");
+        telemetry.TrackAction(() => Configure(Storage), "Configure Storage");
         //perf.TrackAction(() => Configure(Index), "Configure Index");
-        perf.TrackAction(() => Configure(new HttpRouterConfigurator(configuration.Routes)), "Configure Routes");
-        perf.TrackAction(AfterConfigure);
+        telemetry.TrackAction(() => Configure(new HttpRouterConfigurator(configuration.Routes)), "Configure Routes");
+        telemetry.TrackAction(AfterConfigure);
 
         ResolveComponents();
 
         Initialization.SetProgress("Bootstrapping.");
         Task.Factory.StartNew(() =>
         {
-            perf.TrackAction(BeforeInitialize);
+            telemetry.TrackAction(BeforeInitialize);
             Initialization.SetProgress("Initializing storage.");
-            perf.TrackAction(() => Initialize(Storage), "Initialize Storage");
+            telemetry.TrackAction(() => Initialize(Storage), "Initialize Storage");
             Initialization.SetProgress("Initializing index.");
-            perf.TrackAction(() => Initialize(Index), "Initialize Index");
+            telemetry.TrackAction(() => Initialize(Index), "Initialize Index");
 
-            perf.TrackAction(AfterInitialize);
+            telemetry.TrackAction(AfterInitialize);
 
             storageManager = container.Resolve<IJsonStorageManager>();
             indexManager = container.Resolve<IJsonIndexManager>();
@@ -184,11 +179,11 @@ public abstract class WebHost : IWebHost
             //indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
             Sync.FireAndForget(indexManager.RunAsync());
-            perf.TrackTask(indexManager.Tracker.WhenState(IngestInitializationState.Initialized), "Index Manager");
-            perf.TrackAction(storageManager.Start);
+            telemetry.TrackTask(indexManager.Tracker.WhenState(IngestInitializationState.Initialized), "Index Manager");
+            telemetry.TrackAction(storageManager.Start);
             container.Resolve<IDataCleanupManager>().Start();
 
-            perf.TrackAction(AfterStart);
+            telemetry.TrackAction(AfterStart);
             Initialization.Complete();
             startup.Dispose();
         }).ContinueWith(async result => {
@@ -268,7 +263,6 @@ public abstract class WebHost : IWebHost
         IExceptionHandler handler = container.Resolve<IExceptionHandler>();
         configuration.Services.Replace(typeof(IExceptionHandler), handler);
 
-        configuration.MessageHandlers.Add(new PerformanceLoggingHandler(container.Resolve<ILogger>()));
         container
             .ResolveAll<IDataMigrator>()
             .ForEach(Storage.MigrationManager.Add);

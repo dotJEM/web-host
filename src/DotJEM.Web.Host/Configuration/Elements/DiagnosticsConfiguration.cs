@@ -2,8 +2,8 @@
 
 namespace DotJEM.Web.Host.Configuration.Elements;
 
-public class DiagnosticsConfiguration : ConfigurationElement
+public class TelemetryConfiguration : ConfigurationElement
 {
     [ConfigurationProperty("performance", IsRequired = false, DefaultValue = null)]
-    public PerformanceConfiguration Performance => this["performance"] as PerformanceConfiguration;
+    public TraceLoggerConfiguration TraceLogger => this["performance"] as TraceLoggerConfiguration;
 }
