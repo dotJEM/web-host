@@ -11,8 +11,11 @@ using DotJEM.Diagnostic.Collectors;
 using DotJEM.Diagnostic.Correlation;
 using DotJEM.Diagnostic.DataProviders;
 using DotJEM.Diagnostic.Writers;
+using DotJEM.Diagnostic.Writers.NonBlocking;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Tasks;
+
+
 
 namespace DotJEM.Web.Host.Diagnostics.Performance;
 
@@ -29,6 +32,7 @@ public class LoggerFactory : ILoggerFactory
 
     public LoggerFactory(IWebHostConfiguration configuration, IPathResolver resolver, IPerformanceLoggingCustomDataProviderManager customDataProviderManager)
     {
+
         this.configuration = configuration;
         this.resolver = resolver;
         this.customDataProviderManager = customDataProviderManager;
