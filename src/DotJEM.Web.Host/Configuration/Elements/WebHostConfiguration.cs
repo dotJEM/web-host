@@ -17,7 +17,7 @@ namespace DotJEM.Web.Host.Configuration.Elements
         [ConfigurationProperty("indexConfiguration", IsRequired = true)]
         public IndexConfiguration Index => this["indexConfiguration"] as IndexConfiguration;
 
-        [ConfigurationProperty("diagnostics", IsRequired = false)]
+        [ConfigurationProperty("diagnostics", IsRequired = false, DefaultValue = null)]
         public DiagnosticsConfiguration Diagnostics => this["diagnostics"] as DiagnosticsConfiguration;
     }
 }
