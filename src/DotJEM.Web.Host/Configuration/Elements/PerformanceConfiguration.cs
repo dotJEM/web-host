@@ -4,6 +4,13 @@ namespace DotJEM.Web.Host.Configuration.Elements
 {
     public class PerformanceConfiguration : ConfigurationElement
     {
+
+        [ConfigurationProperty("disabled", IsRequired = false, DefaultValue =false)]
+        public bool Disabled
+        {
+            get { return (bool)this["disabled"]; }
+        }
+
         [ConfigurationProperty("path", IsRequired = true)]
         public string Path
         {

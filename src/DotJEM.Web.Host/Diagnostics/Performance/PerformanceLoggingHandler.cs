@@ -8,6 +8,7 @@ using DotJEM.Diagnostic.Collectors;
 using DotJEM.Diagnostic.Correlation;
 using DotJEM.Diagnostic.DataProviders;
 using DotJEM.Diagnostic.Writers;
+using DotJEM.Diagnostic.Writers.NonBlocking;
 using DotJEM.Json.Index.Util;
 using DotJEM.Web.Host.Configuration.Elements;
 
@@ -33,7 +34,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
 
         public ILogger Create()
         {
-            if (configuration.Diagnostics?.Performance == null)
+            if (configuration.Diagnostics?.Performance == null || configuration.Diagnostics.Performance.Disabled)
                 return new NullLogger();
 
             PerformanceConfiguration config = configuration.Diagnostics.Performance;
@@ -205,7 +206,7 @@ namespace DotJEM.Web.Host.Diagnostics.Performance
             if (!logger.IsEnabled())
                 return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-            using (new CorrelationScope(request.GetCorrelationId()))
+            using (new CorrelationScope())
             {
                 using (IPerformanceTracker tracker = logger.TrackRequest(request))
                 {
