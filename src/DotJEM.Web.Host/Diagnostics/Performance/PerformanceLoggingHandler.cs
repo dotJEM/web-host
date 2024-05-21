@@ -212,7 +212,7 @@ public class PerformanceLoggingHandler : DelegatingHandler
         if (!logger.IsEnabled())
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        using (new CorrelationScope(request.GetCorrelationId()))
+        using (new CorrelationScope())
         {
             using (IPerformanceTracker tracker = logger.TrackRequest(request))
             {
