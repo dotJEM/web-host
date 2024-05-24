@@ -53,3 +53,10 @@ deploy:
       secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
     on:
       branch: nsw 
+
+  - provider: NuGet
+    name: v0_33_3
+    api_key:
+      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+    on:
+      branch: v0_33_3 
