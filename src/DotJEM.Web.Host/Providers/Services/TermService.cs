@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.IO;
 using Lucene.Net.Index;
 using Lucene.Net.Util;
 using Newtonsoft.Json.Linq;
@@ -37,8 +38,8 @@ public class TermService : ITermService
         if (string.IsNullOrWhiteSpace(contentType))
             throw new ArgumentException("contentType was empty or only had whitespaces.", "field");
 
-
-        DirectoryReader reader = index.WriterManager.Writer.GetReader(true);
+        using ILease<IndexWriter> lease = index.WriterManager.Lease();
+        DirectoryReader reader = lease.Value.GetReader(true);
         Fields fields = MultiFields.GetFields(reader);
         if (fields == null) return new();
 
