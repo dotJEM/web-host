@@ -36,27 +36,27 @@ deploy:
   - provider: NuGet
     name: Master
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: L0jKrFMbCq8CU/nA0AluItYUG3KK27qFxCxmEmg2Lc/Js9vyVtNCeABGmr/JG8Dr
     on:
       branch: master 
       
   - provider: NuGet
     name: Beta
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: L0jKrFMbCq8CU/nA0AluItYUG3KK27qFxCxmEmg2Lc/Js9vyVtNCeABGmr/JG8Dr
     on:
       branch: beta  
       
   - provider: NuGet
     name: Nsw
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: L0jKrFMbCq8CU/nA0AluItYUG3KK27qFxCxmEmg2Lc/Js9vyVtNCeABGmr/JG8Dr
     on:
       branch: nsw 
 
   - provider: NuGet
     name: v0_33_3
     api_key:
-      secure: PM9RVS7IEdZhY1gCjpIQ+gZWjwph2TmPMiQ3PvGKMJ3VL9EiGp9fZEEhFbCigiNq
+      secure: L0jKrFMbCq8CU/nA0AluItYUG3KK27qFxCxmEmg2Lc/Js9vyVtNCeABGmr/JG8Dr
     on:
       branch: v0_33_3 
