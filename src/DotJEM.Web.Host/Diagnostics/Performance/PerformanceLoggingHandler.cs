@@ -40,7 +40,7 @@ public class LoggerFactory : ILoggerFactory
 
     public ILogger Create()
     {
-        if (configuration.Diagnostics?.Performance == null)
+        if (configuration.Diagnostics.IfPresent()?.Performance.IfPresent() == null)
             return new NullLogger();
 
         PerformanceConfiguration config = configuration.Diagnostics.Performance;

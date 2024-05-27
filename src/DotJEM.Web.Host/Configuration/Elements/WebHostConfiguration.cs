@@ -14,6 +14,23 @@ public interface IWebHostConfiguration
     DataCleanupElementCollection Cleanup { get; }
 }
 
+//public class OptionalConfigurationSection : ConfigurationElement
+//{
+//    public bool IsPresent { get; private set; }
+
+//    protected override void DeserializeElement(System.Xml.XmlReader reader, bool serializeCollectionKey)
+//    {
+//        base.DeserializeElement(reader, serializeCollectionKey);
+//        IsPresent = true;  // Mark this section as present if it is successfully deserialized
+//    }
+//}
+
+public static class OptionalConfigurationSectionExtensions
+{
+    public static bool IsPresent(this ConfigurationElement self) => self.ElementInformation.IsPresent;
+    public static T IfPresent<T>(this T self) where T : ConfigurationElement => self.ElementInformation.IsPresent ? self : null;
+}
+
 public class WebHostConfiguration : ConfigurationSection, IWebHostConfiguration
 {
 
@@ -50,7 +67,7 @@ public class DataCleanupElementCollection : ConfigurationElementCollection
     protected override object GetElementKey(ConfigurationElement element)
     {
         return ((CleanQueryConfigurationElement)(element)).Query;
-    }
+            }
 }
 
 public class CleanQueryConfigurationElement : ConfigurationElement
