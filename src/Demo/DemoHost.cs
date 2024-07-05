@@ -68,11 +68,6 @@ namespace Demo
             container.Register(Component.For<IWebHostExceptionHandler>().ImplementedBy<MyCustomExceptionHandler>());
         }
 
-        //protected override IJsonIndexBuilder BuildIndex(ISchemaCollection schemas, IQueryParserConfiguration config, Func<IJsonIndexConfiguration, Analyzer> analyzerProvider = null, IJsonIndexBuilder builder = null)
-        //{
-        //    return base.BuildIndex(schemas, config, analyzerProvider, builder)
-        //        .WithFieldResolver(new FieldResolver("id", "contentType"));
-        //}
         protected override IJsonIndexBuilder BuildIndex(
             ISchemaCollection schemas,
             IQueryParserConfiguration config,
@@ -130,76 +125,26 @@ namespace Demo
         }
         protected override void AfterConfigure()
         {
-            if (File.Exists("E:\\TEMP\\templog\\webhost.log.txt"))
-                File.Delete("E:\\TEMP\\templog\\webhost.log.txt");
-            DebugLog("------------------------------------------------------");
-            DebugLog("---------------- SafeSeaNet is Starting --------------");
-            DebugLog("------------------------------------------------------");
-            DebugLog("");
-
             IDiagnosticsLogger logger = Resolve<IDiagnosticsLogger>();
             IDiagnosticsDumpService dump = Resolve<IDiagnosticsDumpService>();
             LogInfoStreamErrorEvents(logger, dump, Resolve<IDataStorageManager>().InfoStream);
             LogInfoStreamErrorEvents(logger, dump, Resolve<IWebTaskScheduler>().InfoStream);
-            Resolve<IJsonStorageManager>().DocumentSource.DocumentChanges.Subscribe(change =>
-            {
-                DuplicateChangeTrackerManager.Instance.Track(nameof(IJsonDocumentSource), change);
-                switch (change)
-                {
-                    case JsonDocumentCreated created:
-                        DebugLog($"Created [{created.Area}]: {created.Document["id"]}");
-                        break;
-                    case JsonDocumentDeleted deleted:
-                        DebugLog($"Deleted [{deleted.Area}]: {deleted.Document["id"]}");
-                        break;
-                    case JsonDocumentUpdated updated:
-                        DebugLog($"Updated [{updated.Area}]: {updated.Document["id"]}");
-                        break;
-                    case JsonDocumentSourceDigestCompleted completed:
-                        DebugLog($"Digest Completed: {completed.Area}");
-                        break;
-                    case JsonDocumentSourceReset reset:
-                        DebugLog($"Source Reset: {reset.Area}");
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(change));
-                }
-            });
             Resolve<IJsonIndexManager>().DocumentChanges.Subscribe(change =>
             {
                 DuplicateChangeTrackerManager.Instance.Track(nameof(IJsonIndexManager), change);
             });
 
-            DuplicateChangeTrackerManager.Instance.InfoStream.Subscribe(evt => {
-                DebugLog(evt.ToString());
-            });
 
-            Resolve<IJsonIndex>().WriterManager.OnClose += (sender, args) =>
-            {
-                DebugLog("WRITER WAS CLOSED!");
-            };
         }
 
-        private void DebugLog(string message)
-        {
-            lock (padlock)
-            {
-                File.AppendAllLines("E:\\TEMP\\templog\\webhost.log.txt", new List<string>() { message });
-            }
-        }
-        private object padlock = new object();
         private void LogInfoStreamErrorEvents(IDiagnosticsLogger logger, IDiagnosticsDumpService dump, IInfoStream infoStream)
         {
             infoStream
                 .OfType<InfoStreamExceptionEvent>()
-                .Subscribe(evt => {
+                .Subscribe(evt =>
+                {
                     logger.Log("incident", Severity.Error, evt.Message, evt);
                 });
-#if DEBUG
-            infoStream
-                .Where(evt => evt.Source == typeof(JsonStorageAreaObserver) || evt.Source == typeof(JsonIndexWriter))
-                .Subscribe(evt => DebugLog(evt.ToString()));
-#endif
         }
     }
 }
