@@ -12,6 +12,7 @@ using DotJEM.Web.Host.Providers.Data.Index.Schemas;
 using DotJEM.Web.Host.Providers.Data.Index.Snapshots;
 using DotJEM.Web.Host.Providers.Data.Storage;
 using DotJEM.Web.Host.Providers.Data.Storage.Cutoff;
+using DotJEM.Web.Host.Providers.Data.Storage.Indexing;
 using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 

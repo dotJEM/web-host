@@ -9,6 +9,7 @@ using DotJEM.Json.Index2.Searching;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.Web.Host.Providers.Data;
 using DotJEM.Web.Host.Providers.Data.Index;
+using DotJEM.Web.Host.Providers.Data.Storage.Indexing;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
 using DotJEM.Web.Host.Tasks;

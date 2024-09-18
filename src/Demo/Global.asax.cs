@@ -23,6 +23,7 @@ using DotJEM.Web.Host.Providers.Data.Index;
 using DotJEM.Web.Host.Providers.Data.Index.Builder;
 using DotJEM.Web.Host.Providers.Data.Index.Schemas;
 using DotJEM.Web.Host.Providers.Data.Storage;
+using DotJEM.Web.Host.Providers.Data.Storage.Indexing;
 using Lucene.Net.Analysis;
 using Lucene.Net.Search;
 

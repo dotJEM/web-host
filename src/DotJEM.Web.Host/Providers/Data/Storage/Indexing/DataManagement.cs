@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using DotJEM.Json.Index2.Management;
-using DotJEM.Json.Index2.Management.Writer;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.ObservableExtensions.InfoStreams;
-using DotJEM.Web.Host.Providers.Data.Storage;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Web.Host.Providers.Data
+namespace DotJEM.Web.Host.Providers.Data.Storage.Indexing
 {
     public interface IDataStorageManager
     {

@@ -3,6 +3,7 @@ using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Management;
 using DotJEM.Json.Storage;
 using DotJEM.Web.Host.Providers.Data;
+using DotJEM.Web.Host.Providers.Data.Storage.Indexing;
 using DotJEM.Web.Host.Providers.Pipeline;
 using DotJEM.Web.Host.Providers.Services;
 using DotJEM.Web.Host.Providers.Services.DiffMerge;
