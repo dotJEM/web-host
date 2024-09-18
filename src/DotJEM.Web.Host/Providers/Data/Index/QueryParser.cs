@@ -60,20 +60,24 @@ public class CallContext
 
 public interface IQueryParserConfiguration
 {
+
+
     IFieldStrategy LookupStrategy(string field);
     IQueryParserConfiguration Field(string field, IFieldStrategy strategy);
+    IQueryParserConfiguration Default(Func<IFieldStrategy> strategy);
 }
 
 public class QueryParserConfiguration : IQueryParserConfiguration
 {
     private readonly Dictionary<string, IFieldStrategy> strategies = new();
+    private Func<IFieldStrategy> defaultStrategy = () => new FieldStrategy();
 
     public IFieldStrategy LookupStrategy(string field)
     {
-        if(strategies.TryGetValue(field, out IFieldStrategy strategy))
+        if (strategies.TryGetValue(field, out IFieldStrategy strategy))
             return strategy;
 
-        return new FieldStrategy();
+        return defaultStrategy();
     }
 
     public IQueryParserConfiguration Field(string field, IFieldStrategy strategy)
@@ -82,17 +86,15 @@ public class QueryParserConfiguration : IQueryParserConfiguration
         return this;
     }
 
-    //public IContentTypeQueryParserConfiguration For(string contentType)
-    //{
-    //    throw new NotImplementedException();
-    //}
+    public IQueryParserConfiguration Default(Func<IFieldStrategy> strategy)
+    {
+        defaultStrategy = strategy;
+        return this;
+    }
 }
 
 public class MultiFieldQueryParserIntegration : QueryParser, IQueryParser
 {
-    //private readonly string[] fields;
-    //private readonly string[] contentTypes;
-
     private readonly ISchemaCollection schemas;
     private readonly IQueryParserConfiguration parserConfig;
 
@@ -130,7 +132,7 @@ public class MultiFieldQueryParserIntegration : QueryParser, IQueryParser
         return parserConfig.LookupStrategy(field)
             .PrepareBuilder(this, field, type);
     }
-    
+
     protected override Query GetFieldQuery(string fieldName, string queryText, int slop)
     {
         if (fieldName != null)
@@ -142,7 +144,7 @@ public class MultiFieldQueryParserIntegration : QueryParser, IQueryParser
         }
 
         IList<BooleanClause> clauses = LookupFields(JsonSchemaExtendedType.String)
-            .Select(field => base.GetFieldQuery(field, queryText,false))
+            .Select(field => base.GetFieldQuery(field, queryText, false))
             .Where(field => field != null)
             .Select(query => query.ApplySlop(slop))
             .Select(query => new BooleanClause(query, Occur.SHOULD))
