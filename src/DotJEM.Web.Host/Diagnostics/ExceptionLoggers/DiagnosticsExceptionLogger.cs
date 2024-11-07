@@ -57,7 +57,7 @@ public class DiagnosticsExceptionLogger : IExceptionLogger
         try
         {
             //TODO: use regular await.
-            return Sync.Await(context.Request.Content.ReadAsStringAsync());
+            return Sync.Await(()=>context.Request.Content.ReadAsStringAsync());
         }
         catch (Exception) {
             return null;

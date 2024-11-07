@@ -39,13 +39,13 @@ public static class Sync
         }
     }
 
-    public static T Await<T>(Task<T> task)
+    public static T Await<T>(Func<Task<T>> task)
     {
         using (new NoSynchronizationContext())
         {
             try
             {
-                return task.Result;
+                return task().Result;
                 //return Task.Run(() => task).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             catch (AggregateException ex)
@@ -59,35 +59,33 @@ public static class Sync
         }
     }
 
-    public static T[] Await<T>(IEnumerable<Task<T>> tasks)
+    //public static T[] Await<T>(params Func<Task<T>>[] tasks)
+    //{
+    //    using (new NoSynchronizationContext())
+    //    {
+    //        try
+    //        {
+    //            return Task.WhenAll(tasks.Select(x => x())).Result;
+    //            //return Task.Run(() => Task.WhenAll(tasks)).ConfigureAwait(false).GetAwaiter().GetResult();
+    //        }
+    //        catch (AggregateException ex)
+    //        {
+    //            ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions.First()).Throw();
+    //            // ReSharper disable HeuristicUnreachableCode
+    //            // The compiler requires either a throw or return, so even though this is unreachable, the compiler won't build unless it is there.
+    //            throw;
+    //            // ReSharper restore HeuristicUnreachableCode
+    //        }
+    //    }
+    //}
+
+    public static void Await(Func<Task> task)
     {
         using (new NoSynchronizationContext())
         {
             try
             {
-                return Task.WhenAll(tasks).Result;
-                //return Task.Run(() => Task.WhenAll(tasks)).ConfigureAwait(false).GetAwaiter().GetResult();
-            }
-            catch (AggregateException ex)
-            {
-                ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions.First()).Throw();
-                // ReSharper disable HeuristicUnreachableCode
-                // The compiler requires either a throw or return, so even though this is unreachable, the compiler won't build unless it is there.
-                throw;
-                // ReSharper restore HeuristicUnreachableCode
-            }
-        }
-    }
-
-    public static T[] Await<T>(params Task<T>[] tasks) => Await((IEnumerable<Task<T>>) tasks);
-
-    public static void Await(Task task)
-    {
-        using (new NoSynchronizationContext())
-        {
-            try
-            {
-                task.Wait();
+                task().Wait();
                 //Task.Run(() => task).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             catch (AggregateException ex)
@@ -101,30 +99,27 @@ public static class Sync
         }
     }
 
-    public static void Await(IEnumerable<Task> tasks)
-    {
-        using (new NoSynchronizationContext())
-        {
-            try
-            {
-                Task[] tasks2 = tasks.ToArray();
+    //public static void Await(params FuncTask[] tasks)
+    //{
+    //    using (new NoSynchronizationContext())
+    //    {
+    //        try
+    //        {
 
-                Task.WhenAll(tasks2).Wait();
-                Debug.WriteLine("");
-                //Task.Run(() => Task.WhenAll(tasks)).ConfigureAwait(false).GetAwaiter().GetResult();
-            }
-            catch (AggregateException ex)
-            {
-                ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions.First()).Throw();
-                // ReSharper disable HeuristicUnreachableCode
-                // The compiler requires either a throw or return, so even though this is unreachable, the compiler won't build unless it is there.
-                throw;
-                // ReSharper restore HeuristicUnreachableCode
-            }
-        }
-    }
-
-    public static void Await(params Task[] tasks) => Await((IEnumerable<Task>)tasks);
+    //            Task.WhenAll(tasks.Select()).Wait();
+    //            Debug.WriteLine("");
+    //            //Task.Run(() => Task.WhenAll(tasks)).ConfigureAwait(false).GetAwaiter().GetResult();
+    //        }
+    //        catch (AggregateException ex)
+    //        {
+    //            ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions.First()).Throw();
+    //            // ReSharper disable HeuristicUnreachableCode
+    //            // The compiler requires either a throw or return, so even though this is unreachable, the compiler won't build unless it is there.
+    //            throw;
+    //            // ReSharper restore HeuristicUnreachableCode
+    //        }
+    //    }
+    //}
 
     private class NoSynchronizationContext : IDisposable
     {

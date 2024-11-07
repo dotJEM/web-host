@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
@@ -14,7 +15,7 @@ using DotJEM.Diagnostic.Writers;
 using DotJEM.Diagnostic.Writers.NonBlocking;
 using DotJEM.Web.Host.Configuration.Elements;
 using DotJEM.Web.Host.Tasks;
-
+using Lucene.Net.Search;
 
 
 namespace DotJEM.Web.Host.Diagnostics.Performance;
@@ -243,7 +244,7 @@ public static class LoggerExtensions
         return self.Track("task", new { name });
     }
 
-    public static void TrackTask(this ILogger self, Task task, string name)
+    public static void TrackTask(this ILogger self, Func<Task> task, string name)
     {
         using IPerformanceTracker tracker = self.Track("task", new { name });
         Sync.Await(task);

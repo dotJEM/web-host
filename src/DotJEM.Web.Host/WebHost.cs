@@ -184,7 +184,7 @@ public abstract class WebHost : IWebHost
             //indexManager.InfoStream.Subscribe(new StorageIndexStartupTracker(Initialization));
 
             Sync.FireAndForget(indexManager.RunAsync());
-            perf.TrackTask(indexManager.Tracker.WhenState(IngestInitializationState.Initialized), "Index Manager");
+            perf.TrackTask(()=>indexManager.Tracker.WhenState(IngestInitializationState.Initialized), "Index Manager");
             perf.TrackAction(storageManager.Start);
             container.Resolve<IDataCleanupManager>().Start();
 

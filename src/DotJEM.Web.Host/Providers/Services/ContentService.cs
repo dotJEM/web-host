@@ -141,7 +141,7 @@ public class ContentService : IContentService
             JObject closure = entity;
             entity = performance.TrackFunction(() => area.Insert(contentType, closure), TRACK_TYPE, new { fn = $"ContentService.Post({contentType}, $ENTITY)" } );
             entity = pipeline.ExecuteAfterPost(entity, contentType, context);
-            Sync.Await(manager.QueueUpdate(area, entity));
+            Sync.Await(() => manager.QueueUpdate(area, entity));
             return entity;
         }
     }
@@ -158,7 +158,7 @@ public class ContentService : IContentService
             JObject closure = entity;
             entity = performance.TrackFunction(() => area.Update(id, closure), TRACK_TYPE, new { fn = $"ContentService.Put({contentType}, $ENTITY)" } );
             entity = pipeline.ExecuteAfterPut(entity, prev, contentType, context);
-            Sync.Await(manager.QueueUpdate(area, entity));
+            Sync.Await(() => manager.QueueUpdate(area, entity));
             return entity;
         }
     }
@@ -178,7 +178,7 @@ public class ContentService : IContentService
             if (deleted == null)
                 return null;
 
-            Sync.Await(manager.QueueDelete(area, deleted));
+            Sync.Await(() => manager.QueueDelete(area, deleted));
             return pipeline.ExecuteAfterDelete(deleted, contentType, context);
         }
     }
