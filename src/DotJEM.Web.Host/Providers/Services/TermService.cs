@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DotJEM.Json.Index2;
-using DotJEM.Json.Index2.IO;
+using DotJEM.Json.Index2.Leases;
 using Lucene.Net.Index;
 using Lucene.Net.Util;
 using Newtonsoft.Json.Linq;
