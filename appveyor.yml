@@ -40,7 +40,7 @@ deploy:
   - provider: NuGet
     name: Master
     api_key:
-      secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
+      secure: 2IraPNpy348Gs7V5PevrcKVZ9kfer2gMmhooHkWdOLY9ySvgFWwN3C3nKHLnkDus
     on:
       branch: master 
     skip_symbols: false
@@ -48,7 +48,7 @@ deploy:
   - provider: NuGet
     name: Beta
     api_key:
-      secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
+      secure: 2IraPNpy348Gs7V5PevrcKVZ9kfer2gMmhooHkWdOLY9ySvgFWwN3C3nKHLnkDus
     on:
       branch: beta  
     skip_symbols: false
@@ -56,7 +56,7 @@ deploy:
   - provider: NuGet
     name: Nsw
     api_key:
-      secure: bFNGQmfzcl8+qMzGRyjuppyao5/sQlK4w3ikBuYi4qQTniVxdfoyWImJwHHktQm0
+      secure: 2IraPNpy348Gs7V5PevrcKVZ9kfer2gMmhooHkWdOLY9ySvgFWwN3C3nKHLnkDus
     on:
       branch: nsw 
     skip_symbols: false
