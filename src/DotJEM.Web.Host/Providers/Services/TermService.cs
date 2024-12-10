@@ -28,16 +28,16 @@ public class TermService : ITermService
     public JObject Get(string contentType, string field)
     {
         if (field == null) 
-            throw new ArgumentNullException("field");
+            throw new ArgumentNullException(nameof(field));
 
         if (contentType == null)
-            throw new ArgumentNullException("contentType");
+            throw new ArgumentNullException(nameof(contentType));
 
         if(string.IsNullOrWhiteSpace(field))
-            throw new ArgumentException("field was empty or only had whitespaces.","field");
+            throw new ArgumentException("field was empty or only had whitespaces.",nameof(field));
 
         if (string.IsNullOrWhiteSpace(contentType))
-            throw new ArgumentException("contentType was empty or only had whitespaces.", "field");
+            throw new ArgumentException("contentType was empty or only had whitespaces.", nameof(field));
 
         using ILease<IIndexWriter> lease = index.WriterManager.Lease();
         DirectoryReader reader = lease.Value.GetReader(true);
@@ -45,8 +45,7 @@ public class TermService : ITermService
         if (fields == null) return new();
 
         Terms terms = fields.GetTerms(field);
-        return new()
-        {
+        return new() {
             ["terms"] = JArray.FromObject(terms.AsEnumerable()
                 .Select(bytes => bytes.Utf8ToString())
                 .ToArray())
