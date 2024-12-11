@@ -89,15 +89,15 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public async Task StartAsync()
     {
+
         if(started.Exchange(true))
             return;
+
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
         task = scheduler.Schedule($"JsonStorageAreaObserver:{StorageArea.Name}", _ => RunUpdateCheck(), pollInterval);
         task.InfoStream.Subscribe(infoStream);
         await task.Signal().ConfigureAwait(false);
     }
-
-
 
     public async Task StopAsync()
     {

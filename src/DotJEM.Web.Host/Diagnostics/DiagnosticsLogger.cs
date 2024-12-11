@@ -130,29 +130,30 @@ public class DiagnosticsLogger : IDiagnosticsLogger
         Converter = converter;
     }
 
-    public void Log(string contentType, Severity severity, object entity = null)
+    public virtual void Log(string contentType, Severity severity, object entity = null)
     {
         JObject json = EnsureJson(entity);
         json["host"] = Environment.MachineName;
         json["severity"] = Converter.FromObject(severity);
         json["stackTrace"] = JArray.FromObject(BuildStackTrace().ToArray());
         Area.Insert(contentType, json);
-        //Manager.QueueUpdate(json);
     }
 
-    public void Log(string contentType, Severity severity, string message, object entity = null)
+    public virtual void Log(string contentType, Severity severity, string message, object entity = null)
     {
         JObject json = EnsureJson(entity);
         json["message"] = message;
         Log(contentType, severity, json);
     }
-        
-    private JObject EnsureJson(object entity)
+
+    private 
+
+    protected JObject EnsureJson(object entity)
     {
         return entity == null ? new JObject() : (entity as JObject ?? Converter.ToJObject(entity));
     }
 
-    internal static IEnumerable<string> BuildStackTrace()
+    protected static IEnumerable<string> BuildStackTrace()
     {
         IEnumerable<StackFrame> frames = new StackTrace().GetFrames();
         if (frames == null)
